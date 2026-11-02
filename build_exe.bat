@@ -1,0 +1,80 @@
+@echo off
+setlocal enabledelayedexpansion
+chcp 65001 >nul
+cd /d "%~dp0"
+
+echo ================================================================
+echo   PDF Baski ^& Cilt Studyosu - Tasinabilir EXE Yapici
+echo   Gelistirici: Abdulkadir Hamza (hamza_kadir@hotmail.com)
+echo ================================================================
+echo.
+
+where python >nul 2>nul
+if errorlevel 1 (
+    echo HATA: Python bulunamadi. https://www.python.org/downloads/windows/
+    pause
+    exit /b 1
+)
+
+echo [1/4] Gerekli paketler kontrol ediliyor...
+python -c "import customtkinter, pymupdf, PIL, windnd" >nul 2>nul
+if errorlevel 1 (
+    echo Eksik paketler kuruluyor...
+    python -m pip install -r requirements.txt
+    if errorlevel 1 goto fail
+)
+
+python -c "import PyInstaller" >nul 2>nul
+if errorlevel 1 (
+    echo PyInstaller kuruluyor...
+    python -m pip install "pyinstaller>=6"
+    if errorlevel 1 goto fail
+)
+
+echo.
+echo [2/4] Surum ve simge hazirlaniyor...
+for /f "delims=" %%V in ('python -c "import version; print(version.VERSION)"') do set "APPVER=%%V"
+if "%APPVER%"=="" set "APPVER=0.0.0"
+echo Surum: %APPVER%
+if not exist "assets\icon.ico" (
+    echo Simge uretiliyor...
+    python make_icon.py
+    if errorlevel 1 goto fail
+)
+
+echo.
+echo [3/4] Testler calistiriliyor...
+python -m pytest -q
+if errorlevel 1 (
+    echo.
+    echo HATA: Testler gecmedi; derleme durduruldu.
+    echo Once "python -m pytest -q" ciktisindaki hatayi duzeltin.
+    pause
+    exit /b 1
+)
+
+echo.
+echo [4/4] Tek dosya EXE derleniyor...
+python -m PyInstaller ^
+    --noconfirm --clean --noconsole --onefile ^
+    --collect-all customtkinter ^
+    --collect-all windnd ^
+    --add-data "assets;assets" ^
+    --icon "assets\icon.ico" ^
+    --name "PDF_Baski_Cilt_Studyosu_%APPVER%" ^
+    app.py
+if errorlevel 1 goto fail
+
+echo.
+echo ================================================================
+echo   EXE hazir: %~dp0dist\PDF_Baski_Cilt_Studyosu_%APPVER%.exe
+echo ================================================================
+echo.
+explorer "%~dp0dist"
+exit /b 0
+
+:fail
+echo.
+echo Derleme basarisiz oldu. Yukaridaki konsol ciktisini kontrol edin.
+pause
+exit /b 1

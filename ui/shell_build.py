@@ -35,7 +35,7 @@ class PreviewSplitter(ctk.CTkFrame):
     """
 
     MIN_WIDTH = 280
-    MAX_WIDTH = 800
+    MAX_WIDTH = 560
 
     def __init__(self, master, host, preview_panel):
         super().__init__(master, fg_color=COLOR_BORDER, corner_radius=2)
@@ -74,7 +74,6 @@ class ShellBuildMixin:
             self.grid_rowconfigure(1, weight=1)
             self._build_header()
             self._build_workspace()
-            self._build_action_bar()
 
     def _build_header(self) -> None:
         bar = ctk.CTkFrame(self, fg_color="transparent")
@@ -123,12 +122,12 @@ class ShellBuildMixin:
         self._workspace = workspace
         self._preview_width = 480  # Önizleme kolonunun başlangıç genişliği (sürüklenebilir).
         workspace.grid_columnconfigure(0, weight=0, minsize=230)
-        workspace.grid_columnconfigure(1, weight=1)
+        workspace.grid_columnconfigure(1, weight=1, minsize=400)
         workspace.grid_columnconfigure(3, weight=0, minsize=self._preview_width)
         workspace.grid_rowconfigure(0, weight=1)
 
         self._build_sidebar(workspace)
-
+        self._build_action_bar(workspace)
         content = ctk.CTkFrame(workspace, fg_color=COLOR_CARD, corner_radius=10,
                                border_width=1, border_color=COLOR_BORDER)
         content.grid(row=0, column=1, sticky="nsew", padx=(0, 10))
@@ -296,18 +295,15 @@ class ShellBuildMixin:
             setattr(self, names_with_switch[name], switch)
 
     def _build_sidebar_footer(self, sidebar) -> None:
-        ctk.CTkButton(
-            sidebar, text="Ayarlar", height=30,
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
-            fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
-            hover_color=COLOR_BTN_SUBTLE_HOVER, corner_radius=6,
-            command=self._show_settings_dialog,
-        ).grid(row=3, column=0, sticky="ew", pady=(6, 0))
+        # Ayarlar ve Hakkında eylem çubuğuna taşındı; yan panel altı boş bırakılır.
+        pass
 
-    def _build_action_bar(self) -> None:
-        card = ctk.CTkFrame(self, fg_color=COLOR_CARD, corner_radius=10,
+    def _build_action_bar(self, parent=None) -> None:
+        if parent is None:
+            parent = self
+        card = ctk.CTkFrame(parent, fg_color=COLOR_CARD, corner_radius=10,
                             border_width=1, border_color=COLOR_BORDER)
-        card.grid(row=2, column=0, sticky="ew", padx=16, pady=(0, 10))
+        card.grid(row=1, column=1, columnspan=3, sticky="ew", padx=(0, 0), pady=(6, 0))
         card.grid_columnconfigure(0, weight=1)
 
         row0 = ctk.CTkFrame(card, fg_color="transparent")
@@ -348,6 +344,12 @@ class ShellBuildMixin:
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
             fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
             hover_color=COLOR_BTN_SUBTLE_HOVER, command=self._show_about_dialog,
+        ).pack(side="left", padx=(0, 8))
+        ctk.CTkButton(
+            options, text="Ayarlar", width=96, height=28,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
+            fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
+            hover_color=COLOR_BTN_SUBTLE_HOVER, command=self._show_settings_dialog,
         ).pack(side="left", padx=(0, 14))
         self.chk_optimize = ctk.CTkCheckBox(
             options, text="Dosyayı optimize et (küçük boyut)",
@@ -397,7 +399,7 @@ class ShellBuildMixin:
 
     def _set_preview_width(self, width: int) -> None:
         """Önizleme kolonunun genişliğini sürüklemeyle günceller (ayraç çağırır)."""
-        width = max(280, min(800, int(width)))
+        width = max(280, min(560, int(width)))
         self._preview_width = width
         try:
             self._workspace.grid_columnconfigure(3, weight=0, minsize=width)

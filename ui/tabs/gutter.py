@@ -34,9 +34,11 @@ class GutterTab(BaseTab):
         scroll.set_padding(2, 4, 2, 6, spacing=6)
         container = scroll
         container.grid_columnconfigure(0, weight=1)
-        # İçerik dikeyde yayılır: kartlar arasındaki boşluklar paylaşıp alt/üst boşluğu bitirir.
-        for row in (1, 3, 5, 7):
-            container.grid_rowconfigure(row, weight=1)
+        # Dikey nefes: kart bloğu üst/altta, iç boşluklar sıfır.
+        container.grid_rowconfigure(1, weight=1)
+        container.grid_rowconfigure(3, minsize=6)
+        container.grid_rowconfigure(5, minsize=6)
+        container.grid_rowconfigure(7, weight=1)
 
         # -- Modül Durumu ( küçük tek satır; anahtar sol menüde) ----------------
         top = ctk.CTkFrame(container, fg_color="transparent")

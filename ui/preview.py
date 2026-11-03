@@ -392,6 +392,16 @@ class PreviewPanel:
         self.detach_images()
         count = min(len(pages), 2)
         max_width = 340 if self.mode == "single" else 200
+        try:
+            card_w = int(self.card.width()) if hasattr(self.card, "width") else 0
+        except Exception:
+            card_w = 0
+        if card_w < 200:
+            card_w = max(430, int(getattr(self, "_fallback_card_w", 480)))
+        if self.mode == "single":
+            max_width = max(260, card_w - 24)
+        else:
+            max_width = max(160, (card_w - 24) // 2)
         for slot_index, (slot, image_label, caption) in enumerate(self.slots):
             if slot_index >= count:
                 continue

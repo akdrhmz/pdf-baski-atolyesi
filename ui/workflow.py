@@ -247,6 +247,9 @@ class WorkflowMixin:
         self.btn_open_folder.configure(state="normal")
         self._update_pipeline_summary()
         self._schedule_preview()
+        # Ayarlarda istendiyse çıktı klasörünü otomatik aç.
+        if self.store.data.get("auto_open_output"):
+            self._open_output_folder()
 
         lines = report.lines() if report is not None else []
         lines.extend("• " + warning for warning in warnings)

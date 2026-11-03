@@ -10,6 +10,9 @@ from __future__ import annotations
 import os
 from typing import Any, Dict
 
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QCursor
+
 from ui import qt_compat as ctk
 from PIL import Image
 
@@ -23,6 +26,43 @@ from ui.tabs.merge import MergeTab
 from ui.tabs.number import NumberTab
 from ui.theme import *  # noqa: F401,F403
 from ui.window import TAB_NAMES, TabNav
+
+
+class PreviewSplitter(ctk.CTkFrame):
+    """İçerik ile önizleme kolonu arasındaki sürüklenebilir ayraç.
+
+    Sola çekilirse önizleme genişler, sağa çekilirse daralır (CLAMP aralığı 280-800).
+    """
+
+    MIN_WIDTH = 280
+    MAX_WIDTH = 800
+
+    def __init__(self, master, host, preview_panel):
+        super().__init__(master, fg_color=COLOR_BORDER, corner_radius=2)
+        self.setFixedWidth(7)
+        self.setCursor(Qt.CursorShape.SplitHCursor)
+        self._host = host
+        self._panel = preview_panel
+        self._press_x = -1
+        self._start_w = 0
+
+    def _set_width(self, width: int) -> None:
+        new_w = max(self.MIN_WIDTH, min(self.MAX_WIDTH, int(width)))
+        self._host._set_preview_width(new_w)
+
+    def mousePressEvent(self, event) -> None:
+        self._press_x = QCursor.pos().x()
+        self._start_w = self._host._preview_width
+        self.grabMouse()
+
+    def mouseMoveEvent(self, event) -> None:
+        if self._press_x >= 0:
+            # Sola sürükleme (+delta) önizlemeyi genişletir.
+            self._set_width(self._start_w + self._press_x - QCursor.pos().x())
+
+    def mouseReleaseEvent(self, event) -> None:
+        self._press_x = -1
+        self.releaseMouse()
 
 
 class ShellBuildMixin:
@@ -81,9 +121,10 @@ class ShellBuildMixin:
         workspace = ctk.CTkFrame(self, fg_color="transparent")
         workspace.grid(row=1, column=0, sticky="nsew", padx=16, pady=(0, 6))
         self._workspace = workspace
+        self._preview_width = 480  # Önizleme kolonunun başlangıç genişliği (sürüklenebilir).
         workspace.grid_columnconfigure(0, weight=0, minsize=230)
         workspace.grid_columnconfigure(1, weight=1)
-        workspace.grid_columnconfigure(2, weight=0, minsize=430)
+        workspace.grid_columnconfigure(3, weight=0, minsize=self._preview_width)
         workspace.grid_rowconfigure(0, weight=1)
 
         self._build_sidebar(workspace)
@@ -121,7 +162,11 @@ class ShellBuildMixin:
         # Tembel kurulum (2.9): açılışta yalnızca görünen sekme kurulur; diğerleri ilk
         # gösterildiğinde (select_tab) ya da eski adla ilk erişimde kurulur.
         self._tabs[self.current_tab].ensure_built()
+
         self.preview_panel.build(workspace)
+        # (0: menü, 1: içerik, 2: ayraç, 3: önizleme) sürüklenebilir sütun ayracı.
+        PreviewSplitter(workspace, self, self.preview_panel).grid(
+            row=0, column=2, sticky="ns", pady=16)
 
         self.tabview = TabNav(self)
         self.select_tab(self.current_tab)
@@ -252,11 +297,11 @@ class ShellBuildMixin:
 
     def _build_sidebar_footer(self, sidebar) -> None:
         ctk.CTkButton(
-            sidebar, text="Kılavuz & Hakkında", height=30,
+            sidebar, text="Ayarlar", height=30,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
             fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
             hover_color=COLOR_BTN_SUBTLE_HOVER, corner_radius=6,
-            command=self._show_about_dialog,
+            command=self._show_settings_dialog,
         ).grid(row=3, column=0, sticky="ew", pady=(6, 0))
 
     def _build_action_bar(self) -> None:
@@ -298,6 +343,12 @@ class ShellBuildMixin:
 
         options = ctk.CTkFrame(bottom_row, fg_color="transparent")
         options.grid(row=0, column=0, sticky="w")
+        ctk.CTkButton(
+            options, text="Kılavuz & Hakkında", width=130, height=28,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
+            fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
+            hover_color=COLOR_BTN_SUBTLE_HOVER, command=self._show_about_dialog,
+        ).pack(side="left", padx=(0, 14))
         self.chk_optimize = ctk.CTkCheckBox(
             options, text="Dosyayı optimize et (küçük boyut)",
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
@@ -343,6 +394,16 @@ class ShellBuildMixin:
             command=self._start_processing,
         )
         self.btn_main_action.pack(side="left", padx=(6, 0))
+
+    def _set_preview_width(self, width: int) -> None:
+        """Önizleme kolonunun genişliğini sürüklemeyle günceller (ayraç çağırır)."""
+        width = max(280, min(800, int(width)))
+        self._preview_width = width
+        try:
+            self._workspace.grid_columnconfigure(3, weight=0, minsize=width)
+            self.preview_panel.card.setMinimumWidth(width)
+        except Exception:
+            self.log.exception("Önizleme genişliği güncelenemedi")
 
     def _make_pill(self, text: str) -> ctk.CTkLabel:
         pill = ctk.CTkLabel(

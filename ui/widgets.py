@@ -68,7 +68,7 @@ class FieldRow(ctk.CTkFrame):
             self.label.pack(side="left", padx=(0, 8))
 
         self.entry = ctk.CTkEntry(
-            self, width=width, height=28,
+            self, width=width, height=26,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_BODY),
             fg_color=COLOR_CARD, border_color=COLOR_BORDER,
             text_color=COLOR_TEXT_PRIMARY,
@@ -223,7 +223,7 @@ class WrapButtonRow(ctk.CTkFrame):
     def add_button(self, text: str, command, width: int = 90, bold: bool = False) -> ctk.CTkButton:
         index = len(self._buttons)
         button = ctk.CTkButton(
-            self, text=text, command=command, height=30,
+            self, text=text, command=command, height=26,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold" if bold else "normal"),
             fg_color=COLOR_CARD, text_color=COLOR_TEXT_PRIMARY,
             border_width=1, border_color=COLOR_BORDER,

@@ -137,6 +137,7 @@ class SettingsStore:
             "settings_version": SETTINGS_VERSION,
             "unit": "mm",
             "theme": "Sistem",
+            "auto_open_output": False,
             "last_state": {},
             "profiles": {},
             "recent_files": [],
@@ -174,7 +175,14 @@ class SettingsStore:
             merged["unit"] = "mm"
         if merged.get("theme") not in THEMES:
             merged["theme"] = "Sistem"
+        if not isinstance(merged.get("auto_open_output"), bool):
+            merged["auto_open_output"] = False
         return merged
+
+    def reset(self) -> None:
+        """Tüm ayarları fabrika değerlerine döndürür ve diske yazar."""
+        self.data = self._defaults()
+        self.save()
 
     def save(self) -> None:
         """Ayarları atomik olarak diske yazar; hata günlüğe düşer, akışı bozmaz."""

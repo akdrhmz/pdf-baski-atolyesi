@@ -32,9 +32,9 @@ class NumberTab(BaseTab):
         scroll.set_padding(2, 4, 2, 6, spacing=8)
         container = scroll
         container.grid_columnconfigure(0, weight=1)
-        # Kart bloğu dikeyde dengeli: üst ve alt eşit nefes alır.
-        container.grid_rowconfigure(1, weight=1)
-        container.grid_rowconfigure(5, weight=1)
+        # İçerik dikeyde yayılır: kartlar arasındaki boşluklar paylaşıp alt/üst boşluğu bitirir.
+        for row in (1, 3, 5, 7):
+            container.grid_rowconfigure(row, weight=1)
 
         # -- Modül Durumu (küçük tek satır; anahtar sol menüde) --------------
         top = ctk.CTkFrame(container, fg_color="transparent")
@@ -54,7 +54,7 @@ class NumberTab(BaseTab):
         pos_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
                                 border_width=1, border_color=COLOR_BORDER)
         pos_card.grid(row=2, column=0, sticky="ew")
-        pos_card.set_padding(12, 10, 12, 12, spacing=6)
+        pos_card.set_padding(12, 8, 12, 10, spacing=4)
         pos_card.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
@@ -64,7 +64,7 @@ class NumberTab(BaseTab):
         ).grid(row=0, column=0, sticky="w")
 
         self.seg_pos = ctk.CTkSegmentedButton(
-            pos_card, values=list(POSITION_LABELS.keys()), height=32,
+            pos_card, values=list(POSITION_LABELS.keys()), height=26,
             border_width=0, fg_color=COLOR_SUBCARD, bg_color=COLOR_SUBCARD,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
             selected_color=COLOR_SELECTED, selected_hover_color=COLOR_SELECTED_HOVER,
@@ -83,7 +83,7 @@ class NumberTab(BaseTab):
             text_color=COLOR_TEXT_PRIMARY, anchor="w",
         ).grid(row=0, column=0, sticky="w", padx=(0, 8))
         self.menu_format = ctk.CTkOptionMenu(
-            fmt_row, values=list(FORMAT_LABELS.keys()), width=148, height=30,
+            fmt_row, values=list(FORMAT_LABELS.keys()), width=148, height=26,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
             fg_color=COLOR_CARD, text_color=COLOR_TEXT_PRIMARY,
             button_color=COLOR_SUBCARD, button_hover_color=COLOR_BTN_SUBTLE_HOVER,
@@ -108,8 +108,8 @@ class NumberTab(BaseTab):
         # -- Başlangıç Sayfası ve Kenar Mesafeleri -----------------------------
         dist_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
                                  border_width=1, border_color=COLOR_BORDER)
-        dist_card.grid(row=3, column=0, sticky="ew")
-        dist_card.set_padding(12, 10, 12, 12, spacing=6)
+        dist_card.grid(row=4, column=0, sticky="ew")
+        dist_card.set_padding(12, 8, 12, 10, spacing=4)
         dist_card.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
@@ -148,8 +148,8 @@ class NumberTab(BaseTab):
         # -- Numarasız Sayfalar ve Özel Şablon ---------------------------------
         extra_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
                                   border_width=1, border_color=COLOR_BORDER)
-        extra_card.grid(row=4, column=0, sticky="ew")
-        extra_card.set_padding(12, 10, 12, 12, spacing=6)
+        extra_card.grid(row=6, column=0, sticky="ew")
+        extra_card.set_padding(12, 8, 12, 10, spacing=4)
         extra_card.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
@@ -166,7 +166,7 @@ class NumberTab(BaseTab):
             text_color=COLOR_TEXT_PRIMARY, width=130, anchor="w",
         ).pack(side="left", padx=(0, 8))
         self.entry_skip_pages = ctk.CTkEntry(
-            skip_row, placeholder_text="Örn: 1, 2, 15, 24-26 (kapak veya bölüm başlıkları)", height=30,
+            skip_row, placeholder_text="Örn: 1, 2, 15, 24-26 (kapak veya bölüm başlıkları)", height=26,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_BODY),
             fg_color=COLOR_CARD, border_color=COLOR_BORDER, text_color=COLOR_TEXT_PRIMARY,
         )
@@ -192,7 +192,7 @@ class NumberTab(BaseTab):
         ).pack(side="left", padx=(0, 8))
         self.entry_number_template = ctk.CTkEntry(
             template_row, placeholder_text="Örn: {n} / {N}  •  {roman}  •  Sayfa {n}",
-            height=30, font=ctk.CTkFont(family=FONT_FAMILY, size=FS_BODY),
+            height=26, font=ctk.CTkFont(family=FONT_FAMILY, size=FS_BODY),
             fg_color=COLOR_CARD, border_color=COLOR_BORDER, text_color=COLOR_TEXT_PRIMARY,
         )
         self.entry_number_template.pack(side="left", fill="x", expand=True)

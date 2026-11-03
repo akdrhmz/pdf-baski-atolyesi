@@ -32,9 +32,9 @@ class MarginTab(BaseTab):
         scroll.set_padding(2, 4, 2, 6, spacing=8)
         container = scroll
         container.grid_columnconfigure(0, weight=1)
-        # Kart bloğu dikeyde dengeli: üst ve alt eşit nefes alır.
-        container.grid_rowconfigure(1, weight=1)
-        container.grid_rowconfigure(5, weight=1)
+        # İçerik dikeyde yayılır: kartlar arasındaki boşluklar paylaşıp alt/üst boşluğu bitirir.
+        for row in (1, 3, 5, 7):
+            container.grid_rowconfigure(row, weight=1)
 
         # -- Modül Durumu (küçük tek satır; anahtar sol menüde) --------------
         top = ctk.CTkFrame(container, fg_color="transparent")
@@ -54,7 +54,7 @@ class MarginTab(BaseTab):
         pay_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
                                 border_width=1, border_color=COLOR_BORDER)
         pay_card.grid(row=2, column=0, sticky="ew")
-        pay_card.set_padding(12, 10, 12, 12, spacing=6)
+        pay_card.set_padding(12, 8, 12, 10, spacing=4)
         pay_card.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
@@ -95,8 +95,8 @@ class MarginTab(BaseTab):
         # -- Boşluk Ekleme Yöntemi ve Kitapçık Seçeneği -------------------------
         mode_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
                                  border_width=1, border_color=COLOR_BORDER)
-        mode_card.grid(row=3, column=0, sticky="ew")
-        mode_card.set_padding(12, 10, 12, 12, spacing=6)
+        mode_card.grid(row=4, column=0, sticky="ew")
+        mode_card.set_padding(12, 8, 12, 10, spacing=4)
         mode_card.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
@@ -106,7 +106,7 @@ class MarginTab(BaseTab):
         ).grid(row=0, column=0, sticky="w")
 
         self.seg_bottom_mode = ctk.CTkSegmentedButton(
-            mode_card, values=list(MODE_LABELS.keys()), height=32,
+            mode_card, values=list(MODE_LABELS.keys()), height=26,
             border_width=0, fg_color=COLOR_SUBCARD, bg_color=COLOR_SUBCARD,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
             selected_color=COLOR_SELECTED, selected_hover_color=COLOR_SELECTED_HOVER,
@@ -142,8 +142,8 @@ class MarginTab(BaseTab):
         # -- İşlem Dışı Sayfalar (Muafiyet) ------------------------------------
         exclude_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
                                     border_width=1, border_color=COLOR_BORDER)
-        exclude_card.grid(row=4, column=0, sticky="ew")
-        exclude_card.set_padding(12, 10, 12, 12, spacing=4)
+        exclude_card.grid(row=6, column=0, sticky="ew")
+        exclude_card.set_padding(12, 8, 12, 10, spacing=4)
         exclude_card.grid_columnconfigure(1, weight=1)
 
         ctk.CTkLabel(
@@ -153,7 +153,7 @@ class MarginTab(BaseTab):
         ).grid(row=0, column=0, sticky="w", padx=(0, 8))
         self.entry_exclude_margin = ctk.CTkEntry(
             exclude_card, placeholder_text="Örn: 1, 5, 9-10 (bu sayfalara alt/üst boşluk eklenmez)",
-            height=30, font=ctk.CTkFont(family=FONT_FAMILY, size=FS_BODY),
+            height=26, font=ctk.CTkFont(family=FONT_FAMILY, size=FS_BODY),
             fg_color=COLOR_CARD, border_color=COLOR_BORDER, text_color=COLOR_TEXT_PRIMARY,
         )
         self.entry_exclude_margin.grid(row=0, column=1, sticky="ew")

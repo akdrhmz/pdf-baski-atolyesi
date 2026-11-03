@@ -142,8 +142,9 @@ class PreviewPanel:
     # =====================================================================
     def build(self, parent) -> None:
         card = ctk.CTkFrame(parent, fg_color=COLOR_CARD, corner_radius=8,
-                        border_width=1, border_color=COLOR_BORDER, width=430)
-        card.grid(row=0, column=2, sticky="nsew")
+                        border_width=1, border_color=COLOR_BORDER, width=480)
+        self.card = card
+        card.grid(row=0, column=3, sticky="nsew")
         card.grid_columnconfigure(0, weight=1)
         card.grid_rowconfigure(3, weight=1)
 
@@ -161,7 +162,7 @@ class PreviewPanel:
         self.host.bind_wraplength(subtitle, card, 30)
 
         self.preview_mode_menu = ctk.CTkSegmentedButton(
-            card, values=["Tek sayfa", "Çift sayfa"], height=30,
+            card, values=["Tek sayfa", "Çift sayfa"], height=26,
             border_width=0, fg_color=COLOR_SUBCARD, bg_color=COLOR_CARD,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
             selected_color=COLOR_SELECTED, selected_hover_color=COLOR_SELECTED_HOVER,
@@ -219,7 +220,7 @@ class PreviewPanel:
         nav.grid(row=4, column=0, sticky="ew", padx=12, pady=(0, 2))
         nav.grid_columnconfigure(1, weight=1)
         self.preview_prev_btn = ctk.CTkButton(
-            nav, text="‹ Önceki", width=84, height=30,
+            nav, text="‹ Önceki", width=84, height=26,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
             fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
             border_width=1, border_color=COLOR_BORDER,
@@ -232,7 +233,7 @@ class PreviewPanel:
         )
         self.preview_page_label.grid(row=0, column=1)
         self.preview_next_btn = ctk.CTkButton(
-            nav, text="Sonraki ›", width=84, height=30,
+            nav, text="Sonraki ›", width=84, height=26,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
             fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
             border_width=1, border_color=COLOR_BORDER,
@@ -269,7 +270,7 @@ class PreviewPanel:
         self.detach_images()
         preview_buttons.grid_columnconfigure(1, weight=1)
         ctk.CTkButton(
-            preview_buttons, text="Önizlemeyi yenile", height=34,
+            preview_buttons, text="Önizlemeyi yenile", height=30,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
             fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
             border_width=1, border_color=COLOR_BORDER,
@@ -277,7 +278,7 @@ class PreviewPanel:
             command=self.refresh_now,
         ).grid(row=0, column=0, sticky="ew", padx=(4, 3))
         ctk.CTkButton(
-            preview_buttons, text="Kırpma riskini tara", height=34,
+            preview_buttons, text="Kırpma riskini tara", height=30,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
             fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
             border_width=1, border_color=COLOR_BORDER,

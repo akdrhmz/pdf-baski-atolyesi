@@ -14,6 +14,7 @@ from ui.qt_compat import messagebox
 HAS_WINDND = True
 
 from settings_store import LOG_PATH
+from gutter_engine import UNITS
 from version import APP_NAME, AUTHOR, CONTACT, VERSION
 from ui.paths import ASSETS_DIR
 from ui.theme import *  # noqa: F401,F403
@@ -150,7 +151,7 @@ class DialogsMixin:
     def _show_about_dialog(self) -> None:
         dialog = ctk.CTkToplevel(self)
         dialog.title(f"Hakkında - {APP_NAME}")
-        dialog.geometry("860x740")
+        dialog.geometry("720x600")
         dialog.resizable(False, False)
         dialog.transient(self)
         dialog.grab_set()
@@ -167,7 +168,7 @@ class DialogsMixin:
         if os.path.exists(icon_path):
             try:
                 image = Image.open(icon_path)
-                self._about_icon = ctk.CTkImage(light_image=image, dark_image=image, size=(76, 76))
+                self._about_icon = ctk.CTkImage(light_image=image, dark_image=image, size=(60, 60))
                 ctk.CTkLabel(header, text="", image=self._about_icon).grid(
                     row=0, column=0, rowspan=2, padx=(0, 14))
             except Exception:
@@ -297,6 +298,127 @@ class DialogsMixin:
             fg_color=COLOR_SOLID, text_color=COLOR_ON_ACCENT,
             hover_color=COLOR_SOLID_HOVER, command=dialog.destroy,
         ).grid(row=5, column=0, pady=(0, 10))
+
+    def _show_settings_dialog(self) -> None:
+        """Ayarlar penceresi: tema, ölçü birimi, çıktı klasörü açma ve fabrika sıfırlama."""
+        dialog = ctk.CTkToplevel(self)
+        dialog.title(f"Ayarlar - {APP_NAME}")
+        dialog.geometry("460x340")
+        dialog.resizable(False, False)
+        dialog.transient(self)
+        dialog.grab_set()
+
+        frame = ctk.CTkFrame(dialog, fg_color=COLOR_CARD, corner_radius=12)
+        frame.pack(fill="both", expand=True, padx=14, pady=14)
+        frame.grid_columnconfigure(0, weight=1)
+
+        def _section_title(row: int, text: str) -> None:
+            ctk.CTkLabel(
+                frame, text=text,
+                font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
+                text_color=COLOR_TEXT_SECONDARY, anchor="w",
+            ).grid(row=row, column=0, sticky="w", padx=16, pady=(10, 2))
+
+        # -- Tema -------------------------------------------------------------
+        _section_title(0, "Tema")
+
+        def _apply_theme(choice: str) -> None:
+            try:
+                self.theme_segmented.set(choice)
+            except Exception:
+                pass
+            self._on_theme_changed(choice)
+
+        theme_seg = ctk.CTkSegmentedButton(
+            frame, values=["Açık", "Koyu", "Sistem"], height=28,
+            border_width=0, fg_color=COLOR_SUBCARD, bg_color=COLOR_CARD,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
+            selected_color=COLOR_SELECTED, selected_hover_color=COLOR_SELECTED_HOVER,
+            unselected_color=COLOR_SUBCARD, unselected_hover_color=COLOR_BTN_SUBTLE_HOVER,
+            text_color=COLOR_TEXT_PRIMARY, corner_radius=6,
+            command=_apply_theme,
+        )
+        theme_seg.set(self.store.theme)
+        theme_seg.grid(row=1, column=0, sticky="w", padx=16)
+
+        # -- Ölçü birimi ------------------------------------------------------
+        _section_title(2, "Ölçü birimi")
+
+        def _apply_unit(label: str) -> None:
+            self._on_unit_changed(label)
+            try:
+                self._update_unit_button()
+            except Exception:
+                pass
+
+        unit_menu = ctk.CTkOptionMenu(
+            frame, values=[UNITS[u][0] for u in DISPLAY_UNITS], width=150, height=28,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
+            fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
+            button_color=COLOR_SUBCARD, button_hover_color=COLOR_BTN_SUBTLE_HOVER,
+            dropdown_fg_color=COLOR_CARD, dropdown_hover_color=COLOR_SELECTED,
+            dropdown_text_color=COLOR_TEXT_PRIMARY,
+            dropdown_font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
+            command=_apply_unit,
+        )
+        unit_menu.set(UNITS[self.unit][0])
+        unit_menu.grid(row=3, column=0, sticky="w", padx=16)
+
+        # -- Çıktı klasörü ----------------------------------------------------
+        chk_auto = ctk.CTkCheckBox(
+            frame, text="İşlem bitince çıktı klasörünü otomatik aç",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
+            text_color=COLOR_TEXT_PRIMARY, hover_color=COLOR_ACCENT,
+            fg_color=COLOR_SOLID,
+        )
+        if self.store.data.get("auto_open_output"):
+            chk_auto.select()
+        chk_auto.grid(row=5, column=0, sticky="w", padx=16, pady=(14, 2))
+
+        def _toggle_auto() -> None:
+            self.store.data["auto_open_output"] = bool(chk_auto.get())
+            self.store.save()
+
+        chk_auto.configure(command=_toggle_auto)
+
+        # -- Fabrika sıfırlama + Kapat ---------------------------------------
+        def _reset_to_factory() -> None:
+            if not messagebox.askyesno(
+                    "Fabrika ayarlarına dön",
+                    "Tüm ayarlar fabrika değerlerine döner.\n"
+                    "Profiller ve son durum da silinir. Devam edilsin mi?"):
+                return
+            self.store.reset()
+            theme_seg.set(self.store.theme)
+            unit_menu.set(UNITS[self.store.unit][0])
+            chk_auto.deselect()
+            try:
+                self._on_unit_changed(UNITS["mm"][0])  # alanlar da yeni birime döner
+                self._update_unit_button()
+            except Exception:
+                self.log.exception("Fabrika birimine geçilemedi")
+            try:
+                self.theme_segmented.set("Sistem")
+                self._on_theme_changed("Sistem")
+            except Exception:
+                self.log.exception("Fabrika teması uygulanamadı")
+
+        actions = ctk.CTkFrame(frame, fg_color="transparent")
+        actions.grid(row=6, column=0, sticky="ew", padx=16, pady=(16, 14))
+        actions.grid_columnconfigure(1, weight=1)
+        ctk.CTkButton(
+            actions, text="Fabrika değerlerine sıfırla", width=170, height=30,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
+            fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
+            border_width=1, border_color=COLOR_BORDER,
+            hover_color=COLOR_ERROR_BG, command=_reset_to_factory,
+        ).grid(row=0, column=0, sticky="w")
+        ctk.CTkButton(
+            actions, text="Kapat", width=110, height=30,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
+            fg_color=COLOR_SOLID, text_color=COLOR_ON_ACCENT,
+            hover_color=COLOR_SOLID_HOVER, command=dialog.destroy,
+        ).grid(row=0, column=1, sticky="e")
 
     def _open_about_path(self, path, folder: bool) -> None:
         try:

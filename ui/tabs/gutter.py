@@ -34,9 +34,9 @@ class GutterTab(BaseTab):
         scroll.set_padding(2, 4, 2, 6, spacing=6)
         container = scroll
         container.grid_columnconfigure(0, weight=1)
-        # İçerik aşağı/aşağı yuvarlanmasın: kart bloğunun üstü ve altı eşit nefes alır.
-        container.grid_rowconfigure(1, weight=1)
-        container.grid_rowconfigure(5, weight=1)
+        # İçerik dikeyde yayılır: kartlar arasındaki boşluklar paylaşıp alt/üst boşluğu bitirir.
+        for row in (1, 3, 5, 7):
+            container.grid_rowconfigure(row, weight=1)
 
         # -- Modül Durumu ( küçük tek satır; anahtar sol menüde) ----------------
         top = ctk.CTkFrame(container, fg_color="transparent")
@@ -56,7 +56,7 @@ class GutterTab(BaseTab):
         quick_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
                                   border_width=1, border_color=COLOR_BORDER)
         quick_card.grid(row=2, column=0, sticky="ew")
-        quick_card.set_padding(12, 10, 12, 12, spacing=6)
+        quick_card.set_padding(12, 8, 12, 10, spacing=4)
         quick_card.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
@@ -91,8 +91,8 @@ class GutterTab(BaseTab):
         # -- Cilt Boşluğu Miktarı ve Muaf Kapak Sayfaları ------------------------
         offset_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
                                    border_width=1, border_color=COLOR_BORDER)
-        offset_card.grid(row=3, column=0, sticky="ew")
-        offset_card.set_padding(12, 10, 12, 12, spacing=6)
+        offset_card.grid(row=4, column=0, sticky="ew")
+        offset_card.set_padding(12, 8, 12, 10, spacing=4)
         offset_card.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
@@ -137,7 +137,7 @@ class GutterTab(BaseTab):
         ).grid(row=0, column=0, sticky="w", padx=(0, 8))
         self.entry_exclude_pages = ctk.CTkEntry(
             exclude_row, placeholder_text="Örn: 1, 5, 9-10 (boş bırakırsanız tüm sayfalara uygulanır)",
-            height=28, font=ctk.CTkFont(family=FONT_FAMILY, size=FS_BODY),
+            height=26, font=ctk.CTkFont(family=FONT_FAMILY, size=FS_BODY),
             fg_color=COLOR_CARD, border_color=COLOR_BORDER, text_color=COLOR_TEXT_PRIMARY,
         )
         self.entry_exclude_pages.grid(row=0, column=1, sticky="ew")
@@ -146,8 +146,8 @@ class GutterTab(BaseTab):
         # -- Sayfa Boyutu ve Sığdırma (Gelişmiş Ebat Ayarları) -------------------
         mode_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
                                  border_width=1, border_color=COLOR_BORDER)
-        mode_card.grid(row=4, column=0, sticky="ew")
-        mode_card.set_padding(12, 10, 12, 12, spacing=6)
+        mode_card.grid(row=6, column=0, sticky="ew")
+        mode_card.set_padding(12, 8, 12, 10, spacing=4)
         mode_card.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
@@ -157,7 +157,7 @@ class GutterTab(BaseTab):
         ).grid(row=0, column=0, sticky="w")
 
         self.seg_size_mode = ctk.CTkSegmentedButton(
-            mode_card, values=list(SIZE_MODE_LABELS.keys()), height=28,
+            mode_card, values=list(SIZE_MODE_LABELS.keys()), height=26,
             border_width=0, fg_color=COLOR_SUBCARD, bg_color=COLOR_SUBCARD,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
             selected_color=COLOR_SELECTED, selected_hover_color=COLOR_SELECTED_HOVER,
@@ -175,7 +175,7 @@ class GutterTab(BaseTab):
             text_color=COLOR_TEXT_PRIMARY, anchor="w",
         ).grid(row=0, column=0, sticky="w", padx=(0, 4))
         self.paper_menu = ctk.CTkOptionMenu(
-            paper_row, values=list(PAPER_SIZES.keys()), width=148, height=28,
+            paper_row, values=list(PAPER_SIZES.keys()), width=148, height=26,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
             fg_color=COLOR_CARD, text_color=COLOR_TEXT_PRIMARY,
             button_color=COLOR_SUBCARD, button_hover_color=COLOR_BTN_SUBTLE_HOVER,
@@ -186,7 +186,7 @@ class GutterTab(BaseTab):
         self.paper_menu.set(list(PAPER_SIZES.keys())[0])
         self.paper_menu.grid(row=0, column=1, sticky="w", padx=(0, 4))
         self.orientation_menu = ctk.CTkSegmentedButton(
-            paper_row, values=["Dikey", "Yatay"], width=116, height=28,
+            paper_row, values=["Dikey", "Yatay"], width=116, height=26,
             border_width=0, fg_color=COLOR_SUBCARD, bg_color=COLOR_SUBCARD,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
             selected_color=COLOR_SELECTED, selected_hover_color=COLOR_SELECTED_HOVER,
@@ -196,7 +196,7 @@ class GutterTab(BaseTab):
         self.orientation_menu.set("Dikey")
         self.orientation_menu.grid(row=0, column=2, sticky="w", padx=(0, 4))
         ctk.CTkButton(
-            paper_row, text="Ölçüyü Uygula", width=98, height=28,
+            paper_row, text="Ölçüyü Uygula", width=98, height=26,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
             fg_color=COLOR_SOLID, text_color=COLOR_ON_ACCENT,
             hover_color=COLOR_SOLID_HOVER,
@@ -210,7 +210,7 @@ class GutterTab(BaseTab):
             text_color=COLOR_TEXT_PRIMARY, anchor="w",
         ).grid(row=1, column=0, sticky="w", padx=(0, 4), pady=(4, 0))
         self.seg_overflow = ctk.CTkSegmentedButton(
-            paper_row, values=list(OVERFLOW_LABELS.keys()), height=28,
+            paper_row, values=list(OVERFLOW_LABELS.keys()), height=26,
             border_width=0, fg_color=COLOR_SUBCARD, bg_color=COLOR_SUBCARD,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
             selected_color=COLOR_SELECTED, selected_hover_color=COLOR_SELECTED_HOVER,

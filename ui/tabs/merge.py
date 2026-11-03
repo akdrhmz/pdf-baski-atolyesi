@@ -56,14 +56,14 @@ class MergeTab(BaseTab):
         top_row.grid_columnconfigure(0, weight=1)
         top_row.grid_columnconfigure(1, weight=1)
         ctk.CTkButton(
-            top_row, text="+ Dosya ekle...", width=130, height=34,
+            top_row, text="+ Dosya ekle...", width=130, height=30,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
             fg_color=COLOR_SOLID, text_color=COLOR_ON_ACCENT,
             hover_color=COLOR_SOLID_HOVER, corner_radius=6,
             command=self.add_files,
         ).grid(row=0, column=0, sticky="w")
         ctk.CTkButton(
-            top_row, text="Tümünü temizle", width=110, height=34,
+            top_row, text="Tümünü temizle", width=110, height=30,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
             fg_color=COLOR_BTN_SUBTLE, text_color=COLOR_TEXT_PRIMARY,
             hover_color=COLOR_BTN_SUBTLE_HOVER, corner_radius=6,

@@ -28,41 +28,39 @@ class NumberTab(BaseTab):
 
     def build(self) -> None:
         scroll = ctk.CTkScrollableFrame(self.frame, fg_color="transparent")
-        scroll.pack(fill="both", expand=True, padx=6, pady=4)
-        scroll.set_padding(6, 2, 6, 6, spacing=8)
+        scroll.pack(fill="both", expand=True, padx=10, pady=6)
+        scroll.set_padding(2, 4, 2, 6, spacing=8)
         container = scroll
         container.grid_columnconfigure(0, weight=1)
-        container.grid_rowconfigure(4, weight=1)
+        # Kart bloğu dikeyde dengeli: üst ve alt eşit nefes alır.
+        container.grid_rowconfigure(1, weight=1)
+        container.grid_rowconfigure(5, weight=1)
 
-        # -- Başlık ve Modül Durumu (Tek Satırda Kompakt) ---------------------
+        # -- Modül Durumu (küçük tek satır; anahtar sol menüde) --------------
         top = ctk.CTkFrame(container, fg_color="transparent")
         top.grid(row=0, column=0, sticky="ew")
-        top.set_padding(2, 0, 2, 2, spacing=6)
+        top.set_padding(0, 0, 0, 0, spacing=6)
         top.grid_columnconfigure(1, weight=1)
-        ctk.CTkLabel(
-            top, text="Sayfa Numarası Ayarları",
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SUBTITLE, weight="bold"),
-            text_color=COLOR_TEXT_PRIMARY, anchor="w",
-        ).grid(row=0, column=0, sticky="w", padx=(0, 10))
+
         self.lbl_pnum_status = ctk.CTkLabel(
-            top, text="Devre dışı: üstteki 'Sayfa numarası' onay kutusundan açın",
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
+            top, text="Devre dışı: soldaki anahtarla açın",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
             text_color=COLOR_TEXT_SECONDARY, anchor="w", justify="left", wraplength=540,
         )
         self.lbl_pnum_status.grid(row=0, column=1, sticky="ew")
         self.ctx.bind_wraplength(self.lbl_pnum_status, top, 24)
 
-        # -- Adım 1: Numara Konumu, Biçimi ve Yazı Boyutu ----------------------
+        # -- Numara Konumu, Biçimi ve Yazı Boyutu ------------------------------
         pos_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
                                 border_width=1, border_color=COLOR_BORDER)
-        pos_card.grid(row=1, column=0, sticky="ew")
-        pos_card.set_padding(12, 8, 12, 10, spacing=6)
+        pos_card.grid(row=2, column=0, sticky="ew")
+        pos_card.set_padding(12, 10, 12, 12, spacing=6)
         pos_card.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
-            pos_card, text="1. Numara Konumu, Biçimi ve Yazı Boyutu",
+            pos_card, text="Numara konumu ve biçimi",
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
-            text_color=COLOR_ACCENT, anchor="w",
+            text_color=COLOR_TEXT_PRIMARY, anchor="w",
         ).grid(row=0, column=0, sticky="w")
 
         self.seg_pos = ctk.CTkSegmentedButton(
@@ -96,28 +94,28 @@ class NumberTab(BaseTab):
         )
         self.menu_format.set("1, 2, 3")
         self.menu_format.grid(row=0, column=1, sticky="w", padx=(0, 24))
+        fmt_row.grid_columnconfigure(2, weight=1)
 
         ctk.CTkLabel(
             fmt_row, text="Yazı boyutu (Punto):",
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
             text_color=COLOR_TEXT_PRIMARY, anchor="w",
-        ).grid(row=0, column=2, sticky="w", padx=(0, 8))
+        ).grid(row=1, column=0, sticky="w", padx=(0, 8), pady=(4, 0))
         self.f_font_size = FieldRow(fmt_row, "", "10", unit="pt", convert=False, width=64,
                                     minimum=1, maximum=72, on_change=self.on_changed)
-        self.f_font_size.grid(row=0, column=3, sticky="w")
-        fmt_row.grid_columnconfigure(4, weight=1)
+        self.f_font_size.grid(row=1, column=1, sticky="w", pady=(4, 0))
 
-        # -- Adım 2: Başlangıç Sayfası ve Kenar Mesafeleri ---------------------
+        # -- Başlangıç Sayfası ve Kenar Mesafeleri -----------------------------
         dist_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
                                  border_width=1, border_color=COLOR_BORDER)
-        dist_card.grid(row=2, column=0, sticky="ew")
-        dist_card.set_padding(12, 8, 12, 10, spacing=5)
+        dist_card.grid(row=3, column=0, sticky="ew")
+        dist_card.set_padding(12, 10, 12, 12, spacing=6)
         dist_card.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
-            dist_card, text="2. Başlangıç Sayfası ve Kenar Mesafeleri",
+            dist_card, text="Başlangıç ve mesafeler",
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
-            text_color=COLOR_ACCENT, anchor="w",
+            text_color=COLOR_TEXT_PRIMARY, anchor="w",
         ).grid(row=0, column=0, sticky="w")
 
         grid = ctk.CTkFrame(dist_card, fg_color="transparent")
@@ -147,17 +145,17 @@ class NumberTab(BaseTab):
         )
         self.lbl_side_hint.grid(row=2, column=1, sticky="w")
 
-        # -- Adım 3: Kapak Muafiyeti ve Özel Numara Şablonu --------------------
+        # -- Numarasız Sayfalar ve Özel Şablon ---------------------------------
         extra_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
                                   border_width=1, border_color=COLOR_BORDER)
-        extra_card.grid(row=3, column=0, sticky="ew")
-        extra_card.set_padding(12, 8, 12, 10, spacing=5)
+        extra_card.grid(row=4, column=0, sticky="ew")
+        extra_card.set_padding(12, 10, 12, 12, spacing=6)
         extra_card.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
-            extra_card, text="3. Numarasız Sayfalar (Kapaklar) ve Özel Numara Şablonu",
+            extra_card, text="Numarasız sayfalar ve özel şablon",
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
-            text_color=COLOR_ACCENT, anchor="w",
+            text_color=COLOR_TEXT_PRIMARY, anchor="w",
         ).grid(row=0, column=0, sticky="w")
 
         skip_row = ctk.CTkFrame(extra_card, fg_color="transparent")
@@ -242,11 +240,11 @@ class NumberTab(BaseTab):
             self.lbl_side_hint.configure(text="")
 
     def show_active(self, active: bool) -> None:
-        """Üst durum etiketini modül anahtarına göre günceller."""
+        """Modül anahtarının durumunu içeriğin üstündeki küçük etikete yazar."""
         if active:
             self.lbl_pnum_status.configure(
                 text="Etkin: sayfa numaraları belgeye eklenecek", text_color=COLOR_OK)
         else:
             self.lbl_pnum_status.configure(
-                text="Devre dışı: üstteki 'Sayfa numarası' onay kutusundan açın",
+                text="Devre dışı: soldaki anahtarla açın",
                 text_color=COLOR_TEXT_SECONDARY)

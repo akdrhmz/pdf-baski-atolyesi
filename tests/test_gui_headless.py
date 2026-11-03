@@ -78,7 +78,6 @@ def fresh_state(app, request):
     app.merge_files.clear()
     app.selected_merge_idx = None
     app._refresh_merge_listbox()
-    app.path_entry.delete(0, "end")
     app.input_pdf_path = ""
     app.tabview.set("Cilt Payı")
     app.unit = "mm"
@@ -341,16 +340,13 @@ def test_preview_navigation_single_and_spread(app, tmp_path):
 
 
 def test_toggle_all_modules_button(app):
-    assert app.btn_all_modules.cget("text") == "Tümünü aç"
     app._toggle_all_modules()
     app.update()
     assert (app.switch_gutter.get(), app.switch_margin.get(), app.switch_pnum.get()) == (1, 1, 1)
-    assert app.btn_all_modules.cget("text") == "Tümünü kapat"
 
     app._toggle_all_modules()
     app.update()
     assert (app.switch_gutter.get(), app.switch_margin.get(), app.switch_pnum.get()) == (0, 0, 0)
-    assert app.btn_all_modules.cget("text") == "Tümünü aç"
 
 
 def test_editing_values_auto_enables_related_module(app):
@@ -1160,7 +1156,6 @@ def test_toggle_pnum_fields_updates_label_modules_button_and_preview(app, monkey
     app.switch_pnum.deselect()
     app._toggle_pnum_fields()
     assert app.lbl_pnum_status.cget("text").startswith("Devre dışı")
-    assert app.btn_all_modules.cget("text") == "Tümünü aç"
     assert seen == ["field", "field"]
 
 

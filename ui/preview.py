@@ -142,8 +142,8 @@ class PreviewPanel:
     # =====================================================================
     def build(self, parent) -> None:
         card = ctk.CTkFrame(parent, fg_color=COLOR_CARD, corner_radius=8,
-                            border_width=1, border_color=COLOR_BORDER, width=380)
-        card.grid(row=0, column=1, sticky="nsew")
+                        border_width=1, border_color=COLOR_BORDER, width=430)
+        card.grid(row=0, column=2, sticky="nsew")
         card.grid_columnconfigure(0, weight=1)
         card.grid_rowconfigure(3, weight=1)
 
@@ -206,8 +206,8 @@ class PreviewPanel:
                     line_end = w - 24 if (y // 18) % 3 != 0 else w - 56
                     dr.line((20, y, line_end, y), fill=(130, 140, 155, 42), width=2)
                 return im
-            blank_small = _make_placeholder(168, 240)
-            blank_large = _make_placeholder(260, 368)
+            blank_small = _make_placeholder(200, 283)
+            blank_large = _make_placeholder(340, 481)
             self.blank_images = {
                 "spread": ctk.pil_to_pixmap(blank_small),
                 "single": ctk.pil_to_pixmap(blank_large),
@@ -345,7 +345,7 @@ class PreviewPanel:
                     wanted = (self.page,)
                 else:
                     wanted = (self.page, self.page + 1)
-                pages = render_preview(path, config, pages=wanted, zoom=1.2)
+                pages = render_preview(path, config, pages=wanted, zoom=1.6)
             except Exception as exc:
                 message = str(exc)
                 self.host.log.warning("Önizleme üretilemedi: %s", message)
@@ -390,7 +390,7 @@ class PreviewPanel:
 
         self.detach_images()
         count = min(len(pages), 2)
-        max_width = 260 if self.mode == "single" else 168
+        max_width = 340 if self.mode == "single" else 200
         for slot_index, (slot, image_label, caption) in enumerate(self.slots):
             if slot_index >= count:
                 continue

@@ -975,9 +975,12 @@ class QtLabel(QLabel, QtWidgetMixin):
         img = self._props.get("image")
         if isinstance(img, QtImage):
             self.setPixmap(img.pixmap())
-        tc = resolve_color(self._props.get("text_color", COLOR_TEXT_PRIMARY))
+        raw = resolve_color(self._props.get("text_color", COLOR_TEXT_PRIMARY))
+        tc = QColor(raw)
+        if not self.isEnabled():
+            tc.setAlpha(110)
         pal = self.palette()
-        pal.setColor(QPalette.ColorRole.WindowText, QColor(tc))
+        pal.setColor(QPalette.ColorRole.WindowText, tc)
         self.setPalette(pal)
         self.update()  # type: ignore[misc]
 
@@ -995,6 +998,11 @@ class QtLabel(QLabel, QtWidgetMixin):
                 painter.drawRect(self.rect())
             painter.end()
         super().paintEvent(event)
+
+    def changeEvent(self, event) -> None:
+        if event.type() == QEvent.Type.EnabledChange:
+            self._refresh_style()
+        super().changeEvent(event)
 
 
 class QtButton(QPushButton, QtWidgetMixin):
@@ -1163,6 +1171,8 @@ class QtEntry(QLineEdit, QtWidgetMixin):
     def paintEvent(self, event) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        if not self.isEnabled():
+            painter.setOpacity(0.55)
         bg = resolve_color(
             COLOR_SUBCARD
             if not self.isEnabled()
@@ -1205,6 +1215,75 @@ class QtEntry(QLineEdit, QtWidgetMixin):
         self._refresh_style()
 
 
+class QtSwitch(QWidget, QtWidgetMixin):
+    """Açık/Kapalı anahtar düğmesi (yunus çubuklu ``QPainter`` çizimi).
+
+    Yerleşim uyumluluğu için ``CTkCheckBox`` arayüzünü sağlar: ``get()``,
+    ``select()``, ``deselect()``; değişim ``command`` geri çağrısını tetikler.
+    """
+
+    def __init__(
+        self,
+        master: Optional[QWidget] = None,
+        command: Optional[Callable[[], None]] = None,
+        checked: bool = True,
+        width: int = 40,
+        height: int = 22,
+        **_kwargs: Any,
+    ):
+        ensure_qapp()
+        parent = master._content_host() if hasattr(master, "_content_host") else master
+        super().__init__(parent)
+        self._init_mixin(master)
+        if width and int(width) > 0:
+            self._has_fixed_w = True
+            self.setFixedWidth(int(width))
+        if height and int(height) > 0:
+            self.setFixedHeight(int(height))
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._checked = bool(checked)
+        self._command = command
+        self._props.update(command=command, checked=self._checked)
+
+    def paintEvent(self, _event) -> None:
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        if not self.isEnabled():
+            painter.setOpacity(0.45)
+        track = QColor(resolve_color(COLOR_SOLID if self._checked else COLOR_BTN_SUBTLE))
+        w, h = self.width(), self.height()
+        r = h / 2.0
+        painter.setPen(QPen(QColor(resolve_color(COLOR_BORDER if not self._checked else COLOR_SOLID)), 1))
+        painter.setBrush(track)
+        painter.drawRoundedRect(QRectF(1.0, 1.0, w - 2, h - 2), r, r)
+        knob = h - 8.0
+        x = (w - knob - 5.0) if self._checked else 5.0
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(resolve_color(COLOR_ON_ACCENT)))
+        painter.drawEllipse(QRectF(x, 4.0, knob, knob))
+
+    def mousePressEvent(self, event) -> None:
+        self.setChecked(not self._checked)
+        if self._command is not None:
+            self._command()
+
+    def setChecked(self, value: bool) -> None:  # noqa: N802 (Qt adı)
+        changed = value != self._checked
+        self._checked = bool(value)
+        self._props["checked"] = self._checked
+        if changed:
+            self.update()
+
+    def get(self) -> int:
+        return 1 if self._checked else 0
+
+    def select(self) -> None:
+        self.setChecked(True)
+
+    def deselect(self) -> None:
+        self.setChecked(False)
+
+
 class QtCheckBox(QCheckBox, QtWidgetMixin):
     """Onay kutusu (``QCheckBox``; ``QPainter`` ile çizilir)."""
 
@@ -1242,6 +1321,8 @@ class QtCheckBox(QCheckBox, QtWidgetMixin):
     def paintEvent(self, _event) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        if not self.isEnabled():
+            painter.setOpacity(0.55)
         box_y = (self.height() - 18) / 2.0
         box_rect = QRectF(1.0, box_y, 18.0, 18.0)
         if self.isChecked():
@@ -1351,6 +1432,8 @@ class QtOptionMenu(QComboBox, QtWidgetMixin):
     def paintEvent(self, _event) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        if not self.isEnabled():
+            painter.setOpacity(0.55)
         bg = resolve_color(self._props.get("fg_color", COLOR_CARD))
         tc = resolve_color(self._props.get("text_color", COLOR_TEXT_PRIMARY))
         bc = resolve_color(COLOR_BORDER)
@@ -2007,6 +2090,7 @@ CTkLabel = QtLabel
 CTkButton = QtButton
 CTkEntry = QtEntry
 CTkCheckBox = QtCheckBox
+CTkSwitch = QtSwitch
 CTkOptionMenu = QtOptionMenu
 CTkSegmentedButton = QtSegmentedButton
 CTkProgressBar = QtProgressBar

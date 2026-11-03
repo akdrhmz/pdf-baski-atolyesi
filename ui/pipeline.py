@@ -37,6 +37,17 @@ class PipelineMixin:
         self._toggle_pnum_fields()
         self._update_all_modules_button()
 
+    def _sync_tab_enabled(self, key: str) -> None:
+        """Modül anahtarı kapalıysa ilgili sekme içeriğini devre dışı bırakır."""
+        switch, tab_name = {
+            "gutter": (self.switch_gutter, "Cilt Payı"),
+            "margin": (self.switch_margin, "Kenar Boşlukları"),
+            "pnum": (self.switch_pnum, "Sayfa Numaraları"),
+        }[key]
+        frame = self._tab_frames_map.get(tab_name)
+        if frame is not None:
+            frame.setEnabled(switch.get() == 1)
+
     def _update_pipeline_summary(self) -> None:
         if not hasattr(self, "pill_gutter") or not hasattr(self, "tabview"):
             return

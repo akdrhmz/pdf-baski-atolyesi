@@ -28,51 +28,49 @@ class MarginTab(BaseTab):
 
     def build(self) -> None:
         scroll = ctk.CTkScrollableFrame(self.frame, fg_color="transparent")
-        scroll.pack(fill="both", expand=True, padx=6, pady=4)
-        scroll.set_padding(6, 2, 6, 6, spacing=8)
+        scroll.pack(fill="both", expand=True, padx=10, pady=6)
+        scroll.set_padding(2, 4, 2, 6, spacing=8)
         container = scroll
         container.grid_columnconfigure(0, weight=1)
-        container.grid_rowconfigure(4, weight=1)
+        # Kart bloğu dikeyde dengeli: üst ve alt eşit nefes alır.
+        container.grid_rowconfigure(1, weight=1)
+        container.grid_rowconfigure(5, weight=1)
 
-        # -- Başlık ve Modül Durumu (Tek Satırda Kompakt) ---------------------
+        # -- Modül Durumu (küçük tek satır; anahtar sol menüde) --------------
         top = ctk.CTkFrame(container, fg_color="transparent")
         top.grid(row=0, column=0, sticky="ew")
-        top.set_padding(2, 0, 2, 2, spacing=6)
+        top.set_padding(0, 0, 0, 0, spacing=6)
         top.grid_columnconfigure(1, weight=1)
-        ctk.CTkLabel(
-            top, text="Alt ve Üst Boşluk Ayarları",
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SUBTITLE, weight="bold"),
-            text_color=COLOR_TEXT_PRIMARY, anchor="w",
-        ).grid(row=0, column=0, sticky="w", padx=(0, 10))
 
         self.lbl_margin_status = ctk.CTkLabel(
-            top, text="Devre dışı: üstteki 'Kenar boşluğu' onay kutusundan açın",
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
+            top, text="Devre dışı: soldaki anahtarla açın",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
             text_color=COLOR_TEXT_SECONDARY, anchor="w", justify="left", wraplength=540,
         )
         self.lbl_margin_status.grid(row=0, column=1, sticky="ew")
         self.ctx.bind_wraplength(self.lbl_margin_status, top, 24)
 
-        # -- Adım 1: Alt ve Üst Boşluk Miktarı --------------------------------
+        # -- Alt ve Üst Boşluk Miktarı ----------------------------------------
         pay_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
                                 border_width=1, border_color=COLOR_BORDER)
-        pay_card.grid(row=1, column=0, sticky="ew")
-        pay_card.set_padding(12, 8, 12, 10, spacing=6)
+        pay_card.grid(row=2, column=0, sticky="ew")
+        pay_card.set_padding(12, 10, 12, 12, spacing=6)
         pay_card.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
-            pay_card, text="1. Eklenecek Alt ve Üst Boşluk Miktarı (Elle Yazın veya Hızlı Seçin)",
+            pay_card, text="Alt ve üst boşluk",
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
-            text_color=COLOR_ACCENT, anchor="w",
+            text_color=COLOR_TEXT_PRIMARY, anchor="w",
         ).grid(row=0, column=0, sticky="w")
 
         bottom_row = ctk.CTkFrame(pay_card, fg_color="transparent")
         bottom_row.grid(row=1, column=0, sticky="ew")
+        bottom_row.grid_columnconfigure(0, weight=1)
         self.f_bottom = FieldRow(bottom_row, "Alt boşluk", "0", width=68, label_width=76,
                                  minimum=0, maximum=5000, on_change=self.on_changed)
-        self.f_bottom.pack(side="left", padx=(0, 10))
+        self.f_bottom.grid(row=0, column=0, sticky="w")
         self._bottom_preset_row = WrapButtonRow(bottom_row)
-        self._bottom_preset_row.pack(side="left", fill="x", expand=True)
+        self._bottom_preset_row.grid(row=1, column=0, sticky="ew", pady=(4, 0))
         for value in MARGIN_PRESETS_MM:
             self._bottom_preset_row.add_button(
                 self.preset_label(value),
@@ -81,11 +79,12 @@ class MarginTab(BaseTab):
 
         top_row = ctk.CTkFrame(pay_card, fg_color="transparent")
         top_row.grid(row=2, column=0, sticky="ew")
+        top_row.grid_columnconfigure(0, weight=1)
         self.f_top = FieldRow(top_row, "Üst boşluk", "0", width=68, label_width=76,
                               minimum=0, maximum=5000, on_change=self.on_changed)
-        self.f_top.pack(side="left", padx=(0, 10))
+        self.f_top.grid(row=0, column=0, sticky="w")
         self._top_preset_row = WrapButtonRow(top_row)
-        self._top_preset_row.pack(side="left", fill="x", expand=True)
+        self._top_preset_row.grid(row=1, column=0, sticky="ew", pady=(4, 0))
         for value in MARGIN_PRESETS_MM:
             self._top_preset_row.add_button(
                 self.preset_label(value),
@@ -93,17 +92,17 @@ class MarginTab(BaseTab):
         self._top_preset_row.add_button("Sıfırla", lambda: self.set_top(0.0), width=64)
         self._margin_preset_rows = (self._bottom_preset_row, self._top_preset_row)
 
-        # -- Adım 2: Boşluk Ekleme Yöntemi ve Kapak Muafiyeti -----------------
+        # -- Boşluk Ekleme Yöntemi ve Kitapçık Seçeneği -------------------------
         mode_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
                                  border_width=1, border_color=COLOR_BORDER)
-        mode_card.grid(row=2, column=0, sticky="ew")
-        mode_card.set_padding(12, 8, 12, 10, spacing=6)
+        mode_card.grid(row=3, column=0, sticky="ew")
+        mode_card.set_padding(12, 10, 12, 12, spacing=6)
         mode_card.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
-            mode_card, text="2. Boşluk Ekleme Yöntemi ve Kitapçık Seçeneği",
+            mode_card, text="Boşluk ekleme yöntemi",
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
-            text_color=COLOR_ACCENT, anchor="w",
+            text_color=COLOR_TEXT_PRIMARY, anchor="w",
         ).grid(row=0, column=0, sticky="w")
 
         self.seg_bottom_mode = ctk.CTkSegmentedButton(
@@ -140,17 +139,17 @@ class MarginTab(BaseTab):
         )
         self.chk_pad4.grid(row=4, column=0, sticky="w")
 
-        # -- Adım 3: İşlem Dışı Sayfalar (Kapak Muafiyeti) --------------------
+        # -- İşlem Dışı Sayfalar (Muafiyet) ------------------------------------
         exclude_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
                                     border_width=1, border_color=COLOR_BORDER)
-        exclude_card.grid(row=3, column=0, sticky="ew")
-        exclude_card.set_padding(12, 8, 12, 10, spacing=4)
+        exclude_card.grid(row=4, column=0, sticky="ew")
+        exclude_card.set_padding(12, 10, 12, 12, spacing=4)
         exclude_card.grid_columnconfigure(1, weight=1)
 
         ctk.CTkLabel(
-            exclude_card, text="3. Kapak / Muaf Sayfalar:",
+            exclude_card, text="Muaf sayfalar:",
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
-            text_color=COLOR_ACCENT, anchor="w",
+            text_color=COLOR_TEXT_PRIMARY, anchor="w",
         ).grid(row=0, column=0, sticky="w", padx=(0, 8))
         self.entry_exclude_margin = ctk.CTkEntry(
             exclude_card, placeholder_text="Örn: 1, 5, 9-10 (bu sayfalara alt/üst boşluk eklenmez)",
@@ -214,11 +213,11 @@ class MarginTab(BaseTab):
                 button.configure(text=self.preset_label(value))
 
     def show_active(self, active: bool) -> None:
-        """Üst durum etiketini modül anahtarına göre günceller."""
+        """Modül anahtarının durumunu içeriğin üstündeki küçük etikete yazar."""
         if active:
             self.lbl_margin_status.configure(
                 text="Etkin: belirtilen alt/üst pay uygulanacak", text_color=COLOR_OK)
         else:
             self.lbl_margin_status.configure(
-                text="Devre dışı: üstteki 'Kenar boşluğu' onay kutusundan açın",
+                text="Devre dışı: soldaki anahtarla açın",
                 text_color=COLOR_TEXT_SECONDARY)

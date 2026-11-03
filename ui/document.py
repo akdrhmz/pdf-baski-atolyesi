@@ -21,11 +21,6 @@ class DocumentMixin:
         if path:
             self._load_file(path)
 
-    def _load_from_entry(self) -> None:
-        path = self.path_entry.get().strip().strip('"')
-        if path:
-            self._load_file(path)
-
     def _load_file(self, path: str) -> None:
         path = (path or "").strip().strip('"')
         if not path or not os.path.exists(path):
@@ -41,8 +36,6 @@ class DocumentMixin:
             return
 
         self.input_pdf_path = path
-        self.path_entry.delete(0, "end")
-        self.path_entry.insert(0, path)
         self.orig_width_mm = info["width_mm"]
         self.orig_height_mm = info["height_mm"]
         self.orig_page_count = info["page_count"]

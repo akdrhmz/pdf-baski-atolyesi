@@ -1,4 +1,9 @@
-"""Pencere kabuğunun kurulumu (widget ağacı); davranış ``app.py`` ve sekmelerdedir."""
+"""Pencere kabuğunun kurulumu (widget ağacı); davranış ``app.py`` ve sekmelerdedir.
+
+Yerleşim: başlık çubuğu + gövde + eylem çubuğu. Gövde üç sütundur:
+solda ``Belge`` kartı ve adım menüsü (her adımın kendi Açık/Kapalı anahtarı
+vardır), ortada seçili adımın içerik kartı, sağda canlı önizleme.
+"""
 
 from __future__ import annotations
 
@@ -21,14 +26,13 @@ from ui.window import TAB_NAMES, TabNav
 
 
 class ShellBuildMixin:
-    """Pencerenin kurulumu: üst çubuk, dosya çubuğu, çalışma alanı, modül şeridi, eylem çubuğu."""
+    """Pencerenin kurulumu: üst çubuk, sol menü, çalışma alanı, eylem çubuğu."""
 
     def _build_ui(self) -> None:
         with self.freeze_redraw():
             self.grid_columnconfigure(0, weight=1)
-            self.grid_rowconfigure(2, weight=1)
+            self.grid_rowconfigure(1, weight=1)
             self._build_header()
-            self._build_file_bar()
             self._build_workspace()
             self._build_action_bar()
 
@@ -54,22 +58,13 @@ class ShellBuildMixin:
             text_color=COLOR_TEXT_PRIMARY,
         ).pack(side="left", padx=(0, 10))
         ctk.CTkLabel(
-            left, text=f"v{VERSION} • Kayıpsız PDF Baskı ve Cilt Hazırlığı",
+            left, text=f"v{VERSION}",
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
             text_color=COLOR_TEXT_SECONDARY,
         ).pack(side="left")
 
         right = ctk.CTkFrame(bar, fg_color="transparent")
         right.pack(side="right")
-
-        ctk.CTkButton(
-            right, text="Kılavuz & Hakkında", width=136, height=30,
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
-            fg_color=COLOR_CARD, text_color=COLOR_TEXT_PRIMARY,
-            border_width=1, border_color=COLOR_BORDER,
-            hover_color=COLOR_BTN_SUBTLE_HOVER, corner_radius=6,
-            command=self._show_about_dialog,
-        ).pack(side="left", padx=(0, 8))
 
         self.theme_segmented = ctk.CTkSegmentedButton(
             right, values=["Açık", "Koyu", "Sistem"], width=186, height=30,
@@ -82,126 +77,20 @@ class ShellBuildMixin:
         )
         self.theme_segmented.pack(side="left")
 
-    def _build_file_bar(self) -> None:
-        bar = ctk.CTkFrame(self, fg_color=COLOR_CARD, corner_radius=10,
-                           border_width=1, border_color=COLOR_BORDER)
-        bar.grid(row=1, column=0, sticky="ew", padx=16, pady=(0, 6))
-
-        row = ctk.CTkFrame(bar, fg_color="transparent")
-        row.pack(fill="x", padx=12, pady=(8, 4))
-
-        ctk.CTkLabel(
-            row, text="PDF Dosyası:", font=ctk.CTkFont(family=FONT_FAMILY, size=FS_BODY, weight="bold"),
-            text_color=COLOR_TEXT_PRIMARY,
-        ).pack(side="left", padx=(0, 8))
-
-        self.path_entry = ctk.CTkEntry(
-            row, placeholder_text="İşlenecek PDF dosyasını seçin veya pencereye sürükleyip bırakın...",
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_BODY), height=34,
-            border_color=COLOR_BORDER, fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
-        )
-        self.path_entry.pack(side="left", fill="x", expand=True, padx=(0, 8))
-        self.path_entry.bind("<Return>", lambda e: self._load_from_entry())
-
-        ctk.CTkButton(
-            row, text="PDF Seç...", width=104, height=34,
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_BODY, weight="bold"),
-            fg_color=COLOR_SOLID, text_color=COLOR_ON_ACCENT,
-            hover_color=COLOR_SOLID_HOVER,
-            command=self._choose_file,
-        ).pack(side="left")
-
-        row2 = ctk.CTkFrame(bar, fg_color="transparent")
-        row2.pack(fill="x", padx=12, pady=(0, 6))
-
-        self.info_badge = ctk.CTkLabel(
-            row2, text="Henüz belge seçilmedi.",
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
-            text_color=COLOR_TEXT_SECONDARY, anchor="w", justify="left", wraplength=460,
-        )
-        self.info_badge.pack(side="left", fill="x", expand=True)
-
-        controls = ctk.CTkFrame(row2, fg_color="transparent")
-        controls.pack(side="right")
-
-        ctk.CTkLabel(
-            controls, text="Ölçü birimi:", font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
-            text_color=COLOR_TEXT_SECONDARY,
-        ).pack(side="left", padx=(0, 4))
-        self.unit_menu = ctk.CTkOptionMenu(
-            controls, values=[UNITS[u][0] for u in DISPLAY_UNITS], width=70, height=28,
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
-            fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
-            button_color=COLOR_SUBCARD, button_hover_color=COLOR_BTN_SUBTLE_HOVER,
-            dropdown_fg_color=COLOR_CARD, dropdown_hover_color=COLOR_SELECTED,
-            dropdown_text_color=COLOR_TEXT_PRIMARY,
-            dropdown_font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
-            command=self._on_unit_changed,
-        )
-        self.unit_menu.pack(side="left", padx=(0, 12))
-
-        ctk.CTkLabel(
-            controls, text="Kayıtlı profil:", font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
-            text_color=COLOR_TEXT_SECONDARY,
-        ).pack(side="left", padx=(0, 4))
-        self.profile_menu = ctk.CTkOptionMenu(
-            controls, values=["(profil seçin)"], width=164, height=28,
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
-            fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
-            button_color=COLOR_SUBCARD, button_hover_color=COLOR_BTN_SUBTLE_HOVER,
-            dropdown_fg_color=COLOR_CARD, dropdown_hover_color=COLOR_SELECTED,
-            dropdown_text_color=COLOR_TEXT_PRIMARY,
-            dropdown_font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
-        )
-        self.profile_menu.pack(side="left", padx=(0, 4))
-
-        icon_button = {
-            "width": 56, "height": 28, "font": ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
-            "fg_color": COLOR_SUBCARD, "text_color": COLOR_TEXT_PRIMARY,
-            "border_width": 1, "border_color": COLOR_BORDER,
-            "hover_color": COLOR_BTN_SUBTLE_HOVER, "corner_radius": 6,
-        }
-        ctk.CTkButton(controls, text="Yükle", command=self._load_profile, **icon_button).pack(side="left", padx=(0, 3))
-        ctk.CTkButton(controls, text="Kaydet", command=self._save_profile, **{**icon_button, "width": 62}).pack(side="left", padx=(0, 3))
-        ctk.CTkButton(controls, text="Sil", command=self._delete_profile, **{**icon_button, "width": 44}).pack(side="left")
-
-        row2.bind("<Configure>", lambda e: self.info_badge.configure(
-            wraplength=max(180, e.width - controls.winfo_reqwidth() - 24)), add="+")
-
     def _build_workspace(self) -> None:
         workspace = ctk.CTkFrame(self, fg_color="transparent")
-        workspace.grid(row=2, column=0, sticky="nsew", padx=16, pady=(0, 6))
+        workspace.grid(row=1, column=0, sticky="nsew", padx=16, pady=(0, 6))
         self._workspace = workspace
-        workspace.grid_columnconfigure(0, weight=1)
-        workspace.grid_columnconfigure(1, weight=0, minsize=380)
+        workspace.grid_columnconfigure(0, weight=0, minsize=230)
+        workspace.grid_columnconfigure(1, weight=1)
+        workspace.grid_columnconfigure(2, weight=0, minsize=430)
         workspace.grid_rowconfigure(0, weight=1)
 
-        left = ctk.CTkFrame(workspace, fg_color="transparent")
-        left.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
-        left.grid_columnconfigure(0, weight=1)
-        left.grid_rowconfigure(2, weight=1)
+        self._build_sidebar(workspace)
 
-        self._build_module_bar(left)
-
-        nav = ctk.CTkFrame(left, fg_color="transparent")
-        nav.grid(row=1, column=0, sticky="ew", pady=(0, 6))
-        self._tab_buttons: Dict[str, ctk.CTkButton] = {}
-        for index, name in enumerate(TAB_NAMES):
-            nav.grid_columnconfigure(index, weight=1, uniform="tab")
-            button = ctk.CTkButton(
-                nav, text=f"{index + 1}. {name}", height=40,
-                font=ctk.CTkFont(family=FONT_FAMILY, size=FS_BODY, weight="bold"),
-                fg_color=COLOR_CARD, text_color=COLOR_TEXT_PRIMARY,
-                border_width=1, border_color=COLOR_BORDER,
-                hover_color=COLOR_SUBCARD, corner_radius=8,
-                command=lambda n=name: self.select_tab(n),
-            )
-            button.grid(row=0, column=index, sticky="ew", padx=3)
-            self._tab_buttons[name] = button
-
-        content = ctk.CTkFrame(left, fg_color=COLOR_CARD, corner_radius=10,
+        content = ctk.CTkFrame(workspace, fg_color=COLOR_CARD, corner_radius=10,
                                border_width=1, border_color=COLOR_BORDER)
-        content.grid(row=2, column=0, sticky="nsew")
+        content.grid(row=0, column=1, sticky="nsew", padx=(0, 10))
         content.set_padding(4, 4, 4, 4, spacing=0)
         content.grid_columnconfigure(0, weight=1)
         content.grid_rowconfigure(0, weight=1)
@@ -246,90 +135,162 @@ class ShellBuildMixin:
         for attr in getattr(tab, "EXPOSED", ()):
             setattr(self, attr, getattr(tab, attr))
 
-    def _build_module_bar(self, parent) -> None:
-        """Üç modülün tek yerden açılıp kapatıldığı üst şerit."""
-        bar = ctk.CTkFrame(parent, fg_color=COLOR_CARD, corner_radius=8,
-                           border_width=1, border_color=COLOR_BORDER)
-        bar.grid(row=0, column=0, sticky="ew", pady=(0, 6))
-        bar.grid_columnconfigure(0, weight=1)
+    # =====================================================================
+    # Sol menü: Belge kartı + adım menüsü (Açık/Kapalı anahtarlı)
+    # =====================================================================
+    def _build_sidebar(self, parent) -> None:
+        sidebar = ctk.CTkFrame(parent, fg_color="transparent")
+        sidebar.grid(row=0, column=0, sticky="nsew")
+        sidebar.grid_columnconfigure(0, weight=1)
+        sidebar.grid_rowconfigure(2, weight=1)
+        self._sidebar = sidebar
+
+        self._build_sidebar_document_card(sidebar)
+        self._build_sidebar_step_card(sidebar)
+        self._build_sidebar_footer(sidebar)
+
+    def _build_sidebar_document_card(self, sidebar) -> None:
+        card = ctk.CTkFrame(sidebar, fg_color=COLOR_CARD, corner_radius=10,
+                            border_width=1, border_color=COLOR_BORDER)
+        card.grid(row=0, column=0, sticky="ew")
+        card.set_padding(10, 10, 10, 10, spacing=6)
+        card.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
-            bar, text="Uygulanacak işlemler:",
+            card, text="Belge",
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
-            text_color=COLOR_TEXT_PRIMARY, anchor="w",
-        ).grid(row=0, column=0, sticky="w", padx=(12, 8), pady=6)
+            text_color=COLOR_TEXT_SECONDARY, anchor="w",
+        ).grid(row=0, column=0, sticky="w")
 
-        checks = ctk.CTkFrame(bar, fg_color="transparent")
-        checks.grid(row=0, column=1, sticky="e", padx=(0, 6), pady=6)
+        ctk.CTkButton(
+            card, text="PDF Seç...", height=36,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_BODY, weight="bold"),
+            fg_color=COLOR_SOLID, text_color=COLOR_ON_ACCENT,
+            hover_color=COLOR_SOLID_HOVER, corner_radius=6,
+            command=self._choose_file,
+        ).grid(row=1, column=0, sticky="ew")
 
-        check_font = ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold")
-        self.switch_gutter = ctk.CTkCheckBox(
-            checks, text="Cilt payı", font=check_font,
-            text_color=COLOR_TEXT_PRIMARY, hover_color=COLOR_ACCENT,
-            fg_color=COLOR_SOLID, border_color=COLOR_BORDER,
-            command=self._toggle_gutter_fields,
+        self.info_badge = ctk.CTkLabel(
+            card, text="Henüz belge seçilmedi.",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
+            text_color=COLOR_TEXT_SECONDARY, anchor="w", justify="left", wraplength=200,
         )
-        self.switch_gutter.pack(side="left", padx=(0, 14))
+        self.info_badge.grid(row=2, column=0, sticky="ew")
+        self._bind_wraplength(self.info_badge, card, 24)
 
-        self.switch_margin = ctk.CTkCheckBox(
-            checks, text="Kenar boşluğu", font=check_font,
-            text_color=COLOR_TEXT_PRIMARY, hover_color=COLOR_ACCENT,
-            fg_color=COLOR_SOLID, border_color=COLOR_BORDER,
-            command=self._toggle_margin_fields,
-        )
-        self.switch_margin.pack(side="left", padx=(0, 14))
-
-        self.switch_pnum = ctk.CTkCheckBox(
-            checks, text="Sayfa numarası", font=check_font,
-            text_color=COLOR_TEXT_PRIMARY, hover_color=COLOR_ACCENT,
-            fg_color=COLOR_SOLID, border_color=COLOR_BORDER,
-            command=self._toggle_pnum_fields,
-        )
-        self.switch_pnum.pack(side="left")
-
-        self.btn_all_modules = ctk.CTkButton(
-            bar, text="Tümünü aç", width=106, height=26,
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
+        unit_row = ctk.CTkFrame(card, fg_color="transparent")
+        unit_row.grid(row=3, column=0, sticky="ew")
+        ctk.CTkLabel(
+            unit_row, text="Ölçü birimi:",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
+            text_color=COLOR_TEXT_SECONDARY, anchor="w",
+        ).pack(side="left", padx=(0, 6))
+        self.unit_menu = ctk.CTkOptionMenu(
+            unit_row, values=[UNITS[u][0] for u in DISPLAY_UNITS], width=66, height=28,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
             fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
-            border_width=1, border_color=COLOR_BORDER,
-            hover_color=COLOR_BTN_SUBTLE_HOVER, corner_radius=6,
-            command=self._toggle_all_modules,
+            button_color=COLOR_SUBCARD, button_hover_color=COLOR_BTN_SUBTLE_HOVER,
+            dropdown_fg_color=COLOR_CARD, dropdown_hover_color=COLOR_SELECTED,
+            dropdown_text_color=COLOR_TEXT_PRIMARY,
+            dropdown_font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
+            command=self._on_unit_changed,
         )
-        self.btn_all_modules.grid(row=0, column=2, sticky="e", padx=10)
+        self.unit_menu.pack(side="left")
+
+    def _build_sidebar_step_card(self, sidebar) -> None:
+        card = ctk.CTkFrame(sidebar, fg_color=COLOR_CARD, corner_radius=10,
+                            border_width=1, border_color=COLOR_BORDER)
+        card.grid(row=1, column=0, sticky="nsew")
+        card.set_padding(10, 10, 10, 10, spacing=0)
+        card.grid_columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(
+            card, text="Adımlar",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
+            text_color=COLOR_TEXT_SECONDARY, anchor="w",
+        ).grid(row=0, column=0, sticky="w", pady=(0, 8))
+
+        # modül anahtarı -> (pencere anahtar metodu, sekme çerçevesi, varsayılan durum)
+        module_map = {
+            "Cilt Payı": ("_toggle_gutter_fields", True),
+            "Kenar Boşlukları": ("_toggle_margin_fields", False),
+            "Sayfa Numaraları": ("_toggle_pnum_fields", False),
+            "Birleştirme": (None, True),
+        }
+        names_with_switch = {"Cilt Payı": "switch_gutter", "Kenar Boşlukları": "switch_margin",
+                             "Sayfa Numaraları": "switch_pnum"}
+
+        self._tab_buttons: Dict[str, ctk.CTkButton] = {}
+        for index, name in enumerate(TAB_NAMES):
+            row = ctk.CTkFrame(card, fg_color="transparent")
+            row.grid(row=index + 1, column=0, sticky="ew", pady=(0, 2))
+            row.grid_columnconfigure(0, weight=1)
+
+            button = ctk.CTkButton(
+                row, text=f"{index + 1}. {name}", height=36,
+                font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
+                fg_color=COLOR_CARD, text_color=COLOR_TEXT_PRIMARY,
+                border_width=1, border_color=COLOR_BORDER,
+                hover_color=COLOR_SUBCARD, corner_radius=8, anchor="w",
+                command=lambda n=name: self.select_tab(n),
+            )
+            button.grid(row=0, column=0, sticky="ew", padx=(0, 6))
+            self._tab_buttons[name] = button
+
+            toggle_name, default_on = module_map[name]
+            if toggle_name is None:
+                # Birleştirme seçimi anahtarlı değil; boşluk yerine iç boşluk bırak.
+                blank = ctk.CTkLabel(row, text="", width=42)
+                blank.grid(row=0, column=1)
+                continue
+            switch = ctk.QtSwitch(
+                row, checked=default_on, width=42, height=22,
+                command=lambda t=toggle_name: getattr(self, t)(),
+            )
+            switch.grid(row=0, column=1, sticky="e")
+            setattr(self, names_with_switch[name], switch)
+
+    def _build_sidebar_footer(self, sidebar) -> None:
+        ctk.CTkButton(
+            sidebar, text="Kılavuz & Hakkında", height=30,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
+            fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
+            hover_color=COLOR_BTN_SUBTLE_HOVER, corner_radius=6,
+            command=self._show_about_dialog,
+        ).grid(row=3, column=0, sticky="ew", pady=(6, 0))
 
     def _build_action_bar(self) -> None:
         card = ctk.CTkFrame(self, fg_color=COLOR_CARD, corner_radius=10,
                             border_width=1, border_color=COLOR_BORDER)
-        card.grid(row=3, column=0, sticky="ew", padx=16, pady=(0, 10))
+        card.grid(row=2, column=0, sticky="ew", padx=16, pady=(0, 10))
         card.grid_columnconfigure(0, weight=1)
 
-        head = ctk.CTkFrame(card, fg_color="transparent")
-        head.grid(row=0, column=0, sticky="ew", padx=12, pady=(6, 1))
-        head.grid_columnconfigure(0, weight=1)
-        self.action_title_label = ctk.CTkLabel(
-            head, text="İşlem durumu",
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_BODY, weight="bold"),
-            text_color=COLOR_TEXT_PRIMARY,
-        )
-        self.action_title_label.grid(row=0, column=0, sticky="w")
-
-        self.pipeline_frame = ctk.CTkFrame(head, fg_color="transparent")
-        self.pipeline_frame.grid(row=0, column=1, sticky="e")
+        row0 = ctk.CTkFrame(card, fg_color="transparent")
+        row0.grid(row=0, column=0, sticky="ew", padx=12, pady=(6, 1))
+        row0.grid_columnconfigure(0, weight=1)
+        self.pipeline_frame = ctk.CTkFrame(row0, fg_color="transparent")
+        self.pipeline_frame.grid(row=0, column=0, sticky="w")
         self.pill_gutter = self._make_pill("Cilt: kapalı")
         self.pill_margin = self._make_pill("Boşluk: kapalı")
         self.pill_pnum = self._make_pill("Sayfa no: kapalı")
+        self.action_title_label = ctk.CTkLabel(
+            row0, text="İşlem durumu",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
+            text_color=COLOR_TEXT_PRIMARY,
+        )
+        self.action_title_label.grid(row=0, column=1, sticky="e")
 
         self.progress_bar = ctk.CTkProgressBar(card, height=4, progress_color=COLOR_ACCENT)
         self.progress_bar.set(0)
         self.progress_bar.grid(row=1, column=0, sticky="ew", padx=12, pady=2)
 
         self.status_label = ctk.CTkLabel(
-            card, text="Hazır. En az bir modülü etkinleştirin.",
+            card, text="Hazır. En az bir adım açın.",
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
             text_color=COLOR_TEXT_SECONDARY, anchor="w", justify="left", wraplength=780,
         )
         self.status_label.grid(row=2, column=0, sticky="ew", padx=12)
-        self._bind_wraplength(self.status_label, card, 40)
+        self._bind_wraplength(self.status_label, card, 340)
 
         bottom_row = ctk.CTkFrame(card, fg_color="transparent")
         bottom_row.grid(row=3, column=0, sticky="ew", padx=12, pady=(4, 8))

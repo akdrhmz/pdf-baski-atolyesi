@@ -125,8 +125,8 @@ class ModernGutterApp(
         screen_h = self.winfo_screenheight() / screen_scale
         available_w = max(1060, screen_w - 120)
         available_h = max(660, screen_h - 140)
-        self.geometry(f"{min(1240, available_w):.0f}x{min(900, available_h):.0f}")
-        self.minsize(min(1060, available_w), min(700, available_h))
+        self.geometry(f"{min(1420, max(1240, available_w)):.0f}x{min(920, max(780, available_h)):.0f}")
+        self.minsize(min(1300, available_w), min(720, available_h))
         self.finish_initial_show()
 
     # =====================================================================
@@ -281,6 +281,7 @@ class ModernGutterApp(
 
     def _toggle_gutter_fields(self) -> None:
         self._tabs["Cilt Payı"].show_active(self.switch_gutter.get() == 1)
+        self._sync_tab_enabled("gutter")
         self._update_all_modules_button()
         self._on_field_changed()
 
@@ -290,6 +291,7 @@ class ModernGutterApp(
     def _toggle_margin_fields(self) -> None:
         if self._tabs["Kenar Boşlukları"].built:
             self._tabs["Kenar Boşlukları"].show_active(self.switch_margin.get() == 1)
+        self._sync_tab_enabled("margin")
         self._update_all_modules_button()
         self._on_field_changed()
 
@@ -302,6 +304,7 @@ class ModernGutterApp(
     def _toggle_pnum_fields(self) -> None:
         if self._tabs["Sayfa Numaraları"].built:
             self._tabs["Sayfa Numaraları"].show_active(self.switch_pnum.get() == 1)
+        self._sync_tab_enabled("pnum")
         self._update_all_modules_button()
         self._on_field_changed()
 

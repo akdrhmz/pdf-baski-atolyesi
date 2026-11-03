@@ -49,38 +49,55 @@ class MergeTab(BaseTab):
         container.pack(fill="both", expand=True, padx=10, pady=8)
         container.set_padding(6, 4, 6, 6, spacing=8)
         container.grid_columnconfigure(0, weight=1)
-        container.grid_rowconfigure(2, weight=1)
+        container.grid_rowconfigure(3, weight=1)
 
-        top = WrapButtonRow(container)
-        top.grid(row=0, column=0, sticky="ew", pady=(2, 4))
-        top.add_button("+ Dosya ekle...", self.add_files, width=110, bold=True)
-        top.add_button("90° sola", self.rotate_selected_left)
-        top.add_button("90° sağa", self.rotate_selected_right)
-        top.add_button("Tümünü döndür", lambda: self.rotate_all(90), width=110)
-        top.add_button("Yukarı", self.move_up, width=70)
-        top.add_button("Aşağı", self.move_down, width=70)
-        top.add_button("Kaldır", self.remove_selected, width=64)
-        top.add_button("Temizle", self.clear, width=70)
+        top_row = ctk.CTkFrame(container, fg_color="transparent")
+        top_row.grid(row=0, column=0, sticky="ew", pady=(2, 4))
+        top_row.grid_columnconfigure(0, weight=1)
+        top_row.grid_columnconfigure(1, weight=1)
+        ctk.CTkButton(
+            top_row, text="+ Dosya ekle...", width=130, height=34,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
+            fg_color=COLOR_SOLID, text_color=COLOR_ON_ACCENT,
+            hover_color=COLOR_SOLID_HOVER, corner_radius=6,
+            command=self.add_files,
+        ).grid(row=0, column=0, sticky="w")
+        ctk.CTkButton(
+            top_row, text="Tümünü temizle", width=110, height=34,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
+            fg_color=COLOR_BTN_SUBTLE, text_color=COLOR_TEXT_PRIMARY,
+            hover_color=COLOR_BTN_SUBTLE_HOVER, corner_radius=6,
+            command=self.clear,
+        ).grid(row=0, column=1, sticky="e")
+
+        ops = WrapButtonRow(container)
+        ops.grid(row=1, column=0, sticky="ew", pady=(0, 4))
+        ops.add_button("Döndür ⟲", self.rotate_selected_left)
+        ops.add_button("Döndür ⟳", self.rotate_selected_right)
+        ops.add_button("Yukarı taşı", self.move_up)
+        ops.add_button("Aşağı taşı", self.move_down)
+        ops.add_button("Seçileni kaldır", self.remove_selected)
+        self._merge_ops_row = ops
 
         hint = ctk.CTkLabel(
-            container, text="Satırları sürükleyerek sıralayın. Sıralama ve rotasyonlar birleştirmeye aynen uygulanır. "
+            container, text="Satıra tıklayıp seçin; satırları sürükleyerek sıralayın. "
                             "Kısayollar: Del (kaldır), Alt+↑/↓ (sırala).",
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
             text_color=COLOR_TEXT_SECONDARY, anchor="w", justify="left", wraplength=560,
         )
-        hint.grid(row=1, column=0, sticky="ew", pady=(0, 4))
+        hint.grid(row=2, column=0, sticky="ew", pady=(0, 4))
         self.ctx.bind_wraplength(hint, container, 24)
 
         self.merge_list_frame = ctk.CTkScrollableFrame(
             container, fg_color=COLOR_SUBCARD, border_width=1,
             border_color=COLOR_BORDER, corner_radius=6,
         )
-        self.merge_list_frame.grid(row=2, column=0, sticky="nsew", pady=(0, 6))
+        self.merge_list_frame.grid(row=3, column=0, sticky="nsew", pady=(0, 6))
         self.merge_list_frame.grid_columnconfigure(0, weight=1)
 
         bot = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
                            border_width=1, border_color=COLOR_BORDER)
-        bot.grid(row=3, column=0, sticky="ew")
+        bot.grid(row=4, column=0, sticky="ew")
         bot.set_padding(12, 8, 12, 10, spacing=4)
         bot.grid_columnconfigure(0, weight=1)
 

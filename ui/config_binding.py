@@ -401,6 +401,8 @@ class ConfigBindingMixin:
     # Profiller, kağıt şablonları, hazır cilt payları
     # =====================================================================
     def _refresh_profile_menu(self) -> None:
+        if not hasattr(self, "profile_menu"):
+            return  # profil yönetimi arayüzden kaldırıldı; ayarlar settings.json'a otomatik kaydedilir
         names = self.store.profile_names()
         values = ["(profil seçin)"] + names
         self.profile_menu.configure(values=values)

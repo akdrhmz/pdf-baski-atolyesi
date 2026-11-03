@@ -56,7 +56,7 @@ class NumberTab(BaseTab):
         pos_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
                                 border_width=1, border_color=COLOR_BORDER)
         pos_card.grid(row=2, column=0, sticky="ew")
-        pos_card.set_padding(12, 8, 12, 10, spacing=4)
+        pos_card.set_padding(10, 6, 10, 8, spacing=4)
         pos_card.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
@@ -111,7 +111,7 @@ class NumberTab(BaseTab):
         dist_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
                                  border_width=1, border_color=COLOR_BORDER)
         dist_card.grid(row=4, column=0, sticky="ew")
-        dist_card.set_padding(12, 8, 12, 10, spacing=4)
+        dist_card.set_padding(10, 6, 10, 8, spacing=4)
         dist_card.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
@@ -151,7 +151,7 @@ class NumberTab(BaseTab):
         extra_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
                                   border_width=1, border_color=COLOR_BORDER)
         extra_card.grid(row=6, column=0, sticky="ew")
-        extra_card.set_padding(12, 8, 12, 10, spacing=4)
+        extra_card.set_padding(10, 6, 10, 8, spacing=4)
         extra_card.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(

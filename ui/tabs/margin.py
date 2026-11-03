@@ -56,7 +56,7 @@ class MarginTab(BaseTab):
         pay_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
                                 border_width=1, border_color=COLOR_BORDER)
         pay_card.grid(row=2, column=0, sticky="ew")
-        pay_card.set_padding(12, 8, 12, 10, spacing=4)
+        pay_card.set_padding(10, 6, 10, 8, spacing=4)
         pay_card.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
@@ -98,7 +98,7 @@ class MarginTab(BaseTab):
         mode_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
                                  border_width=1, border_color=COLOR_BORDER)
         mode_card.grid(row=4, column=0, sticky="ew")
-        mode_card.set_padding(12, 8, 12, 10, spacing=4)
+        mode_card.set_padding(10, 6, 10, 8, spacing=4)
         mode_card.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
@@ -145,7 +145,7 @@ class MarginTab(BaseTab):
         exclude_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
                                     border_width=1, border_color=COLOR_BORDER)
         exclude_card.grid(row=6, column=0, sticky="ew")
-        exclude_card.set_padding(12, 8, 12, 10, spacing=4)
+        exclude_card.set_padding(10, 6, 10, 8, spacing=4)
         exclude_card.grid_columnconfigure(1, weight=1)
 
         ctk.CTkLabel(

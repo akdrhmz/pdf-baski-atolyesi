@@ -35,7 +35,7 @@ class PreviewSplitter(ctk.CTkFrame):
     """
 
     MIN_WIDTH = 280
-    MAX_WIDTH = 560
+    MAX_WIDTH = 900
 
     def __init__(self, master, host, preview_panel):
         super().__init__(master, fg_color=COLOR_BORDER, corner_radius=2)
@@ -122,7 +122,7 @@ class ShellBuildMixin:
         self._workspace = workspace
         self._preview_width = 480  # Önizleme kolonunun başlangıç genişliği (sürüklenebilir).
         workspace.grid_columnconfigure(0, weight=0, minsize=230)
-        workspace.grid_columnconfigure(1, weight=1, minsize=400)
+        workspace.grid_columnconfigure(1, weight=1, minsize=360)
         workspace.grid_columnconfigure(3, weight=0, minsize=self._preview_width)
         workspace.grid_rowconfigure(0, weight=1)
 
@@ -399,11 +399,14 @@ class ShellBuildMixin:
 
     def _set_preview_width(self, width: int) -> None:
         """Önizleme kolonunun genişliğini sürüklemeyle günceller (ayraç çağırır)."""
-        width = max(280, min(560, int(width)))
+        width = max(280, min(900, int(width)))
         self._preview_width = width
         try:
             self._workspace.grid_columnconfigure(3, weight=0, minsize=width)
             self.preview_panel.card.setMinimumWidth(width)
+            needed = 230 + 360 + 7 + width + 48
+            if self.width() < needed:
+                self.resize(needed, self.height())
         except Exception:
             self.log.exception("Önizleme genişliği güncelenemedi")
 

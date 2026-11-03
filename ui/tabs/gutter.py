@@ -58,7 +58,7 @@ class GutterTab(BaseTab):
         quick_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
                                   border_width=1, border_color=COLOR_BORDER)
         quick_card.grid(row=2, column=0, sticky="ew")
-        quick_card.set_padding(12, 8, 12, 10, spacing=4)
+        quick_card.set_padding(10, 6, 10, 8, spacing=4)
         quick_card.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
@@ -94,7 +94,7 @@ class GutterTab(BaseTab):
         offset_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
                                    border_width=1, border_color=COLOR_BORDER)
         offset_card.grid(row=4, column=0, sticky="ew")
-        offset_card.set_padding(12, 8, 12, 10, spacing=4)
+        offset_card.set_padding(10, 6, 10, 8, spacing=4)
         offset_card.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(
@@ -149,7 +149,7 @@ class GutterTab(BaseTab):
         mode_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
                                  border_width=1, border_color=COLOR_BORDER)
         mode_card.grid(row=6, column=0, sticky="ew")
-        mode_card.set_padding(12, 8, 12, 10, spacing=4)
+        mode_card.set_padding(10, 6, 10, 8, spacing=4)
         mode_card.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(

@@ -33,10 +33,8 @@ class NumberTab(BaseTab):
         container = scroll
         container.grid_columnconfigure(0, weight=1)
         # Dikey nefes: kart bloğu üst/altta, iç boşluklar sıfır.
-        container.grid_rowconfigure(1, weight=1)
-        container.grid_rowconfigure(3, minsize=6)
-        container.grid_rowconfigure(5, minsize=6)
-        container.grid_rowconfigure(7, weight=1)
+        for _r in (1, 3, 5, 7):
+            container.grid_rowconfigure(_r, weight=1)
 
         # -- Modül Durumu (küçük tek satır; anahtar sol menüde) --------------
         top = ctk.CTkFrame(container, fg_color="transparent")

@@ -74,6 +74,7 @@ class ShellBuildMixin:
             self.grid_rowconfigure(1, weight=1)
             self._build_header()
             self._build_workspace()
+            self._build_action_bar()
 
     def _build_header(self) -> None:
         bar = ctk.CTkFrame(self, fg_color="transparent")
@@ -127,7 +128,6 @@ class ShellBuildMixin:
         workspace.grid_rowconfigure(0, weight=1)
 
         self._build_sidebar(workspace)
-        self._build_action_bar(workspace)
         content = ctk.CTkFrame(workspace, fg_color=COLOR_CARD, corner_radius=10,
                                border_width=1, border_color=COLOR_BORDER)
         content.grid(row=0, column=1, sticky="nsew", padx=(0, 10))
@@ -295,15 +295,27 @@ class ShellBuildMixin:
             setattr(self, names_with_switch[name], switch)
 
     def _build_sidebar_footer(self, sidebar) -> None:
-        # Ayarlar ve Hakkında eylem çubuğuna taşındı; yan panel altı boş bırakılır.
-        pass
+        btns = ctk.CTkFrame(sidebar, fg_color="transparent")
+        btns.grid(row=3, column=0, sticky="ew", pady=(6, 0))
+        btns.grid_columnconfigure(0, weight=1)
+        btns.grid_columnconfigure(1, weight=1)
+        ctk.CTkButton(
+            btns, text="Kılavuz & Hakkında", height=28,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
+            fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
+            hover_color=COLOR_BTN_SUBTLE_HOVER, command=self._show_about_dialog,
+        ).grid(row=0, column=0, sticky="ew", padx=(0, 4))
+        ctk.CTkButton(
+            btns, text="Ayarlar", height=28,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
+            fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
+            hover_color=COLOR_BTN_SUBTLE_HOVER, command=self._show_settings_dialog,
+        ).grid(row=0, column=1, sticky="ew", padx=(4, 0))
 
-    def _build_action_bar(self, parent=None) -> None:
-        if parent is None:
-            parent = self
-        card = ctk.CTkFrame(parent, fg_color=COLOR_CARD, corner_radius=10,
+    def _build_action_bar(self) -> None:
+        card = ctk.CTkFrame(self, fg_color=COLOR_CARD, corner_radius=10,
                             border_width=1, border_color=COLOR_BORDER)
-        card.grid(row=1, column=1, columnspan=3, sticky="ew", padx=(0, 0), pady=(6, 0))
+        card.grid(row=2, column=0, sticky="ew", padx=16, pady=(0, 10))
         card.grid_columnconfigure(0, weight=1)
 
         row0 = ctk.CTkFrame(card, fg_color="transparent")
@@ -339,18 +351,6 @@ class ShellBuildMixin:
 
         options = ctk.CTkFrame(bottom_row, fg_color="transparent")
         options.grid(row=0, column=0, sticky="w")
-        ctk.CTkButton(
-            options, text="Kılavuz & Hakkında", width=130, height=28,
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
-            fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
-            hover_color=COLOR_BTN_SUBTLE_HOVER, command=self._show_about_dialog,
-        ).pack(side="left", padx=(0, 8))
-        ctk.CTkButton(
-            options, text="Ayarlar", width=96, height=28,
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
-            fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
-            hover_color=COLOR_BTN_SUBTLE_HOVER, command=self._show_settings_dialog,
-        ).pack(side="left", padx=(0, 14))
         self.chk_optimize = ctk.CTkCheckBox(
             options, text="Dosyayı optimize et (küçük boyut)",
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
@@ -407,6 +407,10 @@ class ShellBuildMixin:
             needed = 230 + 360 + 7 + width + 48
             if self.width() < needed:
                 self.resize(needed, self.height())
+            try:
+                self._schedule_preview()
+            except Exception:
+                pass
         except Exception:
             self.log.exception("Önizleme genişliği güncelenemedi")
 

@@ -413,7 +413,7 @@ class PreviewPanel:
                 continue
             ratio = page.height_pt / page.width_pt if page.width_pt else 1.414
             display_w = max_width
-            display_h = max(60, min(380, round(max_width * ratio)))
+            display_h = max(60, min(520, round(max_width * ratio)))
             preview_image = image.resize((display_w, display_h), Image.Resampling.LANCZOS)
             photo = ctk.pil_to_pixmap(preview_image)
             self.images.append(photo)

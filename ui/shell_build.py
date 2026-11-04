@@ -295,18 +295,20 @@ class ShellBuildMixin:
             setattr(self, names_with_switch[name], switch)
 
     def _build_sidebar_footer(self, sidebar) -> None:
-        btns = ctk.CTkFrame(sidebar, fg_color="transparent")
-        btns.grid(row=3, column=0, sticky="ew", pady=(6, 0))
-        btns.grid_columnconfigure(0, weight=1)
+        card = ctk.CTkFrame(sidebar, fg_color=COLOR_CARD, corner_radius=10,
+                            border_width=1, border_color=COLOR_BORDER)
+        card.grid(row=3, column=0, sticky="ew", pady=(6, 0))
+        card.set_padding(8, 8, 8, 8, spacing=4)
+        card.grid_columnconfigure(0, weight=1)
         ctk.CTkButton(
-            btns, text="Kılavuz & Hakkında", height=28,
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
+            card, text="Kılavuz & Hakkında", height=30,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
             fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
             hover_color=COLOR_BTN_SUBTLE_HOVER, command=self._show_about_dialog,
         ).grid(row=0, column=0, sticky="ew")
         ctk.CTkButton(
-            btns, text="Ayarlar", height=28,
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
+            card, text="Ayarlar", height=30,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
             fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
             hover_color=COLOR_BTN_SUBTLE_HOVER, command=self._show_settings_dialog,
         ).grid(row=1, column=0, sticky="ew", pady=(4, 0))

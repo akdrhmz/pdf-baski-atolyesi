@@ -81,9 +81,9 @@ class GutterTab(BaseTab):
         # -- Cilt Boşluğu Miktarı ve Muaf Kapak Sayfaları ------------------------
         offset_card = self.section(container, 4, "Cilt payı miktarı")
 
-        def _offset_group(row: int, title: str):
-            grp = ctk.CTkFrame(offset_card, fg_color="transparent")
-            grp.grid(row=row, column=0, sticky="ew")
+        def _offset_group_in(parent: object, column: int, title: str):
+            grp = ctk.CTkFrame(parent, fg_color="transparent")
+            grp.grid(row=0, column=column, sticky="new")
             ctk.CTkLabel(
                 grp, text=title,
                 font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
@@ -91,7 +91,12 @@ class GutterTab(BaseTab):
             ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 2))
             return grp
 
-        odd = _offset_group(1, "Tek sayfalar (sağ sayfa • sol kenar):")
+        groups = ctk.CTkFrame(offset_card, fg_color="transparent")
+        groups.grid(row=1, column=0, sticky="ew")
+        groups.grid_columnconfigure(0, weight=1)
+        groups.grid_columnconfigure(1, weight=1)
+
+        odd = _offset_group_in(groups, 0, "Tek sayfalar (sağ sayfa • sol kenar):")
         self.f_odd_x = FieldRow(odd, "Yatay pay", "0", width=62,
                                 minimum=-5000, maximum=5000, allow_negative=True, on_change=self.on_changed)
         self.f_odd_x.grid(row=1, column=0, sticky="w", padx=(0, 12))
@@ -99,7 +104,7 @@ class GutterTab(BaseTab):
                                 minimum=-5000, maximum=5000, allow_negative=True, on_change=self.on_changed)
         self.f_odd_y.grid(row=1, column=1, sticky="w")
 
-        even = _offset_group(2, "Çift sayfalar (sol sayfa • sağ kenar):")
+        even = _offset_group_in(groups, 1, "Çift sayfalar (sol sayfa • sağ kenar):")
         self.f_even_x = FieldRow(even, "Yatay pay", "0", width=62,
                                  minimum=-5000, maximum=5000, allow_negative=True, on_change=self.on_changed)
         self.f_even_x.grid(row=1, column=0, sticky="w", padx=(0, 12))
@@ -195,7 +200,7 @@ class GutterTab(BaseTab):
         sizes.grid(row=3, column=0, sticky="ew")
         sizes.grid_columnconfigure(0, weight=1)
         sizes.grid_columnconfigure(1, weight=1)
-        sizes.grid_columnconfigure(1, weight=1)
+        sizes.grid_columnconfigure(2, weight=1)
 
         self.f_width = FieldRow(
             sizes, "Hedef genişlik", "210", width=64, minimum=1, maximum=5000,
@@ -211,7 +216,7 @@ class GutterTab(BaseTab):
             sizes, "Güvenli kenar", "0", width=56, minimum=0, maximum=100,
             on_change=self.on_changed,
         )
-        self.f_safe_edge.grid(row=1, column=0, sticky="w", pady=(2, 0))
+        self.f_safe_edge.grid(row=0, column=2, sticky="w")
         self.update_safe_edge_state()
 
         # Açılış durumu: etiket modül anahtarına göre kurulur, özet ve önizleme güncellenir.

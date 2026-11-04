@@ -72,19 +72,23 @@ class BaseTab:
     # =====================================================================
     # Ortak yerleşim yardımcıları
     # =====================================================================
-    def section(self, container, row: int, title: str):
-        """Başlıklı, kart çerçevesiz düz bölüm döndürür; içeriği dönen çerçeveye koy."""
+    def section(self, container, row: int, title: str, column: int = 0):
+        """Vurgu çubuklu düz bölüm: renkli şerit + başlık, çerçevesiz gövde.
+
+        Gövde, başlık metniyle hizalanır (sol 11 px); dönen çerçeveye içeriği koy.
+        """
         sec = ctk.CTkFrame(container, fg_color="transparent")
-        sec.grid(row=row, column=0, sticky="ew")
-        sec.set_padding(0, 0, 0, 0, spacing=2)
+        sec.grid(row=row, column=column, sticky="new")
         sec.grid_columnconfigure(0, weight=1)
+        header = ctk.CTkFrame(sec, fg_color="transparent")
+        header.grid(row=0, column=0, sticky="ew")
+        ctk.CTkFrame(header, fg_color=COLOR_ACCENT, width=3, height=16,
+                     corner_radius=2).grid(row=0, column=0, sticky="w", padx=(0, 8))
         ctk.CTkLabel(
-            sec, text=title,
+            header, text=title,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
             text_color=COLOR_TEXT_PRIMARY, anchor="w",
-        ).grid(row=0, column=0, sticky="w")
-        ctk.CTkFrame(sec, fg_color=COLOR_BORDER, height=1, corner_radius=0).grid(
-            row=1, column=0, sticky="ew")
+        ).grid(row=0, column=1, sticky="w")
         body = ctk.CTkFrame(sec, fg_color="transparent")
-        body.grid(row=2, column=0, sticky="ew", pady=(4, 0))
+        body.grid(row=1, column=0, sticky="ew", padx=(11, 0), pady=(6, 0))
         return body

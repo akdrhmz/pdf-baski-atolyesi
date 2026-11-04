@@ -17,6 +17,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from ui import qt_compat as ctk
+from ui.theme import *  # noqa: F401,F403
+
 
 class BaseTab:
     """Tüm sekmelerin ortak sözleşmesi."""
@@ -65,3 +68,23 @@ class BaseTab:
                 canvas.yview_moveto(0.0)
             except Exception:
                 pass
+
+    # =====================================================================
+    # Ortak yerleşim yardımcıları
+    # =====================================================================
+    def section(self, container, row: int, title: str):
+        """Başlıklı, kart çerçevesiz düz bölüm döndürür; içeriği dönen çerçeveye koy."""
+        sec = ctk.CTkFrame(container, fg_color="transparent")
+        sec.grid(row=row, column=0, sticky="ew")
+        sec.set_padding(0, 0, 0, 0, spacing=2)
+        sec.grid_columnconfigure(0, weight=1)
+        ctk.CTkLabel(
+            sec, text=title,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
+            text_color=COLOR_TEXT_PRIMARY, anchor="w",
+        ).grid(row=0, column=0, sticky="w")
+        ctk.CTkFrame(sec, fg_color=COLOR_BORDER, height=1, corner_radius=0).grid(
+            row=1, column=0, sticky="ew")
+        body = ctk.CTkFrame(sec, fg_color="transparent")
+        body.grid(row=2, column=0, sticky="ew", pady=(4, 0))
+        return body

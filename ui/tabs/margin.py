@@ -51,17 +51,7 @@ class MarginTab(BaseTab):
         self.ctx.bind_wraplength(self.lbl_margin_status, top, 24)
 
         # -- Alt ve Üst Boşluk Miktarı ----------------------------------------
-        pay_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
-                                border_width=1, border_color=COLOR_BORDER)
-        pay_card.grid(row=2, column=0, sticky="ew")
-        pay_card.set_padding(10, 6, 10, 8, spacing=4)
-        pay_card.grid_columnconfigure(0, weight=1)
-
-        ctk.CTkLabel(
-            pay_card, text="Alt ve üst boşluk",
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
-            text_color=COLOR_TEXT_PRIMARY, anchor="w",
-        ).grid(row=0, column=0, sticky="w")
+        pay_card = self.section(container, 2, "Alt ve üst boşluk")
 
         bottom_row = ctk.CTkFrame(pay_card, fg_color="transparent")
         bottom_row.grid(row=1, column=0, sticky="ew")
@@ -93,17 +83,7 @@ class MarginTab(BaseTab):
         self._margin_preset_rows = (self._bottom_preset_row, self._top_preset_row)
 
         # -- Boşluk Ekleme Yöntemi ve Kitapçık Seçeneği -------------------------
-        mode_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
-                                 border_width=1, border_color=COLOR_BORDER)
-        mode_card.grid(row=4, column=0, sticky="ew")
-        mode_card.set_padding(10, 6, 10, 8, spacing=4)
-        mode_card.grid_columnconfigure(0, weight=1)
-
-        ctk.CTkLabel(
-            mode_card, text="Boşluk ekleme yöntemi",
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
-            text_color=COLOR_TEXT_PRIMARY, anchor="w",
-        ).grid(row=0, column=0, sticky="w")
+        mode_card = self.section(container, 4, "Boşluk ekleme yöntemi")
 
         self.seg_bottom_mode = ctk.CTkSegmentedButton(
             mode_card, values=list(MODE_LABELS.keys()), height=26,
@@ -140,23 +120,13 @@ class MarginTab(BaseTab):
         self.chk_pad4.grid(row=4, column=0, sticky="w")
 
         # -- İşlem Dışı Sayfalar (Muafiyet) ------------------------------------
-        exclude_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
-                                    border_width=1, border_color=COLOR_BORDER)
-        exclude_card.grid(row=6, column=0, sticky="ew")
-        exclude_card.set_padding(10, 6, 10, 8, spacing=4)
-        exclude_card.grid_columnconfigure(1, weight=1)
-
-        ctk.CTkLabel(
-            exclude_card, text="Muaf sayfalar:",
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
-            text_color=COLOR_TEXT_PRIMARY, anchor="w",
-        ).grid(row=0, column=0, sticky="w", padx=(0, 8))
+        exclude_card = self.section(container, 6, "Muaf sayfalar")
         self.entry_exclude_margin = ctk.CTkEntry(
             exclude_card, placeholder_text="Örn: 1, 5, 9-10 (bu sayfalara alt/üst boşluk eklenmez)",
             height=26, font=ctk.CTkFont(family=FONT_FAMILY, size=FS_BODY),
             fg_color=COLOR_CARD, border_color=COLOR_BORDER, text_color=COLOR_TEXT_PRIMARY,
         )
-        self.entry_exclude_margin.grid(row=0, column=1, sticky="ew")
+        self.entry_exclude_margin.grid(row=1, column=0, sticky="ew")
         self.entry_exclude_margin.bind("<KeyRelease>", lambda e: self.ctx.on_field_changed())
 
         # Açılış durumu: etiket modül anahtarına göre kurulur, özet ve önizleme güncellenir.

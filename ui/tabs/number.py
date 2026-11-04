@@ -51,17 +51,7 @@ class NumberTab(BaseTab):
         self.ctx.bind_wraplength(self.lbl_pnum_status, top, 24)
 
         # -- Numara Konumu, Biçimi ve Yazı Boyutu ------------------------------
-        pos_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
-                                border_width=1, border_color=COLOR_BORDER)
-        pos_card.grid(row=2, column=0, sticky="ew")
-        pos_card.set_padding(10, 6, 10, 8, spacing=4)
-        pos_card.grid_columnconfigure(0, weight=1)
-
-        ctk.CTkLabel(
-            pos_card, text="Numara konumu ve biçimi",
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
-            text_color=COLOR_TEXT_PRIMARY, anchor="w",
-        ).grid(row=0, column=0, sticky="w")
+        pos_card = self.section(container, 2, "Numara konumu ve biçimi")
 
         self.seg_pos = ctk.CTkSegmentedButton(
             pos_card, values=list(POSITION_LABELS.keys()), height=26,
@@ -106,17 +96,7 @@ class NumberTab(BaseTab):
         self.f_font_size.grid(row=1, column=1, sticky="w", pady=(4, 0))
 
         # -- Başlangıç Sayfası ve Kenar Mesafeleri -----------------------------
-        dist_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
-                                 border_width=1, border_color=COLOR_BORDER)
-        dist_card.grid(row=4, column=0, sticky="ew")
-        dist_card.set_padding(10, 6, 10, 8, spacing=4)
-        dist_card.grid_columnconfigure(0, weight=1)
-
-        ctk.CTkLabel(
-            dist_card, text="Başlangıç ve mesafeler",
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
-            text_color=COLOR_TEXT_PRIMARY, anchor="w",
-        ).grid(row=0, column=0, sticky="w")
+        dist_card = self.section(container, 4, "Başlangıç ve mesafeler")
 
         grid = ctk.CTkFrame(dist_card, fg_color="transparent")
         grid.grid(row=1, column=0, sticky="ew")
@@ -146,17 +126,7 @@ class NumberTab(BaseTab):
         self.lbl_side_hint.grid(row=2, column=1, sticky="w")
 
         # -- Numarasız Sayfalar ve Özel Şablon ---------------------------------
-        extra_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
-                                  border_width=1, border_color=COLOR_BORDER)
-        extra_card.grid(row=6, column=0, sticky="ew")
-        extra_card.set_padding(10, 6, 10, 8, spacing=4)
-        extra_card.grid_columnconfigure(0, weight=1)
-
-        ctk.CTkLabel(
-            extra_card, text="Numarasız sayfalar ve özel şablon",
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
-            text_color=COLOR_TEXT_PRIMARY, anchor="w",
-        ).grid(row=0, column=0, sticky="w")
+        extra_card = self.section(container, 6, "Numarasız sayfalar ve özel şablon")
 
         skip_row = ctk.CTkFrame(extra_card, fg_color="transparent")
         skip_row.grid(row=1, column=0, sticky="ew")

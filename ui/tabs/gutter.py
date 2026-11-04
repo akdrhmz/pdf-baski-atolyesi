@@ -53,17 +53,7 @@ class GutterTab(BaseTab):
         self.ctx.bind_wraplength(self.lbl_gutter_status, top, 24)
 
         # -- Hızlı Seçim (Tek Tıkla Cilt Payı veya Hazır Şablon) -----------------
-        quick_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
-                                  border_width=1, border_color=COLOR_BORDER)
-        quick_card.grid(row=2, column=0, sticky="ew")
-        quick_card.set_padding(10, 6, 10, 8, spacing=4)
-        quick_card.grid_columnconfigure(0, weight=1)
-
-        ctk.CTkLabel(
-            quick_card, text="Hızlı seçim",
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
-            text_color=COLOR_TEXT_PRIMARY, anchor="w",
-        ).grid(row=0, column=0, sticky="w")
+        quick_card = self.section(container, 2, "Hızlı seçim")
 
         self._gutter_preset_row = WrapButtonRow(quick_card)
         self._gutter_preset_row.grid(row=1, column=0, sticky="ew")
@@ -89,17 +79,7 @@ class GutterTab(BaseTab):
             )
 
         # -- Cilt Boşluğu Miktarı ve Muaf Kapak Sayfaları ------------------------
-        offset_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
-                                   border_width=1, border_color=COLOR_BORDER)
-        offset_card.grid(row=4, column=0, sticky="ew")
-        offset_card.set_padding(10, 6, 10, 8, spacing=4)
-        offset_card.grid_columnconfigure(0, weight=1)
-
-        ctk.CTkLabel(
-            offset_card, text="Cilt payı miktarı",
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
-            text_color=COLOR_TEXT_PRIMARY, anchor="w",
-        ).grid(row=0, column=0, sticky="w")
+        offset_card = self.section(container, 4, "Cilt payı miktarı")
 
         def _offset_group(row: int, title: str):
             grp = ctk.CTkFrame(offset_card, fg_color="transparent")
@@ -144,17 +124,7 @@ class GutterTab(BaseTab):
         self.entry_exclude_pages.bind("<KeyRelease>", lambda e: self.ctx.on_field_changed())
 
         # -- Sayfa Boyutu ve Sığdırma (Gelişmiş Ebat Ayarları) -------------------
-        mode_card = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
-                                 border_width=1, border_color=COLOR_BORDER)
-        mode_card.grid(row=6, column=0, sticky="ew")
-        mode_card.set_padding(10, 6, 10, 8, spacing=4)
-        mode_card.grid_columnconfigure(0, weight=1)
-
-        ctk.CTkLabel(
-            mode_card, text="Sayfa boyutu ve sığdırma",
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
-            text_color=COLOR_TEXT_PRIMARY, anchor="w",
-        ).grid(row=0, column=0, sticky="w")
+        mode_card = self.section(container, 6, "Sayfa boyutu ve sığdırma")
 
         self.seg_size_mode = ctk.CTkSegmentedButton(
             mode_card, values=list(SIZE_MODE_LABELS.keys()), height=26,

@@ -186,15 +186,21 @@ class ShellBuildMixin:
         sidebar = ctk.CTkFrame(parent, fg_color="transparent")
         sidebar.grid(row=0, column=0, sticky="nsew")
         sidebar.grid_columnconfigure(0, weight=1)
-        sidebar.grid_rowconfigure(2, weight=1)
+        sidebar.grid_rowconfigure(0, weight=1)
         self._sidebar = sidebar
 
-        self._build_sidebar_document_card(sidebar)
-        self._build_sidebar_step_card(sidebar)
+        # Üst blok (Belge + Adımlar), alt blok (Hakkında/Ayarlar) yapışık düzen.
+        top = ctk.CTkFrame(sidebar, fg_color="transparent")
+        top.grid(row=0, column=0, sticky="new")
+        top.grid_columnconfigure(0, weight=1)
+
+        self._build_sidebar_document_card(top)
+        self._build_sidebar_step_card(top)
+        self.top_sidebar = top
         self._build_sidebar_footer(sidebar)
 
-    def _build_sidebar_document_card(self, sidebar) -> None:
-        card = ctk.CTkFrame(sidebar, fg_color=COLOR_CARD, corner_radius=10,
+    def _build_sidebar_document_card(self, parent) -> None:
+        card = ctk.CTkFrame(parent, fg_color=COLOR_CARD, corner_radius=10,
                             border_width=1, border_color=COLOR_BORDER)
         card.grid(row=0, column=0, sticky="ew")
         card.set_padding(10, 10, 10, 10, spacing=6)
@@ -241,8 +247,8 @@ class ShellBuildMixin:
         )
         self.unit_menu.pack(side="left")
 
-    def _build_sidebar_step_card(self, sidebar) -> None:
-        card = ctk.CTkFrame(sidebar, fg_color=COLOR_CARD, corner_radius=10,
+    def _build_sidebar_step_card(self, parent) -> None:
+        card = ctk.CTkFrame(parent, fg_color=COLOR_CARD, corner_radius=10,
                             border_width=1, border_color=COLOR_BORDER)
         card.grid(row=1, column=0, sticky="nsew")
         card.set_padding(10, 10, 10, 10, spacing=0)

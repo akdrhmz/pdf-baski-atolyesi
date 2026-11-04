@@ -95,12 +95,7 @@ class MergeTab(BaseTab):
         self.merge_list_frame.grid(row=3, column=0, sticky="nsew", pady=(0, 6))
         self.merge_list_frame.grid_columnconfigure(0, weight=1)
 
-        bot = ctk.CTkFrame(container, fg_color=COLOR_SUBCARD, corner_radius=8,
-                           border_width=1, border_color=COLOR_BORDER)
-        bot.grid(row=4, column=0, sticky="ew")
-        bot.set_padding(12, 8, 12, 10, spacing=4)
-        bot.grid_columnconfigure(0, weight=1)
-
+        bot = self.section(container, 4, "Birleştirme seçenekleri")
         self.merge_summary_badge = ctk.CTkLabel(
             bot, text="Toplam: 0 dosya | 0 sayfa",
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),

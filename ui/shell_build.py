@@ -74,7 +74,6 @@ class ShellBuildMixin:
             self.grid_rowconfigure(1, weight=1)
             self._build_header()
             self._build_workspace()
-            self._build_action_bar()
 
     def _build_header(self) -> None:
         bar = ctk.CTkFrame(self, fg_color="transparent")
@@ -128,6 +127,7 @@ class ShellBuildMixin:
         workspace.grid_rowconfigure(0, weight=1)
 
         self._build_sidebar(workspace)
+        self._build_action_bar(workspace)
         content = ctk.CTkFrame(workspace, fg_color=COLOR_CARD, corner_radius=10,
                                border_width=1, border_color=COLOR_BORDER)
         content.grid(row=0, column=1, sticky="nsew", padx=(0, 10))
@@ -298,24 +298,25 @@ class ShellBuildMixin:
         btns = ctk.CTkFrame(sidebar, fg_color="transparent")
         btns.grid(row=3, column=0, sticky="ew", pady=(6, 0))
         btns.grid_columnconfigure(0, weight=1)
-        btns.grid_columnconfigure(1, weight=1)
         ctk.CTkButton(
             btns, text="Kılavuz & Hakkında", height=28,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
             fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
             hover_color=COLOR_BTN_SUBTLE_HOVER, command=self._show_about_dialog,
-        ).grid(row=0, column=0, sticky="ew", padx=(0, 4))
+        ).grid(row=0, column=0, sticky="ew")
         ctk.CTkButton(
             btns, text="Ayarlar", height=28,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
             fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
             hover_color=COLOR_BTN_SUBTLE_HOVER, command=self._show_settings_dialog,
-        ).grid(row=0, column=1, sticky="ew", padx=(4, 0))
+        ).grid(row=1, column=0, sticky="ew", pady=(4, 0))
 
-    def _build_action_bar(self) -> None:
-        card = ctk.CTkFrame(self, fg_color=COLOR_CARD, corner_radius=10,
+    def _build_action_bar(self, parent=None) -> None:
+        if parent is None:
+            parent = self
+        card = ctk.CTkFrame(parent, fg_color=COLOR_CARD, corner_radius=10,
                             border_width=1, border_color=COLOR_BORDER)
-        card.grid(row=2, column=0, sticky="ew", padx=16, pady=(0, 10))
+        card.grid(row=1, column=1, columnspan=3, sticky="ew", padx=(0, 0), pady=(6, 0))
         card.grid_columnconfigure(0, weight=1)
 
         row0 = ctk.CTkFrame(card, fg_color="transparent")

@@ -34,9 +34,8 @@ class GutterTab(BaseTab):
         scroll.set_padding(2, 4, 2, 6, spacing=6)
         container = scroll
         container.grid_columnconfigure(0, weight=1)
-        # Dikey nefes: kart bloğu üst/altta, iç boşluklar sıfır.
-        for _r in (1, 3, 5, 7):
-            container.grid_rowconfigure(_r, weight=1)
+        # Fazla dikey alanı en alttaki boş satır yutsun; içerik üstte kalır.
+        container.grid_rowconfigure(20, weight=1)
 
         # -- Modül Durumu ( küçük tek satır; anahtar sol menüde) ----------------
         top = ctk.CTkFrame(container, fg_color="transparent")
@@ -81,9 +80,9 @@ class GutterTab(BaseTab):
         # -- Cilt Boşluğu Miktarı ve Muaf Kapak Sayfaları ------------------------
         offset_card = self.section(container, 4, "Cilt payı miktarı")
 
-        def _offset_group_in(parent: object, column: int, title: str):
+        def _offset_group_in(parent: object, row: int, title: str):
             grp = ctk.CTkFrame(parent, fg_color="transparent")
-            grp.grid(row=0, column=column, sticky="new")
+            grp.grid(row=row, column=0, sticky="new")
             ctk.CTkLabel(
                 grp, text=title,
                 font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
@@ -94,7 +93,6 @@ class GutterTab(BaseTab):
         groups = ctk.CTkFrame(offset_card, fg_color="transparent")
         groups.grid(row=1, column=0, sticky="ew")
         groups.grid_columnconfigure(0, weight=1)
-        groups.grid_columnconfigure(1, weight=1)
 
         odd = _offset_group_in(groups, 0, "Tek sayfalar (sağ sayfa • sol kenar):")
         self.f_odd_x = FieldRow(odd, "Yatay pay", "0", width=62,
@@ -139,7 +137,7 @@ class GutterTab(BaseTab):
             unselected_color=COLOR_CARD, unselected_hover_color=COLOR_SUBCARD,
             text_color=COLOR_TEXT_PRIMARY, command=lambda _v: self.on_changed(),
         )
-        self.seg_size_mode.grid(row=1, column=0, sticky="ew")
+        self.seg_size_mode.grid(row=1, column=0, sticky="w")
 
         paper_row = ctk.CTkFrame(mode_card, fg_color="transparent")
         paper_row.grid(row=2, column=0, sticky="ew")
@@ -150,7 +148,7 @@ class GutterTab(BaseTab):
             text_color=COLOR_TEXT_PRIMARY, anchor="w",
         ).grid(row=0, column=0, sticky="w", padx=(0, 4))
         self.paper_menu = ctk.CTkOptionMenu(
-            paper_row, values=list(PAPER_SIZES.keys()), width=148, height=26,
+            paper_row, values=list(PAPER_SIZES.keys()), width=126, height=26,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
             fg_color=COLOR_CARD, text_color=COLOR_TEXT_PRIMARY,
             button_color=COLOR_SUBCARD, button_hover_color=COLOR_BTN_SUBTLE_HOVER,
@@ -161,7 +159,7 @@ class GutterTab(BaseTab):
         self.paper_menu.set(list(PAPER_SIZES.keys())[0])
         self.paper_menu.grid(row=0, column=1, sticky="w", padx=(0, 4))
         self.orientation_menu = ctk.CTkSegmentedButton(
-            paper_row, values=["Dikey", "Yatay"], width=116, height=26,
+            paper_row, values=["Dikey", "Yatay"], width=100, height=26,
             border_width=0, fg_color=COLOR_SUBCARD, bg_color=COLOR_SUBCARD,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
             selected_color=COLOR_SELECTED, selected_hover_color=COLOR_SELECTED_HOVER,
@@ -171,7 +169,7 @@ class GutterTab(BaseTab):
         self.orientation_menu.set("Dikey")
         self.orientation_menu.grid(row=0, column=2, sticky="w", padx=(0, 4))
         ctk.CTkButton(
-            paper_row, text="Ölçüyü Uygula", width=98, height=26,
+            paper_row, text="Ölçüyü Uygula", width=86, height=26,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
             fg_color=COLOR_SOLID, text_color=COLOR_ON_ACCENT,
             hover_color=COLOR_SOLID_HOVER,
@@ -216,7 +214,7 @@ class GutterTab(BaseTab):
             sizes, "Güvenli kenar", "0", width=56, minimum=0, maximum=100,
             on_change=self.on_changed,
         )
-        self.f_safe_edge.grid(row=0, column=2, sticky="w")
+        self.f_safe_edge.grid(row=1, column=0, sticky="w", pady=(2, 0))
         self.update_safe_edge_state()
 
         # Açılış durumu: etiket modül anahtarına göre kurulur, özet ve önizleme güncellenir.

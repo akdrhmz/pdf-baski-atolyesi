@@ -78,17 +78,22 @@ class BaseTab:
         Gövde, başlık metniyle hizalanır (sol 11 px); dönen çerçeveye içeriği koy.
         """
         sec = ctk.CTkFrame(container, fg_color="transparent")
-        sec.grid(row=row, column=column, sticky="new")
+        sec.grid(row=row, column=column, sticky="new", pady=(0, 14))
         sec.grid_columnconfigure(0, weight=1)
         header = ctk.CTkFrame(sec, fg_color="transparent")
         header.grid(row=0, column=0, sticky="ew")
-        ctk.CTkFrame(header, fg_color=COLOR_ACCENT, width=3, height=16,
-                     corner_radius=2).grid(row=0, column=0, sticky="w", padx=(0, 8))
+        bar = ctk.CTkFrame(header, fg_color=COLOR_ACCENT, width=3, height=16,
+                           corner_radius=2)
+        # Qt uyum katmanında pack edilen Preferred öge kalan alanı paylaşır;
+        # sabit politika ile çubuk 3 px kalır.
+        bar._has_fixed_w = True
+        bar.pack(side="left", padx=(0, 8))
         ctk.CTkLabel(
             header, text=title,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
-            text_color=COLOR_TEXT_PRIMARY, anchor="w",
-        ).grid(row=0, column=1, sticky="w")
+            text_color=COLOR_TEXT_PRIMARY, anchor="w", justify="left",
+        ).pack(side="left")
         body = ctk.CTkFrame(sec, fg_color="transparent")
         body.grid(row=1, column=0, sticky="ew", padx=(11, 0), pady=(6, 0))
+        body.grid_columnconfigure(0, weight=1)
         return body

@@ -88,6 +88,12 @@ class FieldRow(ctk.CTkFrame):
             self, text="", font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
             text_color=COLOR_ERROR, anchor="w", justify="left", wraplength=230,
         )
+        # Qt yerleşiminde boş hata etiketi satırın en küçük genişliğini şişirir;
+        # yatayda yok sayılır, yalnızca artan alanda gösterilir.
+        sp = self.error_label.sizePolicy()
+        sp.setHorizontalPolicy(ctk.QSizePolicy.Policy.Ignored)
+        self.error_label.setSizePolicy(sp)
+        self.error_label.setMinimumWidth(0)
         self.error_label.pack(side="left", padx=(6, 0))
         self._set_default(value)
 

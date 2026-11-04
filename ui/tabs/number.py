@@ -32,9 +32,8 @@ class NumberTab(BaseTab):
         scroll.set_padding(2, 4, 2, 6, spacing=8)
         container = scroll
         container.grid_columnconfigure(0, weight=1)
-        # Dikey nefes: kart bloğu üst/altta, iç boşluklar sıfır.
-        for _r in (1, 3, 5, 7):
-            container.grid_rowconfigure(_r, weight=1)
+        # Fazla dikey alanı en alttaki boş satır yutsun; içerik üstte kalır.
+        container.grid_rowconfigure(20, weight=1)
 
         # -- Modül Durumu (küçük tek satır; anahtar sol menüde) --------------
         top = ctk.CTkFrame(container, fg_color="transparent")
@@ -61,7 +60,7 @@ class NumberTab(BaseTab):
             unselected_color=COLOR_CARD, unselected_hover_color=COLOR_SUBCARD,
             text_color=COLOR_TEXT_PRIMARY, command=lambda _v: self.on_position_changed(),
         )
-        self.seg_pos.grid(row=1, column=0, sticky="ew")
+        self.seg_pos.grid(row=1, column=0, sticky="w")
 
         fmt_row = ctk.CTkFrame(pos_card, fg_color="transparent")
         fmt_row.grid(row=2, column=0, sticky="ew")
@@ -105,18 +104,18 @@ class NumberTab(BaseTab):
 
         self.f_start_page = FieldRow(grid, "Başlangıç sayfası", "1", convert=False, width=68,
                                      minimum=1, maximum=100000, integer=True,
-                                     suffix="", label_width=130, on_change=self.on_changed)
+                                     suffix="", label_width=116, on_change=self.on_changed)
         self.f_start_page.grid(row=0, column=0, sticky="w", pady=1)
         self.f_start_num = FieldRow(grid, "İlk numara", "1", convert=False, width=68,
                                     minimum=0, maximum=100000, integer=True,
-                                    suffix="", label_width=130, on_change=self.on_changed)
+                                    suffix="", label_width=116, on_change=self.on_changed)
         self.f_start_num.grid(row=0, column=1, sticky="w", pady=1)
 
         self.f_num_bottom = FieldRow(grid, "Alt kenardan uzaklık", "12", width=68, minimum=0, maximum=5000,
-                                     label_width=130, on_change=self.on_changed)
+                                     label_width=116, on_change=self.on_changed)
         self.f_num_bottom.grid(row=1, column=0, sticky="w", pady=1)
         self.f_num_side = FieldRow(grid, "Yan boşluk", "15", width=68, minimum=0, maximum=5000,
-                                   label_width=130, on_change=self.on_changed)
+                                   label_width=116, on_change=self.on_changed)
         self.f_num_side.grid(row=1, column=1, sticky="w", pady=1)
 
         self.lbl_side_hint = ctk.CTkLabel(

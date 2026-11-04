@@ -32,9 +32,8 @@ class MarginTab(BaseTab):
         scroll.set_padding(2, 4, 2, 6, spacing=8)
         container = scroll
         container.grid_columnconfigure(0, weight=1)
-        # Dikey nefes: kart bloğu üst/altta, iç boşluklar sıfır.
-        for _r in (1, 3, 5, 7):
-            container.grid_rowconfigure(_r, weight=1)
+        # Fazla dikey alanı en alttaki boş satır yutsun; içerik üstte kalır.
+        container.grid_rowconfigure(20, weight=1)
 
         # -- Modül Durumu (küçük tek satır; anahtar sol menüde) --------------
         top = ctk.CTkFrame(container, fg_color="transparent")
@@ -55,12 +54,12 @@ class MarginTab(BaseTab):
 
         bottom_row = ctk.CTkFrame(pay_card, fg_color="transparent")
         bottom_row.grid(row=1, column=0, sticky="ew")
-        bottom_row.grid_columnconfigure(1, weight=1)
+        bottom_row.grid_columnconfigure(0, weight=1)
         self.f_bottom = FieldRow(bottom_row, "Alt boşluk", "0", width=68, label_width=76,
                                  minimum=0, maximum=5000, on_change=self.on_changed)
-        self.f_bottom.grid(row=0, column=0, sticky="w", padx=(0, 10))
+        self.f_bottom.grid(row=0, column=0, sticky="w")
         self._bottom_preset_row = WrapButtonRow(bottom_row)
-        self._bottom_preset_row.grid(row=0, column=1, sticky="ew")
+        self._bottom_preset_row.grid(row=1, column=0, sticky="ew")
         for value in MARGIN_PRESETS_MM:
             self._bottom_preset_row.add_button(
                 self.preset_label(value),
@@ -68,13 +67,13 @@ class MarginTab(BaseTab):
         self._bottom_preset_row.add_button("Sıfırla", lambda: self.set_bottom(0.0), width=64)
 
         top_row = ctk.CTkFrame(pay_card, fg_color="transparent")
-        top_row.grid(row=2, column=0, sticky="ew", pady=(4, 0))
-        top_row.grid_columnconfigure(1, weight=1)
+        top_row.grid(row=2, column=0, sticky="ew")
+        top_row.grid_columnconfigure(0, weight=1)
         self.f_top = FieldRow(top_row, "Üst boşluk", "0", width=68, label_width=76,
                               minimum=0, maximum=5000, on_change=self.on_changed)
-        self.f_top.grid(row=0, column=0, sticky="w", padx=(0, 10))
+        self.f_top.grid(row=0, column=0, sticky="w")
         self._top_preset_row = WrapButtonRow(top_row)
-        self._top_preset_row.grid(row=0, column=1, sticky="ew")
+        self._top_preset_row.grid(row=1, column=0, sticky="ew")
         for value in MARGIN_PRESETS_MM:
             self._top_preset_row.add_button(
                 self.preset_label(value),
@@ -93,7 +92,7 @@ class MarginTab(BaseTab):
             unselected_color=COLOR_CARD, unselected_hover_color=COLOR_SUBCARD,
             text_color=COLOR_TEXT_PRIMARY, command=lambda _v: self.on_mode_changed(),
         )
-        self.seg_bottom_mode.grid(row=1, column=0, sticky="ew")
+        self.seg_bottom_mode.grid(row=1, column=0, sticky="w")
 
         self.lbl_mode_warning = ctk.CTkLabel(
             mode_card, text="", font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY, weight="bold"),

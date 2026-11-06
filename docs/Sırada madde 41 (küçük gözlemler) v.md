@@ -1,0 +1,1 @@
+Sırada madde 41 (küçük gözlemler) var; üç alt maddesine bakıyorum. adım adım yap ve her adımda güncel md ve zip ver testleri koşturma

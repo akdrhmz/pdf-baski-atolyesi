@@ -15,15 +15,22 @@ from __future__ import annotations
 
 import os
 from typing import Any, Dict, List, Optional
+from PySide6.QtCore import QTimer
+from PySide6.QtGui import QPixmap
+from concurrent.futures import ThreadPoolExecutor
+from collections import OrderedDict
+import threading
 
 from ui import qt_compat as ctk
 from ui.qt_compat import filedialog, messagebox
 
-from gutter_engine import get_pdf_info, invalid_range_tokens, parse_page_ranges
+from gutter_engine import (get_pdf_info, invalid_range_tokens, parse_page_ranges,
+                           PdfProcessConfig, config_from_dict, config_to_dict, validate_config)
 from ui.tabs.base import BaseTab
 from ui.tabs.merge_drag import MergeDragMixin
 from ui.theme import *  # noqa: F401,F403
-from ui.widgets import WrapButtonRow
+from ui.widgets import WrapButtonRow, FieldRow, FieldError
+from ui.perf import record_ui
 
 
 class MergeTab(MergeDragMixin, BaseTab):
@@ -38,6 +45,10 @@ class MergeTab(MergeDragMixin, BaseTab):
         self._anchor: Optional[int] = None    # Shift+tık aralığının başlangıcı
         self.rows: List[ctk.CTkFrame] = []
         self._init_drag_state()
+        self._thumb_pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="merge-thumbnail")
+        self._thumb_cache = OrderedDict()
+        self._thumb_pending = set()
+        self._visible_timer = None
 
     # -- Seçim modeli -----------------------------------------------------------
     @property
@@ -142,6 +153,12 @@ class MergeTab(MergeDragMixin, BaseTab):
         # Liste çerçevesinin üst/alt boşluğu (eskiden grid() sezgisinden örtük geliyordu).
         self.merge_list_frame._ensure_layout("grid").setContentsMargins(0, 10, 0, 10)
         self.merge_list_frame.grid_columnconfigure(0, weight=1)
+        self._visible_timer = QTimer(self.merge_list_frame)
+        self._visible_timer.setSingleShot(True)
+        self._visible_timer.setInterval(25)
+        self._visible_timer.timeout.connect(self._refresh_visible_rows)
+        self.merge_list_frame.verticalScrollBar().valueChanged.connect(lambda _v: self._visible_timer.start())
+        self.merge_list_frame.bind("<Configure>", lambda _e: self._visible_timer.start(), add="+")
 
         bot = self.section(container, 1, "Birleştirme seçenekleri")
 
@@ -150,7 +167,7 @@ class MergeTab(MergeDragMixin, BaseTab):
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
             text_color=COLOR_TEXT_SECONDARY, hover_color=COLOR_ACCENT_HOVER,
             fg_color=COLOR_ACCENT,
-            command=lambda: (self.ctx.update_summary(), self.ctx.schedule_preview()),
+            command=self._merge_options_changed,
         )
         self.chk_merge_apply_pipeline.deselect()
         self.chk_merge_apply_pipeline.place(0, 0, align="w")
@@ -165,10 +182,10 @@ class MergeTab(MergeDragMixin, BaseTab):
         self.chk_merge_bookmarks.place(1, 0, align="w")
 
         self.chk_merge_fit = ctk.CTkCheckBox(
-            bot, text="Farklı ebatlı sayfaları eşitle (Sayfa Düzeni'ndeki ebada; kapalıysa en büyük sayfaya sığdır)",
+            bot, text="Farklı ebatlı sayfaları eşitle",
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
             text_color=COLOR_TEXT_SECONDARY, hover_color=COLOR_ACCENT_HOVER,
-            fg_color=COLOR_ACCENT, command=self.ctx.schedule_preview,
+            fg_color=COLOR_ACCENT, command=self._merge_options_changed,
         )
         self.chk_merge_fit.setToolTip(
             "Acrobat'ta Yazdır > Adobe PDF > Sığdır ile yapılan işin karşılığı: içerik oranı "
@@ -176,33 +193,99 @@ class MergeTab(MergeDragMixin, BaseTab):
         self.chk_merge_fit.deselect()
         self.chk_merge_fit.place(2, 0, align="w")
 
-        self.chk_merge_sequence = ctk.CTkCheckBox(
-            bot, text="Önizlemede tüm birleşik diziyi gez (dosya sınırı işaretli)",
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
-            text_color=COLOR_TEXT_SECONDARY, hover_color=COLOR_ACCENT_HOVER,
-            fg_color=COLOR_ACCENT, command=self.ctx.schedule_preview,
-        )
-        self.chk_merge_sequence.setToolTip(
-            "Önizleme yalnız seçili dosyayı değil, birleşik belgenin tüm sayfalarını art arda "
-            "gösterir. İlk kullanımda birleşik bir geçici kopya hazırlanır; sonra sayfa "
-            "çevirmek hızlıdır.")
-        self.chk_merge_sequence.deselect()
-        self.chk_merge_sequence.place(3, 0, align="w")
+        self.fit_options = ctk.CTkFrame(bot, fg_color="transparent")
+        self.fit_options.place(3, 0, expand_x=True)
+        self.fit_options.grid_columnconfigure(0, weight=1)
+        initial = self.merge_fit_config()
+        self.merge_fit_menu = ctk.CTkOptionMenu(
+            self.fit_options, values=[label for label, code in FIT_LABELS.items() if code != "off"],
+            width=240, command=lambda _v: self._merge_options_changed())
+        self.merge_fit_menu.set(FIT_CODES[initial.fit_mode])
+        self.merge_fit_menu.place(0, 0, align="w")
+        self.merge_fit_keep = ctk.CTkCheckBox(self.fit_options, text="Yatay sayfalar yatay kalsın",
+                                            command=self._merge_options_changed)
+        self.merge_fit_keep.select() if initial.fit_keep_orientation else self.merge_fit_keep.deselect()
+        self.merge_fit_keep.place(1, 0, align="w")
+        self.merge_fit_rotate = ctk.CTkCheckBox(self.fit_options, text="Yatay sayfaları dikeye döndür",
+                                              command=self._merge_options_changed)
+        self.merge_fit_rotate.select() if initial.fit_rotate_landscape else self.merge_fit_rotate.deselect()
+        self.merge_fit_rotate.place(2, 0, align="w")
+        self.merge_fit_custom = ctk.CTkFrame(self.fit_options, fg_color="transparent")
+        self.merge_fit_custom.place(3, 0, align="w")
+        self.f_merge_fit_width = FieldRow(self.merge_fit_custom, "Genişlik", str(initial.fit_width_mm),
+                                         minimum=1, maximum=2000, on_change=self._merge_options_changed)
+        self.f_merge_fit_width.put("h", margins=(0, 0, SP_S, 0))
+        self.f_merge_fit_height = FieldRow(self.merge_fit_custom, "Yükseklik", str(initial.fit_height_mm),
+                                          minimum=1, maximum=2000, on_change=self._merge_options_changed)
+        self.f_merge_fit_height.put("h")
+        self.f_merge_fit_margin = FieldRow(self.fit_options, "Çevreden boşluk", str(initial.fit_margin_mm),
+                                          minimum=0, maximum=500, on_change=self._merge_options_changed)
+        self.f_merge_fit_margin.place(4, 0, align="w")
+        for field in (self.f_merge_fit_width, self.f_merge_fit_height, self.f_merge_fit_margin):
+            field.change_unit("mm", self.ctx.unit)
+        self._merge_options_changed()
 
-        self.chk_merge_handle_only = ctk.CTkCheckBox(
-            bot, text="Satırları yalnız ⠿ tutamacından sürükle (yanlışlıkla taşımayı önler)",
+        preferences = ctk.CTkButton(
+            bot, text="Liste ve önizleme tercihleri…", width=205, height=28,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
-            text_color=COLOR_TEXT_SECONDARY, hover_color=COLOR_ACCENT_HOVER,
-            fg_color=COLOR_ACCENT,
+            fg_color=COLOR_BTN_SUBTLE, text_color=COLOR_TEXT_PRIMARY,
+            hover_color=COLOR_BTN_SUBTLE_HOVER, command=self.ctx.open_settings,
         )
-        self.chk_merge_handle_only.setToolTip(
-            "Açıkken satırı sürüklemek için soldaki ⠿ simgesinden tutmak gerekir; satırın "
-            "başka yerine tıklamak yalnızca seçer. Bu oturum için geçerlidir.")
-        self.chk_merge_handle_only.deselect()
-        self.chk_merge_handle_only.place(4, 0, align="w")
+        preferences.place(4, 0, align="w")
 
         self.refresh_list()
         self._building = False
+
+    FIELD_ROWS = ("f_merge_fit_width", "f_merge_fit_height", "f_merge_fit_margin")
+
+    def merge_fit_config(self):
+        config = config_from_dict(self.ctx.store.data.get("merge_fit", {}))
+        if config.fit_mode == "off":
+            config.fit_mode = "largest"
+        return config
+
+    def restore_fit_preferences(self):
+        if not hasattr(self, "merge_fit_menu"):
+            return
+        config = self.merge_fit_config()
+        self.merge_fit_menu.set(FIT_CODES[config.fit_mode])
+        self.merge_fit_keep.select() if config.fit_keep_orientation else self.merge_fit_keep.deselect()
+        self.merge_fit_rotate.select() if config.fit_rotate_landscape else self.merge_fit_rotate.deselect()
+        self.f_merge_fit_width.set_mm(config.fit_width_mm)
+        self.f_merge_fit_height.set_mm(config.fit_height_mm)
+        self.f_merge_fit_margin.set_mm(config.fit_margin_mm)
+        self._merge_options_changed()
+
+    def _merge_options_changed(self):
+        if not hasattr(self, "fit_options"):
+            return
+        active = self.chk_merge_fit.get() == 1 and self.chk_merge_apply_pipeline.get() != 1
+        self.fit_options.setVisible(active)
+        self.chk_merge_fit.setEnabled(self.chk_merge_apply_pipeline.get() != 1)
+        keep = self.merge_fit_keep.get() == 1
+        self.merge_fit_rotate.setEnabled(not keep)
+        if keep:
+            self.merge_fit_rotate.deselect()
+        mode = FIT_LABELS[self.merge_fit_menu.get()]
+        self.merge_fit_custom.setVisible(mode == "custom")
+        self._fit_error = ""
+        try:
+            config = PdfProcessConfig(
+                fit_mode=mode, fit_keep_orientation=keep,
+                fit_rotate_landscape=self.merge_fit_rotate.get() == 1,
+                fit_width_mm=self.f_merge_fit_width.get_mm() if mode == "custom" else self.f_merge_fit_width._canonical_mm,
+                fit_height_mm=self.f_merge_fit_height.get_mm() if mode == "custom" else self.f_merge_fit_height._canonical_mm,
+                fit_margin_mm=self.f_merge_fit_margin.get_mm())
+            validation = validate_config(config)
+            if not validation.ok:
+                raise FieldError("; ".join(validation.errors))
+        except FieldError as exc:
+            self._fit_error = exc.message
+            return
+        self.ctx.store.data["merge_fit"] = config_to_dict(config)
+        self.ctx.store.save()
+        self.ctx.update_summary()
+        self.ctx.schedule_preview()
 
     def append_file(self, path: str) -> None:
         if not path or not os.path.exists(path):
@@ -234,6 +317,7 @@ class MergeTab(MergeDragMixin, BaseTab):
             self.append_file(path)
         self.rows_added(before)
 
+    @record_ui("birles_liste_ekle")
     def rows_added(self, before: int) -> None:
         """``before`` kadar dosya varken eklenenler için yalnız yeni satırları kurar.
 
@@ -271,6 +355,7 @@ class MergeTab(MergeDragMixin, BaseTab):
             badge = getattr(row, "_badge_label", None)
             if badge is not None:
                 badge.configure(text=self._rotation_text(item))
+        self._refresh_visible_rows()
         self.ctx.schedule_preview()
 
     def rotate_all(self, delta: int) -> None:
@@ -349,6 +434,7 @@ class MergeTab(MergeDragMixin, BaseTab):
         if len(chosen) > 1:
             self.ctx.set_status(f"{len(chosen)} dosya listeden kaldırıldı.", COLOR_TEXT_SECONDARY)
 
+    @record_ui("birles_liste_temizle")
     def clear(self) -> None:
         self.files.clear()
         self.selected_idx = None
@@ -377,16 +463,21 @@ class MergeTab(MergeDragMixin, BaseTab):
         self.refresh_selection()
         self.ctx.schedule_preview()
 
+    @record_ui("birles_secim")
     def refresh_selection(self) -> None:
         chosen = set(self.selection())
         if self.files and hasattr(self, "merge_summary_badge") and (self.built or getattr(self, "_building", False)):
             self.update_summary()
         for idx, row in enumerate(self.rows):
+            if not getattr(row, "_loaded", True):
+                continue
             selected = idx in chosen
+            if getattr(row, "_selected", None) == selected:
+                continue
+            row._selected = selected
             row.configure(fg_color=COLOR_SOLID if selected else COLOR_CARD,
                           border_color=COLOR_SOLID if selected else COLOR_BORDER)
-            # Yalnızca sıra numarası ve dosya adı seçim rengine uyar; döndürme
-            # rozeti kendi kontrastını korur (seçiliyken okunmaz hâle gelmesin).
+            # Seçimde satır metinleri beyaz olur; rozet kendi rengini korur.
             try:
                 row._title_label.configure(
                     text_color=COLOR_ON_ACCENT if selected else COLOR_TEXT_PRIMARY)
@@ -398,6 +489,12 @@ class MergeTab(MergeDragMixin, BaseTab):
             except Exception:
                 pass
 
+            for label_name in ("_range_label", "_handle_label"):
+                label = getattr(row, label_name, None)
+                if label is not None:
+                    label.configure(
+                        text_color=COLOR_ON_ACCENT if selected else COLOR_TEXT_SECONDARY)
+
     @staticmethod
     def _rotation_text(item: Dict[str, Any]) -> str:
         rotation = int(item.get("rotation", 0))
@@ -408,10 +505,15 @@ class MergeTab(MergeDragMixin, BaseTab):
     def _rows_match_files(self) -> bool:
         return bool(self.files) and len(self.rows) == len(self.files)
 
+    @record_ui("birles_liste_kur")
     def refresh_list(self) -> None:
         if not self.built and not getattr(self, "_building", False):
             return  # kurulmamış sekmede widget yok; build sonunda yenilenir
         self._end_drag()  # satırlar yok edilirken yarım kalmış sürükleme olmasın
+        self._summary_text = None
+        if getattr(self, "_empty_hint", None) is not None:
+            self._empty_hint.destroy()
+            self._empty_hint = None
         for row in self.rows:
             row.destroy()
         self.rows.clear()
@@ -419,12 +521,13 @@ class MergeTab(MergeDragMixin, BaseTab):
         if not self.files:
             self.merge_summary_badge.configure(text="Toplam: 0 dosya | 0 sayfa",
                                                text_color=COLOR_TEXT_SECONDARY)
-            ctk.CTkLabel(
+            self._empty_hint = ctk.CTkLabel(
                 self.merge_list_frame,
                 text="Liste boş. Dosya ekleyin veya PDF'leri bu sekmeye sürükleyin.",
                 font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
                 text_color=COLOR_TEXT_SECONDARY,
-            ).place(0, 0, align="c")
+            )
+            self._empty_hint.place(0, 0, align="c")
             return
 
         self.update_summary()
@@ -440,7 +543,21 @@ class MergeTab(MergeDragMixin, BaseTab):
         row = ctk.CTkFrame(self.merge_list_frame, fg_color=COLOR_CARD,
                            corner_radius=5, border_width=1, border_color=COLOR_BORDER)
         row.place(index, 0)
-        row.grid_columnconfigure(2, weight=1)
+        row.setFixedHeight(82)
+        row._loaded = False
+        row._item = item
+        if len(self.files) < 100:
+            self._populate_row(row, index, item)
+        if self._visible_timer is not None:
+            self._visible_timer.start()
+        return row
+
+    def _populate_row(self, row, index, item):
+        if row._loaded:
+            return
+        row._loaded = True
+        row._selected = None
+        row.grid_columnconfigure(3, weight=1)
         row._ensure_layout("grid").setContentsMargins(4, 5, 8, 5)  # açık satır iç boşluğu
 
         handle = ctk.CTkLabel(
@@ -448,27 +565,28 @@ class MergeTab(MergeDragMixin, BaseTab):
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
             text_color=COLOR_TEXT_SECONDARY, cursor="fleur",
         )
-        handle.place(0, 0, align="c")
+        handle.place(0, 1, align="c")
 
         number = ctk.CTkLabel(
             row, text=f"{index + 1:>2}", width=26,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
             text_color=COLOR_TEXT_SECONDARY,
         )
-        number.place(0, 1, align="c")
+        number.place(0, 2, align="c")
 
         title = ctk.CTkLabel(
             row, text=f"{item['name']}  •  {item['pages']} sayfa  •  {item['size_mb']} MB",
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
             text_color=COLOR_TEXT_PRIMARY, anchor="w",
         )
-        title.place(0, 2)
+        title.place(0, 3)
 
-        ctk.CTkLabel(
+        range_label = ctk.CTkLabel(
             row, text="Sayfa:", width=40,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
             text_color=COLOR_TEXT_SECONDARY, anchor="e",
-        ).place(0, 3, align="c")
+        )
+        range_label.place(0, 4, align="c")
 
         range_entry = ctk.CTkEntry(
             row, width=88, height=28, placeholder_text="Tümü",
@@ -477,7 +595,7 @@ class MergeTab(MergeDragMixin, BaseTab):
             text_color=COLOR_TEXT_PRIMARY,
         )
         range_entry.insert(0, item.get("page_range", ""))
-        range_entry.place(0, 4, align="c")
+        range_entry.place(0, 5, align="c")
         range_entry.bind(
             "<KeyRelease>",
             lambda event, current=item, entry=range_entry: self.on_range_changed(current, entry),
@@ -488,17 +606,108 @@ class MergeTab(MergeDragMixin, BaseTab):
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY, weight="bold"),
             fg_color=COLOR_WARN_BG, text_color=COLOR_WARN, corner_radius=4,
         )
-        badge.place(0, 5, align="c")
+        badge.place(0, 6, align="c")
 
+        row._range_label = range_label  # type: ignore[attr-defined]
         row._handle_label = handle  # type: ignore[attr-defined]
         row._number_label = number  # type: ignore[attr-defined]
         row._title_label = title  # type: ignore[attr-defined]
         row._badge_label = badge  # type: ignore[attr-defined]
+        row._thumbnail = ctk.CTkLabel(row, text="…", width=56, height=72)
+        row._thumbnail.place(0, 0, align="c")
         self.bind_row_drag(row, index)
         return row
 
+    @record_ui("birles_gorunen_satirlar")
+    def _refresh_visible_rows(self):
+        if not hasattr(self, "merge_list_frame") or not self.rows:
+            return
+        viewport = self.merge_list_frame.viewport()
+        from PySide6.QtCore import QPoint
+        visible = viewport.rect().adjusted(0, -90, 0, 90)
+        focus = ctk.ensure_qapp().focusWidget()
+        for index, row in enumerate(self.rows):
+            top = row.mapTo(viewport, QPoint(0, 0)).y()
+            on_screen = top < visible.bottom() and top + row.height() > visible.top()
+            if on_screen:
+                self._populate_row(row, index, self.files[index])
+                self._request_thumbnail(row, self.files[index])
+            elif (len(self.files) >= 100 and row._loaded and not self._dragged
+                  and not (focus is not None and (focus is row or row.isAncestorOf(focus)))):
+                for child in row.winfo_children():
+                    child.destroy()
+                for attr in ("_range_label", "_handle_label", "_number_label", "_title_label", "_badge_label", "_thumbnail"):
+                    setattr(row, attr, None)
+                row._loaded = False
+                row._thumb_key = None
+        self.refresh_selection()
+
+    def _request_thumbnail(self, row, item):
+        if not getattr(row, "_loaded", False) or getattr(row, "_thumbnail", None) is None:
+            return
+        try:
+            stamp = os.stat(item["path"])
+        except OSError:
+            return
+        key = (item["path"], stamp.st_mtime_ns, stamp.st_size, int(item.get("rotation", 0)), item.get("page_range", ""))
+        if getattr(row, "_thumb_key", None) == key:
+            return
+        row._thumb_key = key
+        if key in self._thumb_cache:
+            pixmap = QPixmap()
+            pixmap.loadFromData(self._thumb_cache[key])
+            row._thumbnail.configure(image=pixmap, text="")
+            self._thumb_cache.move_to_end(key)
+            return
+        if key in self._thumb_pending:
+            row._thumb_key = None
+            return
+        if len(self._thumb_pending) >= 16:
+            row._thumb_key = None
+            return
+        self._thumb_pending.add(key)
+
+        def render():
+            from ui.preview import PDF_RENDER_LOCK
+            from gutter_engine import open_pdf
+            import pymupdf
+            with PDF_RENDER_LOCK, open_pdf(key[0]) as doc:
+                picked = sorted(p for p in parse_page_ranges(key[4]) if 1 <= p <= len(doc))
+                page = doc[picked[0] - 1 if picked else 0]
+                page.set_rotation((page.rotation + key[3]) % 360)
+                rect = page.rect
+                zoom = min(56 / rect.width, 72 / rect.height)
+                return page.get_pixmap(matrix=pymupdf.Matrix(zoom, zoom), alpha=False).tobytes("png")
+
+        def complete(future):
+            try:
+                data = future.result()
+            except Exception:
+                data = None
+
+            def apply():
+                self._thumb_pending.discard(key)
+                if data:
+                    self._thumb_cache[key] = data
+                    while len(self._thumb_cache) > 64:
+                        self._thumb_cache.popitem(last=False)
+                if (row in self.rows and getattr(row, "_loaded", False)
+                        and getattr(row, "_thumb_key", None) == key):
+                    if data:
+                        pixmap = QPixmap()
+                        pixmap.loadFromData(data)
+                        row._thumbnail.configure(image=pixmap, text="")
+                    else:
+                        row._thumbnail.configure(text="PDF")
+                if self._visible_timer is not None:
+                    self._visible_timer.start()
+
+            self.ctx.run_on_ui(apply)
+
+        self._thumb_pool.submit(render).add_done_callback(complete)
+
     def sequence_enabled(self) -> bool:
-        return self.built and self.chk_merge_sequence.get() == 1
+        return self.built and self.ctx.store.merge_preview_sequence
 
     def existing_items(self) -> List[Dict[str, Any]]:
         """Birleşik dizi gezintisi için diskte var olan dosyalar (liste sırasıyla)."""
@@ -523,17 +732,24 @@ class MergeTab(MergeDragMixin, BaseTab):
         # Yazarken yarım aralık ("1-", "3,") önizlemeyi tüm belgeye döndürüp geri getirirdi
         # (yanıp sönme): yalnız geçerli aralıkta yenilenir, geçersizken son önizleme kalır.
         if not invalid:
+            self._refresh_visible_rows()
             self.ctx.schedule_preview()
 
     def update_summary(self) -> None:
         """Üst rozet: toplamlar (+ birden çok satır seçiliyse seçili sayısı)."""
-        total_pages = sum(self.item_count(item) for item in self.files)
-        total_size = sum(item["size_mb"] for item in self.files)
+        key = tuple((id(item), item.get("page_range", ""), item["pages"], item["size_mb"]) for item in self.files)
+        if getattr(self, "_summary_key", None) != key:
+            self._summary_key = key
+            self._summary_totals = (sum(self.item_count(item) for item in self.files),
+                                    sum(item["size_mb"] for item in self.files))
+        total_pages, total_size = self._summary_totals
         text = f"Toplam: {len(self.files)} dosya | {total_pages} sayfa | ~{total_size:.1f} MB"
         chosen = len(self.selection())
         if chosen > 1:
             text += f" | {chosen} seçili"
-        self.merge_summary_badge.configure(text=text, text_color=COLOR_TEXT_PRIMARY)
+        if getattr(self, "_summary_text", None) != text:
+            self._summary_text = text
+            self.merge_summary_badge.configure(text=text, text_color=COLOR_TEXT_PRIMARY)
 
     def move_item(self, old_index: int, new_index: int) -> None:
         """Liste ve satır nesnelerini birlikte taşır; görsel sıra veriyle eşleşir."""
@@ -557,6 +773,8 @@ class MergeTab(MergeDragMixin, BaseTab):
             if number is not None:
                 number.configure(text=f"{idx + 1:>2}")
         self.refresh_selection()
+        if self._visible_timer is not None:
+            self._visible_timer.start()
 
     # -- Arka plan işine verilen veri ------------------------------------------
     def invalid_range_lines(self) -> List[str]:

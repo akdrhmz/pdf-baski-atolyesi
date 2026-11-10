@@ -63,6 +63,17 @@ def test_paint_draws_scaled_page_inside_fit_rect(canvas):
     assert outside.name() == "#112233"                         # zemin (tema rengi)
 
 
+def test_vector_placeholder_is_painted_and_cleared_by_a_real_page(canvas):
+    canvas.resize(300, 400)
+    canvas.set_placeholder("spread")
+    image = canvas.grab().toImage()
+    assert QColor(image.pixel(150, 200)).name() != "#112233"   # sayfa zemini çizildi
+    canvas.configure(image=_pixmap(50, 50))
+    assert canvas._placeholder is None
+    canvas.set_placeholder(None)
+    assert canvas.source() is None
+
+
 def test_clearing_image_and_theme_color(canvas):
     canvas.resize(200, 200)
     canvas.configure(image=_pixmap(50, 50))

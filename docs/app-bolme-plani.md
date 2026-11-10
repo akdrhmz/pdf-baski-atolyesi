@@ -1,10 +1,10 @@
 # PDF Baskı ve Cilt Stüdyosu — Plan ve Yol Haritası
 
-**Sürüm:** `2.7.4` · Tek ana referans. Biten işler kısa özetlenir (ayrıntı kodda, testlerde ve sürüm notlarında); yapılacaklar **öncelik sırasına** göre listelenir.
+**Sürüm:** `2.9.0` · Tek ana referans. Ayrıntılar: [2.9.0 sürüm notları](v2.9.0-surum-notlari.md).
 
 **Öncelik anahtarı:** **P1** kullanıcıyı engelleyen / yanlış sonuç gösteren · **P2** belirgin kalite sorunu · **P3** iyileştirme ve teknik borç · **P4** yeni özellik.
 
-> **Çalışma kuralı:** Her öncelik seviyesi (veya büyük maddenin her parçası) bitince güncel **kaynak zip'i** ve bu **md** birlikte teslim edilir; sürüm her teslimde artar, "Durum özeti" ve "Tamamlananlar" aynı teslimde güncellenir. Kod Qt'siz/Windows'suz ortamda yazıldıysa ilgili maddede açıkça belirtilir. Testler çalıştırılmadan teslim edilen parça varsa bu da açıkça yazılır.
+> **Çalışma kuralı (güncel kullanıcı talimatı):** Değişiklikler doğrudan yerel kaynakta uygulanır; ZIP hazırlanmaz. Plan ve sürüm güncellenir. Otomatik test, native Windows kontrolü ve kullanıcı/DPI saha gözlemi ayrı raporlanır.
 
 ---
 
@@ -14,12 +14,16 @@
 | :--- | :--- |
 | Motor (`gutter_engine.py`) | Kararlı: döndürme/kırpma normalizasyonu, sığdırma, sayfa eşitleme (v2.6.21) + **yatayı dikeye döndürme (v2.7.0)**, birleşik geometri, **hızlı** çıktı doğrulama, atomik kayıt |
 | Mimari | `app.py` ~450 satır; sekmeler, önizleme, kabuk, iş akışı ayrı modüllerde; arayüz PySide6, sıfır-QSS `QPainter` teması, açık `place()/put()` yerleşimi |
-| Testler | **540 geçti, 1 atlandı** (v2.7.4; Linux, ekran dışı Qt, PySide6 6.12). Windows'ta kullanıcı v2.6.21'i denedi (aşağıdaki S7–S12 bulguları); v2.7.0 Windows'ta kullanıcı tarafından denendi: S7–S11 tamam, tek sorun döndürme yönüydü (S13). v2.7.1 Windows'ta denendi (tamam). v2.7.2 Windows'ta denendi. v2.7.3 Windows'ta henüz çalıştırılmadı; **v2.7.4 de çalıştırılmadı** |
-| Açık işler | P1: 43 (v2.7.3 + v2.7.4 saha doğrulaması) · P3: 20, 38, 41–42 (performans devamı, küçük gözlemler, birleştirme eşitleme ayarının yeri) · 40 yapıldı, Windows doğrulaması bekliyor · P4: 22, 24–32, 44 |
+| Güncel teslim | **2.9.0:** Boş/başlangıç akışı, kaynak gerektiren düğme durumları, ön kontrol özeti ve profil seçmeli GUI toplu işlem eklendi |
+| Güncel doğrulama | **566 test geçti** (Windows, Python 3.12, ekran dışı Qt; süre 2.9.0 notlarında). Toplu işlem ve arayüz regresyonları dahil. DPI başlangıç boyutu native Windows Qt sürücüsünde; tema tıklama/boyama kontrolü ayrıca geçti |
+| Testler (önceki sürüm) | **540 geçti, 1 atlandı** (v2.7.4; Linux, ekran dışı Qt, PySide6 6.12). Windows'ta kullanıcı v2.6.21'i denedi (aşağıdaki S7–S12 bulguları); v2.7.0 Windows'ta kullanıcı tarafından denendi: S7–S11 tamam, tek sorun döndürme yönüydü (S13). v2.7.1 Windows'ta denendi (tamam). v2.7.2 Windows'ta denendi. v2.7.3 Windows'ta henüz çalıştırılmadı; **v2.7.4 de çalıştırılmadı** |
+| Açık işler | **20 ve 43: fiziksel ekran/DPI görüntüsü ve kullanıcı saha kontrolü.** Gerçek monitör görüntüsü, yazıcı ve uzun süreli saha gözlemi bekliyor |
 
 ---
 
 ## 2. Kalıcı teknik sözleşmeler (yeni kod bunlara uyar)
+
+- **2.8.0 güncellemesi önceliklidir:** `merge_handle_only` ve `merge_preview_sequence` widget değil, kalıcı depo tercihleridir. Düz birleştirme `merge_fit` bölümündeki bağımsız eşitleme ayarlarını kullanır. Alt çubuktaki çıktı tercihleri Ayarlar'a taşındı. Önizleme döndürmesi yalnız görünümü değiştirir; çıktı döndürmesi dosya/sayfa araçlarından yapılır. Aşağıdaki sürüm etiketli eski davranışların değişen kısımları için güncel sürüm notları esas alınır.
 
 - **Yerleşim:** `grid()/pack()` sezgileri silindi. Yalnızca `place(row, col, align=, valign=, expand_x=, expand_y=, margins=)`, `put(direction, fill=, expand=, margins=)`, `place_restore()`. **Aralık yalnızca `set_padding(spacing=...)`** ile; örtük kenar boşluğu yok, her boşluk açık yazılır. Ölçüler/boşluklar `ui/theme.py` sabitlerinde (`SP_*`, `FORM_LABEL_W`, `CONTENT_MAX_W`, `PREVIEW_*`, `ROW_MAX_W` …).
 - **Sekme erişimi:** pencere takma adı köprüsü (`EXPOSED`/`__getattr__`) yok. Alanlara `app._layout_tab()`, `_number_tab()`, `_merge_tab()` ile erişilir; kurulmamış sekme sessizce kurulmaz (eski ad `AttributeError`). Kabuğun paylaştığı modül anahtarları: `switch_gutter/margin/pnum`.
@@ -44,6 +48,11 @@
 
 | Sürüm | Konu |
 | :--- | :--- |
+| **2.8.0** | **38, 40 devamı, 42, 45–46 ve P4 22/24–32/44:** tek kaynakta uygulandı. Windows otomatik testleri, gerçek Windows tema kontrolü ve 25/100/300 dosya ölçümü; ayrıntı ve kapsam sınırları sürüm notlarında |
+| 2.7.8 | Birleşik dizi önizlemesi ve tutamaktan sürükleme Ayarlar’a taşındı; kalıcı kayıt, anında uygulama, fabrika sıfırlama ve kaydırılabilir Ayarlar penceresi. |
+| 2.7.7 | **P3-41c: Cilt payı ve hazır baskı şablonu satırlarında ROW_MAX_W sınırı, expand_x yerleştirmesinden sonra uygulanır; 580 px sınırı artık kaldırılmaz.** Testler çalıştırılmadı; GUI doğrulaması bekliyor. |
+| 2.7.6 | **P3-41b: Birleştirme listesindeki Sayfa: etiketi seçiliyken beyaz, seçim kaldırılınca ikincil metin rengine döner; tutamak da aynı kontrastı izler.** Testler çalıştırılmadı; GUI doğrulaması bekliyor. |
+| 2.7.5 | **P3-41a: Kırpma riski diyaloğunda gerçek bir esnek dolgu ile düğmeler ve İptal sağa yaslandı.** Testler çalıştırılmadı; GUI doğrulaması bekliyor. |
 | 2.2.x–2.4.x | Motor sağlamlaştırma (döndürme/CropBox normalizasyonu, taşma modları, Unicode yazı tipi, yer imi onarımı, atomik kayıt); mimari bölme (ayar bağlama, `BaseTab`, sekmeler, önizleme paneli, kabuk, iş akışı); CustomTkinter → PySide6 geçişi, sıfır-QSS tema; arayüz incelemesi (adım düğmesi aralığı, form bileşenleri, tasarım ölçekleri, hazır kağıt tutarlılığı); 1a boyama bozulması düzeltildi, 1b (240×319 mm gözlemi) hata değil; önizleme çift sayfa açılımı, üretim iptali, "Git" kutusu + klavye gezinmesi + lejant; "Sayfa Düzeni" modeli |
 | 2.5.0–2.5.3 | Birleşik "Sayfa Düzeni" sekmesi (Cilt payı · Alt/üst boşluk · Sayfa boyutu · Özel sayfalar), serbest önizleme boyutlandırma, yatay kaydırma koruması; `QSplitter` + `PreviewCanvas`; motorda çift ölçekleme düzeltmesi (13f); "Üstte tut" sahipsiz pencere; sihirli sayılar → `theme.py`; ince kaydırma çubuğu; sol menü ipucu; tanılama paketi |
 | 2.6.0 | Birleştirme listesinde çoklu seçim (Ctrl/Shift, Ctrl+A, çoklu sil/döndür, blok taşıma/sürükleme) |
@@ -57,7 +66,37 @@
 | 2.7.3 | **P3-39b+c:** birleştirmede tüm birleşik diziyi önizlemede gezme (dosya sınırı işaretli) · aralık yazarken önizleme yanıp sönmesi giderildi (39 kapandı) |
 | **2.7.4** | **P3-40:** birleştirme listesinde bırakma yeri çizgisi · kenarda otomatik kaydırma · yalnız tutamaktan sürükleme · sürükleme maliyeti ölçüldü (40 kapandı) |
 
-### v2.7.4 ayrıntısı (bu teslim)
+### v2.8.0 ayrıntısı
+
+Yeni modüller, kullanım yolları, performans tablosu, test sonuçları ve kapsam sınırları: [2.8.0 sürüm notları](v2.8.0-surum-notlari.md). Önceki sürümlerdeki oturumluk tercih ve Sayfa Düzeni’ne bağımlı düz birleştirme notları tarihî bilgidir.
+
+### v2.7.8: Arayüz tercihlerini düzenleme
+
+- Ayarlar → Birleştirme: liste ve önizleme altında iki genel tercih toplanır. `merge_preview_sequence` ve `merge_handle_only` JSON alanları varsayılan kapalıdır; eski ayar dosyaları ve geçersiz değerler bu varsayılanla açılır.
+- Birleştirme sekmesi kurulmadan tercih değiştirilebilir. Değişiklik hemen kaydedilir, sonraki oturumda ve Yeni iş sonrasında korunur. Fabrika sıfırlama ikisini de kapatır. Etkin sürükleme tercih değişikliğinde iptal edilir.
+- Birleştirme ekranında üç çıktı seçeneği ve Ayarlar kısayolu kalır. Yer imi, eşitleme, diğer sekmelerin ayarları, numaralandırma, yön ve çıktı kontrolleri işe göre değiştiği için ilgili ekranlarda tutulur.
+- Ayarlar penceresi yeniden boyutlandırılabilir ve kaydırılabilir; dar veya yüksek DPI ekranlarda seçenekler erişilebilir kalır.
+- **Doğrulama:** Yalnızca kaynak ve sözdizimi incelemesi. Kullanıcı isteğiyle testler çalıştırılmadı; GUI açılmadı. Önceki sürümlerdeki oturumluk tercih notları bu sürümle geçersizdir.
+
+### v2.7.7 ayrıntısı (41, adım 3/3)
+
+41c: Cilt payı ve hazır baskı şablonu satırlarında ROW_MAX_W sınırı, expand_x yerleştirmesinden sonra uygulanır; 580 px sınırı artık kaldırılmaz.
+
+**Doğrulama:** Kullanıcı isteğiyle testler çalıştırılmadı. Windows ortamında kaynak düzenlendi; uygulama/Qt arayüzü çalıştırılmadı. Görsel saha doğrulaması bekliyor.
+
+### v2.7.6 ayrıntısı (41, adım 2/3)
+
+41b: Birleştirme listesindeki Sayfa: etiketi seçiliyken beyaz, seçim kaldırılınca ikincil metin rengine döner; tutamak da aynı kontrastı izler.
+
+**Doğrulama:** Kullanıcı isteğiyle testler çalıştırılmadı. Windows ortamında kaynak düzenlendi; uygulama/Qt arayüzü çalıştırılmadı. Görsel saha doğrulaması bekliyor.
+
+### v2.7.5 ayrıntısı (41, adım 1/3)
+
+41a: Kırpma riski diyaloğunda gerçek bir esnek dolgu ile düğmeler ve İptal sağa yaslandı.
+
+**Doğrulama:** Kullanıcı isteğiyle testler çalıştırılmadı. Windows ortamında kaynak düzenlendi; uygulama/Qt arayüzü çalıştırılmadı. Görsel saha doğrulaması bekliyor.
+
+### v2.7.4 ayrıntısı (önceki teslim)
 **Doğrulama:** `python -m pytest` → **540 geçti, 1 atlandı** (519 + 21 yeni: hepsi `tests/test_merge_drag.py`; mevcut iki test güncellendi/yeniden yazıldı). **Windows'ta çalıştırılmadı** (Linux, ekran dışı Qt).
 
 18. `[x]` **P3-40 — Birleştirme listesinde sürükle-bırak iyileştirmeleri.** Teknik sözleşme §2'de.
@@ -119,39 +158,46 @@
 ## 4. Yapılacaklar (öncelik sırasıyla)
 
 ### P1 — Önce yapılmalı
-- `[ ]` **43 — v2.7.1–v2.7.4'ün Windows'ta doğrulanması** (bkz. §5 kontrol listesi; en yeni: v2.7.4 sürükle-bırak). Özellikle: önizleme/işlem hızı (S7), yalnız "Sayfaları eşitle" ile işleme (S8), birleştirmede yön + "dikeye döndür" (S9–S10), "Yeni iş" (S11) — v2.7.0'da tamam denildi; v2.7.1'de yalnız döndürme yönü (S13) ve 100+ dosyada ekleme/silme akıcılığı (14) bakılacak; ayrıca v2.6.21'den bekleyenler: sürükleme sonrası seçim, "pythonw" pencerelerinin kaybolması, 20+ PDF'te akıcılık.
+- `[ ]` **43 — Kullanıcı ortamında Windows saha kontrolü:** 2.9.0'da 566 otomatik test ve Windows Qt sürücüsünde tema/DPI kontrolleri tamamlandı. §5'teki gerçek pencere/monitör/yazıcı ve uzun süreli kullanım gözlemleri ayrıca bekliyor; otomatik sonuçlarla yapılmış sayılmaz.
 
 ### P2 — Belirgin kalite sorunları
 *(Açık madde yok; 1–36 tamamlandı.)*
 
 ### P3 — İyileştirme ve teknik borç
-20. `[ ]` **DPI saha gözlemi** (Windows, ekran görüntüsüyle; tanılama paketi DPI'ı toplar): `1366×768` ve `1920×1080` @ %125/%150 kart yükseklikleri, metin kırpılmaları.
-38. `[ ]` **Performans, devamı (S7'nin kalanı).** Arayüz tarafı henüz ölçülmedi: alan değişince önizleme yenileme sıklığı, sekme geçişi, 20+ dosyada liste. Birleştirme listesi — çok dosyada (100+): hedefli ekleme/silme v2.7.1'de yapıldı (14); "Temizle" ve açılış kalır (sürükleyerek sıralama v2.7.4'te tek hamle oldu, bkz. 18); satır sanallaştırma (yalnız görünen satırlar), `refresh_selection`/`update_summary` toplulaştırma. Önce ölçülür (`APP_PERF=1`; 25 / 100 / 300 dosya), sonra düzeltilir. Küçük resim (22) bunun üzerine kurulmalı (yalnız görünen satırlar, arka planda).
+45. `[x]` **Ayarlar ve arayüz sadeleştirme (2.8.0):** Optimizasyon ve açıklama/form gömme Ayarlar'a taşındı; dört bölüm, anında kayıt ve fabrika sıfırlama tamam. İşe bağlı çıktı kontrolleri ilgili ekranda kaldı.
+46. `[x]` **Tema seçimi ikinci tıklamayı bekliyor (2.8.0):** Tema callback'inden sonraki Qt olay turunda görünür pencerelerin boyaması tamamlanır. Açık → koyu → açık tek tıklama kontrolü hem ekran dışı Qt hem native Windows sürücüsünde geçti.
+20. `[ ]` **DPI saha gözlemi** (Windows, ekran görüntüsüyle; tanılama paketi DPI'ı toplar): açılış boyutu ve dar pencere düzeni artık Qt mantıksal ekran ölçüsüne göre uyarlanır; 1366×768 @ %150 senaryosu otomatik sınandı. Gerçek `1366×768` ve `1920×1080` @ %125/%150 monitörlerde kart yükseklikleri ve metin kırpılmaları için görüntü kontrolü bekliyor.
+38. `[x]` **Liste performansı (2.8.0):** 100+ dosyada görünür satır kontrolleri tembel kurulur; görünmeyenlerde hafif yer tutucu kalır. Seçim ve toplamlar önbelleğe alındı; APP_PERF ölçüm noktaları eklendi. Windows'ta 25/100/300 dosya eski/yeni ölçüldü: 300 dosyada kurulum 2827,53 → 200,47 ms, temizleme 94,93 → 12,89 ms. Tek örnek ölçüm ve sınırlar sürüm notlarında.
 39. `[x]` **Birleştirme önizlemesi geliştirmeleri:**
    - (a) `[x]` v2.7.2'de yapıldı (bkz. 15).
    - (b) `[x]` v2.7.3'te yapıldı (bkz. 16).
    - (c) `[x]` v2.7.3'te giderildi (bkz. 17).
-40. `[x]` **Sürükle-bırak iyileştirmeleri:** v2.7.4'te yapıldı (bkz. 18): bırakma yeri çizgisi, kenarda otomatik kaydırma, yalnız tutamaktan sürükleme, titreme ölçümü. *Kalan küçük fikirler (isteğe bağlı):* tutamak ayarının `settings.json`'da saklanması, sürüklenen satırların soluklaştırılması, `Esc` ile sürüklemeyi iptal.
-41. `[ ]` **Küçük gözlemler:** "Kırpma riski" diyaloğunda `İptal` sağa yaslı olsun; seçili satırda "Sayfa:" etiketi kontrastı; `WrapButtonRow` `ROW_MAX_W` fiilen işlemiyor (görsel fark yok).
-42. `[ ]` **Birleştirmede eşitleme ayarı yeri:** şimdi Sayfa Düzeni'ndeki ebat/yön ayarını kullanıyor; birleştirme sekmesinde kendi ebat menüsü + yön seçimi (ve "Yeni iş" sonrası önceki seçimin korunup korunmayacağı) değerlendirilecek.
+40. `[x]` **Sürükle-bırak iyileştirmeleri:** v2.7.4'ün çizgi/kaydırma/tutamak davranışı korundu. 2.8.0'da tutamak tercihi kalıcıdır; sürüklenen satırlar soluklaşır ve `Esc` sürüklemeyi iptal eder.
+41. `[x]` **Küçük gözlemler:**
+   - (a) `[x]` v2.7.5: "Kırpma riski" diyaloğunda `İptal` sağa yaslandı.
+   - (b) `[x]` v2.7.6: Seçili satırda "Sayfa:" etiketi ve tutamak kontrastı düzeltildi.
+   - (c) `[x]` v2.7.7: `WrapButtonRow` `ROW_MAX_W` sınırı yerleştirmeden sonra uygulanarak korundu.
+42. `[x]` **Birleştirmede eşitleme ayarı (2.8.0):** Kendi ebat/yön/özel ölçü/çevre boşluğu kontrolleri ve önizlemesi var. Yeni iş ve yeniden açılışta tercihler korunur; fabrika sıfırlama varsayılana döndürür. Aktif ayarları uygulama yolu Sayfa Düzeni'ni kullanır.
+47. `[x]` **Boş durum ve işlem akışı (2.9.0):** Kaynak olmadan işlem, iki dosyadan az birleştirme ve boş önizleme durumları açıklayıcı yönlendirme gösterir. Sonuç/iptal düğmeleri ilgili işlem aşamasında görünür; isteğe bağlı ön kontrol kaynağı, etkin işlemi ve çıktı tercihlerini özetler.
+48. `[x]` **GUI toplu işlem (2.9.0):** Dosya/klasör ve alt klasör seçimi, ekran ayarları veya profil, çıktı klasörü, riskli dosyaları atlama, ilerleme ve dosya başına doğrulanmış sonuç/hata. Kaynaklar korunur; iptalde tamamlanan çıktılar saklanır.
 
-### P4 — Yeni özellikler (yol haritası)
+### P4 — Yeni özellikler (2.8.0’da uygulandı)
 **Tur 1 (kısa vade)**
-22. `[ ]` Birleştirme listesinde sayfa küçük resmi (56×72 px, arka plan iş parçacığı, yalnız görünen satırlar → madde 38'e bağlı).
-24. `[ ]` Önizlemede yakınlaştırma, döndürme, öncesi/sonrası karşılaştırma (`PreviewCanvas` zemini hazır: tam çözünürlüklü pixmap tuvalde).
-44. `[ ]` Sayfa eşitlemeye **özel ebat** (genişlik × yükseklik), kenar payı ("sığdırırken çevreden X mm bırak") ve eşitleme önizlemesi (Sayfa Düzeni'nde seçilen ebadın gösterilmesi).
+22. `[x]` Birleştirme listesinde sayfa küçük resmi (56×72 px, arka plan iş parçacığı, yalnız görünen satırlar → madde 38'e bağlı).
+24. `[x]` Önizlemede yakınlaştırma, döndürme, öncesi/sonrası karşılaştırma (`PreviewCanvas` zemini hazır: tam çözünürlüklü pixmap tuvalde).
+44. `[x]` Sayfa eşitlemeye **özel ebat** (genişlik × yükseklik), kenar payı ("sığdırırken çevreden X mm bırak") ve eşitleme önizlemesi (Sayfa Düzeni'nde seçilen ebadın gösterilmesi).
 
 **Tur 2 (orta vade)**
-25. `[ ]` Sayfa ayıklama ve bölme sekmesi (küçük resim ızgarası, sil/dışa aktar/sırala/döndür).
-26. `[ ]` Bölüm bazlı numaralandırma (i, ii, iii → 1, 2, 3; bölüm başında numara gizleme, otomatik boş sayfa).
-27. `[ ]` Cilt yeri genişletme: üstten cilt, sağdan cilt.
-28. `[ ]` Filigran/damga ve Bates numaralandırma.
+25. `[x]` **PDF araçları penceresi:** küçük resim ızgarası, listeden kaldır/dışa aktar/sırala/döndür ve parça boyutuna göre bölme. Ana sekme yerine ayrı pencere kullanıldı.
+26. `[x]` Bölüm bazlı numaralandırma (i, ii, iii → 1, 2, 3; bölüm başında numara gizleme, otomatik boş sayfa).
+27. `[x]` Cilt yeri genişletme: üstten cilt, sağdan cilt.
+28. `[x]` Filigran/damga ve Bates numaralandırma.
 
 **Tur 3 (uzun vade)**
-29. `[ ]` Kesim işaretleri, taşma payı (bleed) ve kitapçık kayma (creep) telafisi.
-30. `[ ]` Kitapçık sıralaması ve N-Up (2'li/4'lü) impo.
-31. `[ ]` Klasör bazlı toplu işlem ve CLI (`gutter_engine.py --profile ... --input ... --output ...`).
-32. `[ ]` Çoklu dil (`TR`/`EN`, `locales/*.json`).
+29. `[x]` Kesim işaretleri, taşma payı (bleed) ve kitapçık kayma (creep) telafisi.
+30. `[x]` Kitapçık sıralaması ve N-Up (2'li/4'lü) impo.
+31. `[x]` Klasör bazlı toplu işlem: GUI profili/sonuç kuyruğu ve CLI (`gutter_engine.py --profile ... --input ... --output ...`).
+32. `[x]` Çoklu dil (`TR`/`EN`, `locales/*.json`).
 
 ---
 
@@ -175,6 +221,9 @@ v2.5.2'den beri Windows'ta denenmemiş her şey için tek liste; sorun çıkarsa
 | Modül | Sorumluluk |
 | :--- | :--- |
 | `app.py` | İnce uygulama kabuğu, yaşam döngüsü |
+| `pdf_tools.py`, `ui/pdf_tools.py` | Sayfa ızgarası/ayıklama/bölme, filigran/Bates, kesim/taşma payı, kitapçık ve N-Up; arka plan işçisi, iptal ve araç penceresi |
+| `studio_cli.py` | Profil ile dosya/klasör bazlı toplu işlem; `gutter_engine.py` CLI girişini buraya yönlendirir |
+| `ui/section_editor.py`, `ui/i18n.py`, `locales/*.json` | Bölüm numaralandırma tablosu; TR/EN görünen metinler, dinamik rapor şablonları ve özgün seçenek kodlarının korunması |
 | `gutter_engine.py` | PDF işleme motoru: geometri, **sayfa eşitleme (`fit_*`, `build_fitted_pdf`, `prepared_source`)**, önizleme (`render_preview`, `render_plain_preview`), birleştirme, doğrulama, kayıt |
 | `settings_store.py`, `diagnostics.py`, `version.py` | Ayar/profil kalıcılığı, tanılama paketi, tek sürüm kaynağı |
 | `page_layout_model.py` | Sayfa Düzeni modeli (taşma eşlemesi, özel sayfa kuralları, ilgililik, sonuç cümlesi); Qt'siz |
@@ -185,5 +234,6 @@ v2.5.2'den beri Windows'ta denenmemiş her şey için tek liste; sorun çıkarsa
 | `ui/tabs/merge_drag.py` | `MergeDragMixin`: birleştirme listesi sürüklemesi (bırakma çizgisi, otomatik kaydırma, tutamaktan sürükleme, `reorder_for_drop`, `autoscroll_step`) |
 | `ui/config_binding.py`, `ui/context.py` | Ayar bağlama (`_layout_tab()` vb.), sekmeler arası bağlam |
 | `ui/pipeline.py`, `ui/workflow.py`, `ui/merge_job.py` | Durum rozetleri (`_fit_active`), işleme ve birleştirme iş akışları, **Yeni iş** (`_new_job`) |
+| `ui/batch_dialog.py`, `ui/batch_jobs.py` | Profil seçmeli GUI toplu işlem kuyruğu, risk taraması, iptal ve dosya başına sonuç |
 | `ui/widgets.py`, `ui/theme.py` | `FieldRow`, `WrapButtonRow`; renkler, ölçüler, etiket tabloları (`FIT_LABELS`) |
 | `ui/document.py`, `ui/dialogs.py`, `ui/shortcuts.py`, `ui/dnd.py` (dosya bırakma), `ui/perf.py` | Belge yaşam döngüsü, diyaloglar, kısayollar, dosya bırakma, ölçüm |

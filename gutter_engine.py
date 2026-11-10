@@ -18,11 +18,24 @@ from __future__ import annotations
 import os
 import re
 import tempfile
+import threading
+from functools import wraps
 from collections import Counter
 from dataclasses import asdict, dataclass, field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 import pymupdf
+
+PDF_LOCK = threading.RLock()
+
+
+def pdf_operation(function):
+    """MuPDF işlemlerini önizleme/küçük resim/çıktı işçileri arasında sıralar."""
+    @wraps(function)
+    def locked(*args, **kwargs):
+        with PDF_LOCK:
+            return function(*args, **kwargs)
+    return locked
 
 # ---------------------------------------------------------------------------
 # Birimler
@@ -334,6 +347,7 @@ class PageBoxSettings:
     safe_edge_mm: float = 0.0
     exclude_pages_str: str = ""
     exclude_pages_set: Set[int] = field(default_factory=set)
+    binding: str = "left"
 
 
 @dataclass
@@ -376,11 +390,12 @@ class PageNumberSettings:
     skip_pages_str: str = ""          # Numarasız ara kapaklar / boş sayfalar metni
     skip_pages_set: Set[int] = field(default_factory=set)
     continuous_numbering: bool = True  # Kapak atlandığında numara ötelenmez (90 -> Kapak -> 91)
+    sections: List[dict] = field(default_factory=list)
 
 
 #: Sayfa eşitleme kipleri; sabit kağıtlar mm (genişlik, yükseklik), dikey.
 FIT_PAPERS_MM = {"a5": (148.0, 210.0), "a4": (210.0, 297.0), "a3": (297.0, 420.0)}
-FIT_MODES = ("off", "first", "largest") + tuple(FIT_PAPERS_MM)
+FIT_MODES = ("off", "first", "largest", "custom") + tuple(FIT_PAPERS_MM)
 
 
 @dataclass
@@ -407,6 +422,9 @@ class PdfProcessConfig:
     # ``fit_keep_orientation`` kapalıyken: True → yatay sayfa 90° döndürülüp dikey hedefi
     # doldurur; False → yatay sayfa dikey hedefe döndürülmeden küçülerek sığar.
     fit_rotate_landscape: bool = False
+    fit_width_mm: float = 210.0
+    fit_height_mm: float = 297.0
+    fit_margin_mm: float = 0.0
 
     @property
     def optimize(self) -> bool:
@@ -476,6 +494,7 @@ def config_from_dict(data: Optional[Dict[str, Any]]) -> PdfProcessConfig:
         even_x_mm=pick(boxes_raw, "even_x_mm", 0.0),
         even_y_mm=pick(boxes_raw, "even_y_mm", 0.0),
         size_mode=str(boxes_raw.get("size_mode", "fixed")),
+        binding=str(boxes_raw.get("binding", "left")),
         overflow_mode=str(boxes_raw.get("overflow_mode", "clip")),
         safe_edge_mm=pick(boxes_raw, "safe_edge_mm", 0.0),
         exclude_pages_str=str(boxes_raw.get("exclude_pages_str", legacy_exclude)),
@@ -493,6 +512,13 @@ def config_from_dict(data: Optional[Dict[str, Any]]) -> PdfProcessConfig:
     )
     skip_set = _page_set(numbers_raw, "skip_pages_set")
     numbers = PageNumberSettings(
+        sections=[dict(start_page=pick(section, "start_page", 1, int),
+                       start_num=pick(section, "start_num", 1, int),
+                       format_style=str(section.get("format_style", "number")),
+                       hide_first=bool(section.get("hide_first", False)),
+                       blank_before=bool(section.get("blank_before", False)))
+                  for section in numbers_raw.get("sections", []) if isinstance(section, dict)]
+                 if isinstance(numbers_raw.get("sections", []), list) else [],
         enabled=bool(numbers_raw.get("enabled", True)),
         position=str(numbers_raw.get("position", "outer")),
         format_style=str(numbers_raw.get("format_style", "number")),
@@ -524,6 +550,9 @@ def config_from_dict(data: Optional[Dict[str, Any]]) -> PdfProcessConfig:
         fit_mode=fit_mode,
         fit_keep_orientation=bool(data.get("fit_keep_orientation", True)),
         fit_rotate_landscape=bool(data.get("fit_rotate_landscape", False)),
+        fit_width_mm=pick(data, "fit_width_mm", 210.0),
+        fit_height_mm=pick(data, "fit_height_mm", 297.0),
+        fit_margin_mm=pick(data, "fit_margin_mm", 0.0),
     )
 
 
@@ -550,7 +579,18 @@ def validate_config(config: PdfProcessConfig) -> ValidationResult:
 
     if config.fit_mode not in FIT_MODES:
         res.errors.append(f"Bilinmeyen sayfa eşitleme kipi: {config.fit_mode}")
+    if config.fit_mode != "off":
+        if config.fit_mode == "custom" and not (0 < config.fit_width_mm <= MAX_DIM_MM and 0 < config.fit_height_mm <= MAX_DIM_MM):
+            res.errors.append("Eşitleme genişliği/yüksekliği geçerli ve pozitif olmalı.")
+        if not (0 <= config.fit_margin_mm <= MAX_DIM_MM / 2):
+            res.errors.append("Eşitleme kenar payı geçerli ve negatif olmayan bir sayı olmalı.")
+        if config.fit_mode == "custom" and 2 * config.fit_margin_mm >= min(config.fit_width_mm, config.fit_height_mm):
+            res.errors.append("Eşitleme kenar payı hedef ebadın yarısından küçük olmalı.")
+        if config.fit_mode in FIT_PAPERS_MM and 2 * config.fit_margin_mm >= min(FIT_PAPERS_MM[config.fit_mode]):
+            res.errors.append("Eşitleme kenar payı seçilen kâğıda sığmıyor.")
     if b.enabled:
+        if b.binding not in ("left", "right", "top"):
+            res.errors.append("Cilt yeri sol, sağ veya üst olmalı.")
         if b.size_mode not in ("fixed", "auto"):
             res.errors.append(f"Bilinmeyen sayfa ebadı modu: {b.size_mode}")
         if b.size_mode == "fixed":
@@ -587,6 +627,17 @@ def validate_config(config: PdfProcessConfig) -> ValidationResult:
                 res.errors.append("Alt+üst pay, hedef yükseklikten küçük olmalı.")
 
     if n.enabled:
+        seen_sections = set()
+        for section in n.sections:
+            try:
+                start, first = int(section.get("start_page", 1)), int(section.get("start_num", 1))
+                if start < 1 or start > MAX_PAGE_NUMBER or first < 0 or start in seen_sections:
+                    raise ValueError
+                if section.get("format_style", "number") not in ("number", "dash", "total", "label", "roman", "roman_upper"):
+                    raise ValueError
+                seen_sections.add(start)
+            except (ValueError, TypeError):
+                res.errors.append("Bölüm başlangıçları benzersiz pozitif sayfalar ve geçerli numaralar içermeli.")
         if n.font_size <= 0 or n.font_size > 72:
             res.errors.append("Punto 1 ile 72 arasında olmalı.")
         if n.start_page < 1:
@@ -650,9 +701,14 @@ def compute_layout(src_w: float, src_h: float, config: PdfProcessConfig, pno: in
     if use_boxes:
         ox = mm_to_pt(boxes.odd_x_mm if is_odd else boxes.even_x_mm)
         oy = mm_to_pt(boxes.odd_y_mm if is_odd else boxes.even_y_mm)
+        if boxes.binding == "top":
+            ox, oy = oy, ox
         if boxes.size_mode == "auto":
             tw = src_w + mm_to_pt(max(boxes.odd_x_mm, boxes.even_x_mm, 0.0))
             th = src_h + mm_to_pt(max(boxes.odd_y_mm, boxes.even_y_mm, 0.0))
+            if boxes.binding == "top":
+                tw = src_w + mm_to_pt(max(boxes.odd_y_mm, boxes.even_y_mm, 0.0))
+                th = src_h + mm_to_pt(max(boxes.odd_x_mm, boxes.even_x_mm, 0.0))
         else:
             tw = mm_to_pt(boxes.target_width_mm)
             th = mm_to_pt(boxes.target_height_mm)
@@ -691,6 +747,8 @@ def compute_layout(src_w: float, src_h: float, config: PdfProcessConfig, pno: in
         cy = top + max(oy, 0.0) + ((avail_h - sh) / 2.0 if scale < 1.0 else 0.0)
         content = pymupdf.Rect(cx, cy, cx + sw, cy + sh)
 
+    if use_boxes and boxes.binding == "right":
+        content = pymupdf.Rect(tw - content.x1, content.y0, tw - content.x0, content.y1)
     return PageLayout(target_w=tw, target_h=th, content=content, scale=scale, is_odd=is_odd)
 
 
@@ -837,6 +895,29 @@ def numbering_plan(total_pages: int, config: PdfProcessConfig) -> List[Optional[
     İşleme, önizleme ve doğrulama aynı planı kullanır; böylece sayaç kaymaz.
     """
     n = config.page_numbers
+    if n.enabled and n.sections:
+        sections, blanks = numbering_sections(config)
+        skipped = number_skip_set(config)
+        texts = [None] * total_pages
+        for index, section in enumerate(sections):
+            start = section["start_page"] - 1
+            end = sections[index + 1]["start_page"] - 1 if index + 1 < len(sections) else total_pages
+            end = min(end, total_pages)
+            count = max(0, end - start - sum(start <= b < end for b in blanks)
+                        - (sum(start <= p - 1 < end for p in skipped) if n.continuous_numbering else 0))
+            current = int(section.get("start_num", 1))
+            for page in range(start, end):
+                if page in blanks:
+                    continue
+                if page + 1 in skipped:
+                    if not n.continuous_numbering:
+                        current += 1
+                    continue
+                if not (page == start and section.get("hide_first", False)):
+                    texts[page] = format_page_number_text(section.get("format_style", "number"),
+                                                           current, count, n.text_template)
+                current += 1
+        return texts
     skip_set, effective_total = _compute_numbering(total_pages, config)
     texts: List[Optional[str]] = [None] * total_pages
     counter = n.start_num
@@ -855,38 +936,77 @@ def numbering_plan(total_pages: int, config: PdfProcessConfig) -> List[Optional[
     return texts
 
 
+def numbering_sections(config):
+    """Kaynak sayfa başlangıçlarını eklenen boş sayfalarla fiziksel sıraya çevirir."""
+    result, blanks, offset = [], set(), 0
+    for original in sorted(config.page_numbers.sections, key=lambda s: int(s.get("start_page", 1))):
+        section = dict(original)
+        start = int(section.get("start_page", 1)) - 1 + offset
+        if section.get("blank_before", False) and start % 2:
+            blanks.add(start)
+            offset += 1
+            start += 1
+        section["start_page"] = start + 1
+        result.append(section)
+    return result, blanks
+
+
 def number_skip_set(config: PdfProcessConfig) -> Set[int]:
     """Numaralandırmada atlanacak 1 tabanlı sayfa kümesi (önizleme/doğrulama için)."""
     n = config.page_numbers
     skip_set = set(n.skip_pages_set)
     if n.skip_pages_str:
         skip_set.update(parse_page_ranges(n.skip_pages_str))
+    if n.enabled and n.sections:
+        blanks = numbering_sections(config)[1]
+        mapped = set()
+        for original in skip_set:
+            page = original - 1
+            for blank in sorted(blanks):
+                if blank <= page:
+                    page += 1
+            mapped.add(page + 1)
+        return mapped
     return skip_set
 
 
 # ---------------------------------------------------------------------------
 # PDF bilgisi
 # ---------------------------------------------------------------------------
-def get_pdf_info(pdf_path: str, quick: bool = False) -> dict:
+@pdf_operation
+def get_pdf_info(pdf_path: str, quick: bool = False, size_policy: str = "dominant") -> dict:
     """PDF hakkında temel bilgileri döndürür.
 
     ``quick=True``: karışık ebat taraması yapılmaz (tüm sayfaları gezmez); birleştirme
     listesine çok dosya eklerken açılışı hızlandırır.
+    ``size_policy``: karışık ebatlı belgede ``width_mm``/``height_mm`` seçimi —
+    ``first`` (ilk sayfa), ``dominant`` (en çok kullanılan) veya ``largest`` (en büyük).
     """
     file_size_mb = round(os.path.getsize(pdf_path) / (1024 * 1024), 2) if os.path.exists(pdf_path) else 0.0
     doc = open_pdf(pdf_path)
     try:
         page_count = len(doc)
-        first = doc[0].rect
-        width_mm = round(pt_to_mm(first.width), 1)
-        height_mm = round(pt_to_mm(first.height), 1)
-        is_portrait = first.height >= first.width
         mixed = False
-        for i in range(1, 1 if quick else page_count):
+        # Karışık ebatlı belgede kapak/ek sayfa çoğunluktan farklı olabilir; hedef ebat
+        # ilk sayfaya değil, en çok kullanılan sayfa boyutuna göre verilir.
+        counts: Dict[Tuple[int, int], int] = {}
+        samples: Dict[Tuple[int, int], Any] = {}
+        for i in range(1 if quick else page_count):
             r = doc[i].rect
-            if abs(r.width - first.width) > 1.0 or abs(r.height - first.height) > 1.0:
-                mixed = True
-                break
+            key = (int(round(r.width)), int(round(r.height)))
+            counts[key] = counts.get(key, 0) + 1
+            samples.setdefault(key, r)
+        mixed = len(counts) > 1
+        if size_policy == "first":
+            chosen = next(iter(counts))
+        elif size_policy == "largest":
+            chosen = max(counts, key=lambda key: key[0] * key[1])
+        else:
+            chosen = max(counts, key=counts.get)
+        size = samples[chosen]
+        width_mm = round(pt_to_mm(size.width), 1)
+        height_mm = round(pt_to_mm(size.height), 1)
+        is_portrait = size.height >= size.width
     finally:
         doc.close()
 
@@ -1047,6 +1167,7 @@ def clip_edges_for_page(page: pymupdf.Page, layout: PageLayout) -> Tuple[float, 
     return (left, right, top, bottom)
 
 
+@pdf_operation
 def scan_clipping(
     input_path: str,
     config: PdfProcessConfig,
@@ -1122,6 +1243,10 @@ def _preview_bands(layout: PageLayout, config: PdfProcessConfig) -> List[Tuple[p
     content = layout.content
     tw, th = layout.target_w, layout.target_h
     if config.page_boxes.enabled:
+        if config.page_boxes.binding == "top" and content.y0 > 0.5:
+            amount = mm_to_pt(config.page_boxes.odd_x_mm if layout.is_odd else config.page_boxes.even_x_mm)
+            if amount > 0:
+                bands.append((pymupdf.Rect(0, 0, tw, min(amount, content.y0)), GUTTER_RGB))
         if content.x0 > 0.5:
             bands.append((pymupdf.Rect(0, 0, content.x0, th), GUTTER_RGB))
         if content.x1 < tw - 0.5:
@@ -1142,6 +1267,7 @@ def encode_preview_pixmap(pix: "pymupdf.Pixmap") -> bytes:
         return pix.tobytes("png")
 
 
+@pdf_operation
 def render_preview(
     input_path: str,
     config: PdfProcessConfig,
@@ -1166,7 +1292,7 @@ def render_preview(
             single = pymupdf.open()
             try:
                 page = single.new_page(width=lay.target_w, height=lay.target_h)
-                page.show_pdf_page(lay.content, doc, pno)
+                show_pdf_page(page, lay.content, doc, pno)
 
                 for rect, color in _preview_bands(lay, config):
                     page.draw_rect(rect, color=color, fill=color, fill_opacity=0.10,
@@ -1215,6 +1341,7 @@ def render_preview(
     return out
 
 
+@pdf_operation
 def render_plain_preview(
     input_path: str,
     rotation: int = 0,
@@ -1247,7 +1374,10 @@ def render_plain_preview(
         fit_ref = None
         if fit and fit[0] != "off":
             fit_cfg = PdfProcessConfig(fit_mode=fit[0], fit_keep_orientation=bool(fit[1]),
-                                       fit_rotate_landscape=bool(fit[2]))
+                                       fit_rotate_landscape=bool(fit[2]),
+                                       fit_width_mm=fit[3] if len(fit) > 3 else 210.0,
+                                       fit_height_mm=fit[4] if len(fit) > 4 else 297.0,
+                                       fit_margin_mm=fit[5] if len(fit) > 5 else 0.0)
             if extra:
                 for pno in selected:
                     doc[pno].set_rotation((doc[pno].rotation + extra) % 360)
@@ -1263,15 +1393,15 @@ def render_plain_preview(
                 sw, sh = page.rect.width, page.rect.height
                 tw, th = fit_page_target(sw, sh, fit_ref, fit_cfg.fit_keep_orientation)
                 rotate = fit_should_rotate(sw, sh, fit_cfg)
-                mat = fit_matrix(sw, sh, tw, th, rotate)
+                mat = fit_matrix(sw, sh, tw, th, rotate, mm_to_pt(fit_cfg.fit_margin_mm))
                 tmp = pymupdf.open()
                 try:
                     tpage = tmp.new_page(width=tw, height=th)
                     dest = pymupdf.Rect(0, 0, sw, sh) * mat
                     if rotate:
-                        tpage.show_pdf_page(dest, doc, selected[index], rotate=90)
+                        show_pdf_page(tpage, dest, doc, selected[index], rotate=90)
                     else:
-                        tpage.show_pdf_page(dest, doc, selected[index])
+                        show_pdf_page(tpage, dest, doc, selected[index])
                     pix = tpage.get_pixmap(matrix=pymupdf.Matrix(zoom, zoom), alpha=False)
                 finally:
                     tmp.close()
@@ -1293,6 +1423,12 @@ def render_plain_preview(
 # ---------------------------------------------------------------------------
 # Kayıt
 # ---------------------------------------------------------------------------
+def show_pdf_page(target, rect, source, page_number, **kwargs):
+    """Boş kaynak sayfa da geçerlidir; MuPDF boş içerikte hata verir."""
+    if source[page_number].get_contents():
+        target.show_pdf_page(rect, source, page_number, **kwargs)
+
+
 def _atomic_save(doc: pymupdf.Document, output_path: str, optimize: bool) -> None:
     """Geçici dosyaya yazar, başarılıysa hedefe taşır. Yarım çıktı bırakmaz."""
     out_dir = os.path.dirname(os.path.abspath(output_path))
@@ -1320,6 +1456,7 @@ def _atomic_save(doc: pymupdf.Document, output_path: str, optimize: bool) -> Non
 # ---------------------------------------------------------------------------
 # Ana işlem hattı
 # ---------------------------------------------------------------------------
+@pdf_operation
 def process_pdf(
     input_path: str,
     output_path: str,
@@ -1387,7 +1524,7 @@ def process_pdf(
             layouts.append(lay)
 
             target_page = dst_doc.new_page(width=lay.target_w, height=lay.target_h)
-            target_page.show_pdf_page(lay.content, src_doc, pno)
+            show_pdf_page(target_page, lay.content, src_doc, pno)
 
             number_text = texts[pno]
             if number_text:
@@ -1452,6 +1589,8 @@ def fit_reference_size(sizes: List[Tuple[float, float]], config: PdfProcessConfi
     if mode in FIT_PAPERS_MM:
         w, h = FIT_PAPERS_MM[mode]
         return (mm_to_pt(w), mm_to_pt(h))
+    if mode == "custom":
+        return (mm_to_pt(config.fit_width_mm), mm_to_pt(config.fit_height_mm))
     if mode == "first":
         w, h = sizes[0]
     else:  # largest
@@ -1464,16 +1603,24 @@ def fit_page_target(src_w: float, src_h: float, ref: Tuple[float, float],
     """Bir sayfanın eşitlenmiş ebadı: yön korunuyorsa yatay sayfa yatay hedef alır."""
     short, long_ = ref
     if keep_orientation:
+        short, long_ = min(ref), max(ref)
         return (long_, short) if src_w > src_h else (short, long_)
     return (short, long_)
 
 
 def fit_matrix(src_w: float, src_h: float, tw: float, th: float,
-               rotate: bool = False) -> pymupdf.Matrix:
+               rotate: bool = False, margin: float = 0.0) -> pymupdf.Matrix:
     """Kaynağı oranı bozmadan hedefe sığdırıp ortalayan dönüşüm (büyütme de yapar).
 
     ``rotate=True``: kaynak saat yönünün tersine 90° döndürülüp hedefe sığdırılır (yatay → dikey).
     """
+    if margin:
+        if not (0 <= margin < min(tw, th) / 2):
+            raise ConfigError(["Eşitleme kenar payı sayfa ebadına sığmıyor."])
+        matrix = fit_matrix(src_w, src_h, tw - 2 * margin, th - 2 * margin, rotate)
+        matrix.e += margin
+        matrix.f += margin
+        return matrix
     if rotate:
         s = min(tw / src_h, th / src_w)
         ox = (tw - src_h * s) / 2.0
@@ -1487,7 +1634,8 @@ def fit_matrix(src_w: float, src_h: float, tw: float, th: float,
 def fit_should_rotate(src_w: float, src_h: float, config: PdfProcessConfig) -> bool:
     """Yatay sayfa dikey hedefe döndürülerek mi sığdırılacak?"""
     return (not config.fit_keep_orientation and config.fit_rotate_landscape
-            and src_w > src_h)
+            and src_w > src_h
+            and not (config.fit_mode == "custom" and config.fit_width_mm > config.fit_height_mm))
 
 
 _FIT_CACHE: Dict[Tuple[Any, ...], str] = {}
@@ -1504,6 +1652,7 @@ def _fit_dir() -> str:
     return _FIT_DIR[0]
 
 
+@pdf_operation
 def build_fitted_pdf(input_path: str, output_path: str, config: PdfProcessConfig,
                      should_cancel: Optional[Callable[[], bool]] = None) -> str:
     """Tüm sayfaları ``config.fit_mode`` ebadına sığdırılmış bir kopya yazar.
@@ -1531,15 +1680,15 @@ def build_fitted_pdf(input_path: str, output_path: str, config: PdfProcessConfig
                 raise ProcessCancelled("İşlem iptal edildi.")
             tw, th = fit_page_target(sw, sh, ref, config.fit_keep_orientation)
             rotate = fit_should_rotate(sw, sh, config)
-            mat = fit_matrix(sw, sh, tw, th, rotate)
+            mat = fit_matrix(sw, sh, tw, th, rotate, mm_to_pt(config.fit_margin_mm))
             mats.append(mat)
             page = out.new_page(width=tw, height=th)
             if rotate:
                 # Döndürülmüş yerleşimde hedef dikdörtgen, dönmüş kaynağın kaplayacağı alandır.
                 dest = pymupdf.Rect(0, 0, sw, sh) * mat
-                page.show_pdf_page(dest, src, pno, rotate=90)
+                show_pdf_page(page, dest, src, pno, rotate=90)
             else:
-                page.show_pdf_page(pymupdf.Rect(0, 0, sw, sh) * mat, src, pno)
+                show_pdf_page(page, pymupdf.Rect(0, 0, sw, sh) * mat, src, pno)
         for pno, page_links in enumerate(links):
             for link in page_links:
                 try:
@@ -1576,12 +1725,14 @@ def prepared_source(input_path: str, config: PdfProcessConfig) -> str:
     İşleme, tarama, önizleme ve doğrulama aynı kopyayı görür; böylece sayfa ebatları her
     yerde tutarlıdır. Önbellek anahtarı dosya yolu + değişiklik zamanı + ayarlardır.
     """
+    if config.page_numbers.enabled and config.page_numbers.sections:
+        input_path = _prepare_sections(input_path, config)
     if getattr(config, "fit_mode", "off") == "off":
         return input_path
     st = os.stat(input_path)
     key = (os.path.abspath(input_path), st.st_mtime_ns, st.st_size,
            config.fit_mode, config.fit_keep_orientation, config.fit_rotate_landscape,
-           config.flatten_annotations)
+           config.flatten_annotations, config.fit_width_mm, config.fit_height_mm, config.fit_margin_mm)
     cached = _FIT_CACHE.get(key)
     if cached and os.path.exists(cached):
         return cached
@@ -1597,6 +1748,66 @@ def prepared_source(input_path: str, config: PdfProcessConfig) -> str:
             pass
     _FIT_CACHE[key] = tmp
     return tmp
+
+
+def _prepare_sections(input_path, config):
+    sections, blanks = numbering_sections(config)
+    with open_pdf(input_path) as check:
+        if any(int(s.get("start_page", 1)) > len(check) for s in config.page_numbers.sections):
+            raise ConfigError(["Bölüm başlangıcı belgenin sayfa sayısını aşamaz."])
+    if not blanks:
+        return input_path
+    stat = os.stat(input_path)
+    key = ("sections", os.path.abspath(input_path), stat.st_mtime_ns, stat.st_size,
+           tuple(sorted(blanks)))
+    if key in _FIT_CACHE and os.path.isfile(_FIT_CACHE[key]):
+        return _FIT_CACHE[key]
+    with open_pdf(input_path) as doc:
+        if any(int(s.get("start_page", 1)) > len(doc) for s in config.page_numbers.sections):
+            raise ConfigError(["Bölüm başlangıcı belgenin sayfa sayısını aşamaz."])
+        links, toc = _collect_links(doc), doc.get_toc()
+        mapping = []
+        target = 0
+        for original in range(len(doc)):
+            while target in blanks:
+                target += 1
+            mapping.append(target)
+            target += 1
+        for position in sorted(blanks):
+            ref = doc[min(position, len(doc) - 1)].rect
+            doc.new_page(pno=position, width=ref.width, height=ref.height)
+        for page in doc:
+            for link in page.get_links():
+                page.delete_link(link)
+        for original, page_links in enumerate(links):
+            for link in page_links:
+                item = dict(link)
+                item.pop("xref", None)
+                item.pop("id", None)
+                dest = item.get("page", -1)
+                if item.get("kind") == pymupdf.LINK_GOTO and 0 <= dest < len(mapping):
+                    item["page"] = mapping[dest]
+                doc[mapping[original]].insert_link(item)
+        if toc:
+            for entry in toc:
+                if 1 <= entry[2] <= len(mapping):
+                    entry[2] = mapping[entry[2] - 1] + 1
+            doc.set_toc(sanitize_toc(toc))
+        fd, path = tempfile.mkstemp(prefix="sections_", suffix=".pdf", dir=_fit_dir())
+        os.close(fd)
+        try:
+            _atomic_save(doc, path, False)
+        except Exception:
+            os.remove(path)
+            raise
+    while len(_FIT_CACHE) >= 3:
+        old = _FIT_CACHE.pop(next(iter(_FIT_CACHE)))
+        try:
+            os.remove(old)
+        except OSError:
+            pass
+    _FIT_CACHE[key] = path
+    return path
 
 
 def _collect_links(doc: pymupdf.Document) -> List[List[dict]]:
@@ -1773,6 +1984,7 @@ def render_page_differs(src_page: pymupdf.Page, out_page: pymupdf.Page,
             and bad_blocks / ink_blocks > RENDER_MISMATCH_RATIO)
 
 
+@pdf_operation
 def verify_output(
     input_path: str,
     output_path: str,
@@ -1850,6 +2062,7 @@ def _contiguous_runs(pages: List[int]) -> List[Tuple[int, int]]:
     return runs
 
 
+@pdf_operation
 def merge_pdfs(
     pdf_items: List[Union[str, dict]],
     output_path: str,
@@ -1975,3 +2188,8 @@ def merge_pdfs(
         return output_path
     finally:
         merged.close()
+
+
+if __name__ == "__main__":
+    from studio_cli import main
+    raise SystemExit(main())

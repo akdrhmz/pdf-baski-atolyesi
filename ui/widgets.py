@@ -282,6 +282,9 @@ class WrapButtonRow(ctk.CTkFrame):
             button.setMinimumWidth(min(width, 36))
             if not self._stretch and not self._wrap:
                 button.setFixedWidth(width)
+        else:
+            # Sabit genişlik yok: düğme metni kadar yer alır, yazı kırpılmaz.
+            button.setMinimumWidth(button.fontMetrics().horizontalAdvance(text) + 16)
         self._buttons.append(button)
         self._reflow()
         return button
@@ -331,6 +334,10 @@ class WrapButtonRow(ctk.CTkFrame):
         for button, (row, column) in zip(self._buttons, placements):
             button.place(row, column, align="" if self._stretch else "w",
                          expand_x=self._stretch)
+            if self._stretch:
+                # ``place(expand_x=True)`` asgari genişliği sıfırlar; uzun metin
+                # ("Sıcak tutkal cilt") kırpılmasın diye metne göre geri verilir.
+                button.setMinimumWidth(self._min_button_width(button))
         tail_col = max_col + 1
         self.grid_columnconfigure(self._tail_col, weight=0)
         self.grid_columnconfigure(tail_col, weight=0 if self._stretch else 1)

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 from ui.theme import *  # noqa: F401,F403
 
 
@@ -59,19 +61,36 @@ class PipelineMixin:
         if not hasattr(self, "pill_gutter") or not hasattr(self, "tabview"):
             return
 
+        has_single_source = bool(self.input_pdf_path and os.path.exists(self.input_pdf_path))
+        merge_count = len(self._tabs["Birleştirme"].files)
+        has_any_job = has_single_source or merge_count > 0 or bool(self.output_pdf_path)
+        self.btn_new_job.setVisible(has_any_job)
+        output_exists = bool(self.output_pdf_path and os.path.isfile(self.output_pdf_path))
+        self.btn_open_pdf.setVisible(output_exists and not self._busy)
+        self.btn_open_folder.setVisible(output_exists and not self._busy)
+        self.btn_cancel.setVisible(self._busy)
+
         if "Birleştirme" in self.tabview.get():
             apply_pipeline = self._tabs["Birleştirme"].chk_merge_apply_pipeline.get() == 1
-            if apply_pipeline:
+            can_merge = merge_count >= 2
+            if not can_merge:
+                self.action_title_label.configure(text="Birleştirme için dosyalar bekleniyor")
+                self._set_status(
+                    "Birleştirmek için en az 2 PDF ekleyin."
+                    if merge_count == 0 else "Birleştirmek için bir PDF daha ekleyin.")
+            elif apply_pipeline:
                 self.action_title_label.configure(text="Birleşik hat: birleştirme + aktif modüller")
                 self._set_status("Dosyalar birleştirildikten sonra diğer sekmelerdeki ayarlar uygulanır.")
             else:
                 self.action_title_label.configure(text="PDF birleştirme işlemi")
                 self._set_status("Dosyalar sıraları ve rotasyonlarıyla kayıpsız birleştirilecek.")
             self.btn_main_action.configure(
-                state="disabled" if self._busy else "normal",
-                text="Birleştir ve aktif ayarları uygula" if apply_pipeline else "PDF'leri birleştir ve kaydet",
+                state="disabled" if (self._busy or not can_merge) else "normal",
+                text=("Birleştirmek için en az 2 PDF ekleyin" if not can_merge else
+                      ("Birleştir ve aktif ayarları uygula" if apply_pipeline else "PDF'leri birleştir ve kaydet")),
                 command=self._start_merging,
             )
+            self.btn_preflight.setVisible(can_merge and not self._busy)
             return
 
         has_gutter = self._module_switch("gutter").get() == 1
@@ -116,7 +135,11 @@ class PipelineMixin:
 
         has_fit = self._fit_active()
         active_count = sum([has_gutter, has_margin, has_pnum, has_fit])
-        if active_count >= 2:
+        if not has_single_source:
+            self.action_title_label.configure(text="Başlamak için PDF seçin")
+            self._set_status("Önce soldan PDF seçin; ardından ayarları gözden geçirip çıktı oluşturun.")
+            text = "Önce PDF seçin"
+        elif active_count >= 2:
             self.action_title_label.configure(text="Birleşik işlem hattı")
             self._set_status("Tüm aktif modüller tek bir kayıpsız geçişte uygulanacak.")
             text = "Tüm aktif ayarlarla PDF oluştur"
@@ -142,6 +165,7 @@ class PipelineMixin:
             text = "En az bir modülü etkinleştirin"
 
         self.btn_main_action.configure(
-            state="disabled" if (self._busy or active_count == 0) else "normal",
+            state="disabled" if (self._busy or active_count == 0 or not has_single_source) else "normal",
             text=text, command=self._start_processing,
         )
+        self.btn_preflight.setVisible(not self._busy and has_single_source and active_count > 0)

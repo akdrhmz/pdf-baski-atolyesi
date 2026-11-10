@@ -33,6 +33,13 @@ SIZE_MODE_NOTES = {
     "auto": "Ebat her sayfada kaynak sayfadan + cilt payından hesaplanır; hedef ebat sorulmaz.",
 }
 SAFE_EDGE_NOTE = "Küçültmede kenarda bırakılacak ek boşluk."
+#: Karışık ebatlı PDF'te hedef boyutun hangi sayfadan alınacağı.
+SIZE_SOURCE_LABELS = {
+    "Baskın sayfa (önerilen)": "dominant",
+    "İlk sayfa": "first",
+    "En büyük sayfa": "largest",
+}
+SIZE_SOURCE_CODES = {value: label for label, value in SIZE_SOURCE_LABELS.items()}
 
 #: Özel sayfa satırındaki kısa kip etiketleri (uzun ``SPECIAL_MODES`` metni menüye sığmaz).
 ROW_MODE_LABELS = {
@@ -126,13 +133,14 @@ class PageLayoutTab(BaseTab):
     FIELD_ROWS = (
         "f_width", "f_height", "f_safe_edge", "f_odd_x", "f_odd_y", "f_even_x", "f_even_y",
         "f_bottom", "f_top",
+        "f_fit_width", "f_fit_height", "f_fit_margin",
     )
 
     CUSTOM_PAPER = "Özel ölçü"
 
     def build(self) -> None:
         scroll = self.make_scroll()
-        scroll.set_padding(SP_S, SP_S, SP_S, SP_S, spacing=SP_S)
+        scroll.set_padding(SP_M, SP_M, SP_M, SP_M, spacing=SP_L)
         self._scroll = scroll
         container = scroll
         self._loaded_pair: Optional[Tuple[str, str]] = None
@@ -147,6 +155,7 @@ class PageLayoutTab(BaseTab):
         self.show_active(self.switch_gutter.get() == 1)
         self.show_margin_active(self.switch_margin.get() == 1)
         self.update_safe_edge_state()
+        self.sync_size_source()
         self.ctx.on_field_changed()
 
     def _module_switch_widget(self, key: str, checked: bool):
@@ -185,8 +194,9 @@ class PageLayoutTab(BaseTab):
         self.lbl_gutter_status = self.badge(quick)
 
         self._gutter_preset_row = WrapButtonRow(quick, stretch=True, wrap=False, gap=SP_S)
-        self._gutter_preset_row.setMaximumWidth(ROW_MAX_W)
-        self._gutter_preset_row.place(0, 0, expand_x=True)
+        self._gutter_preset_row.place(0, 0, align="w", expand_x=True)
+        # expand_x geni?lik kilidini kald?r?r; ?st s?n?r yerle?tirmeden sonra verilir.
+        self._gutter_preset_row.setMaximumWidth(720)
         for text, value in (("İnce (10 mm)", 10.0), ("Standart (15 mm)", 15.0),
                             ("Geniş (20 mm)", 20.0)):
             self._gutter_preset_row.add_button(
@@ -195,18 +205,21 @@ class PageLayoutTab(BaseTab):
         self._preset_values = (10.0, 15.0, 20.0)
 
         self.sub_label(quick, 1, "Hazır baskı şablonları")
-        self._preset_row = WrapButtonRow(quick, stretch=True, wrap=False, gap=SP_S)
-        self._preset_row.setMaximumWidth(ROW_MAX_W)
-        self._preset_row.place(2, 0, expand_x=True)
+        # Uzun profil adları ("Sıcak tutkal cilt") eşit sütunlara sığmıyordu; düğme
+        # metin kadar genişler, satır tek kalır.
+        self._preset_row = WrapButtonRow(quick, stretch=False, wrap=False, gap=SP_S)
+        self._preset_row.place(2, 0, align="w", expand_x=True)
+        # expand_x geni?lik kilidini kald?r?r; ?st s?n?r yerle?tirmeden sonra verilir.
+        self._preset_row.setMaximumWidth(720)
         for preset_name in PRESETS:
             short = preset_name.split(" (")[0]
             self._preset_row.add_button(
-                short, lambda name=preset_name: self.ctx.apply_named_preset(name))
+                short, lambda name=preset_name: self.ctx.apply_named_preset(name), width=0)
 
         offset = ctk.CTkFrame(quick, fg_color="transparent")
         # Sol girinti (SP_M) eskiden ikinci sütundaki ``padx=(SP_M, 0)`` yüzünden grid()'in
         # gizli kuralıyla geliyordu; şimdi açıkça yazılı.
-        offset.set_padding(SP_M, 0, 0, 0, spacing=SP_S)
+        offset.set_padding(SP_M, SP_XS, SP_XS, 0, spacing=SP_M)
         offset.place(3, 0, align="w")
         offset.grid_columnconfigure(5, weight=1)
 
@@ -258,12 +271,37 @@ class PageLayoutTab(BaseTab):
         )
         note.place(3, 0, columnspan=4, expand_x=True)
         self.ctx.bind_wraplength(note, offset, 30)
+        self.menu_binding = ctk.CTkOptionMenu(
+            quick, values=list(BINDING_LABELS), width=200,
+            command=lambda _v: self.on_changed())
+        self.menu_binding.set(BINDING_CODES["left"])
+        self.menu_binding.place(4, 0, align="w")
+        self.menu_binding.setToolTip("Üstten ciltte Yatay (Cilt) alanı üst payı, Dikey (Ofset) alanı yatay ofseti belirler. Sağdan cilt, soldan cildin yatay aynasıdır.")
+        note.configure(text="Tek/çift sayfa payları ayrı uygulanır. Cilt yerini alttaki menüden seçin.")
+
+        # Yalnız karışık ebatlı belgelerde: hedef ebat hangi sayfadan alınsın?
+        self._size_source_row = ctk.CTkFrame(quick, fg_color="transparent")
+        self._size_source_row.place(5, 0, align="w")
+        ctk.CTkLabel(
+            self._size_source_row, text="Ebat kaynağı",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
+            text_color=COLOR_TEXT_PRIMARY, anchor="w",
+        ).put("h", margins=(0, 0, SP_S, 0))
+        self.size_source_menu = ctk.CTkOptionMenu(
+            self._size_source_row, values=list(SIZE_SOURCE_LABELS), width=200,
+            command=self._on_size_source_changed,
+        )
+        self.size_source_menu.set(SIZE_SOURCE_CODES["dominant"])
+        self.size_source_menu.put("h")
+        self._size_source_row.setToolTip(  # type: ignore[attr-defined]
+            "Karışık ebatlı PDF'te hedef ebat için kullanılacak sayfa boyutu.")
+        self._size_source_row.hide()
 
     # =====================================================================
     # Bölüm: Alt/üst boşluk
     # =====================================================================
     def _build_margin_section(self, container, row: int) -> None:
-        pay = self.section(container, row, "Alt/üst boşluk")
+        pay = self.section(container, row, "Boşluklar ve kitapçık")
         self._section_widgets["margin"] = pay
         self.switch_margin = self._module_switch_widget("margin", True)
         self.lbl_margin_status = self.badge(pay)
@@ -377,7 +415,7 @@ class PageLayoutTab(BaseTab):
             "Seçili kağıt ve yönü hedef ebat alanlarına yazar (alt/üst boşluk hariç)")
         self.paper_line.add_widget(self.btn_apply_size)
 
-        cell = self.form_stack_row(form, 2, "Hedef ebat")
+        cell = self.form_stack_row(form, 2, "Hedef ebat (cilt payı dahil)")
         self._row_target = cell
         # Genişlik / Yükseklik dar alanda alt satıra sarar (P2-33):
         # eskiden tek satırda sıkışıyor, birim etiketi giriş kutusunun üstüne biniyordu.
@@ -391,7 +429,7 @@ class PageLayoutTab(BaseTab):
         target_line.add_widget(self.f_height)
         self.target_line = target_line
         self.lbl_target_note = ctk.CTkLabel(
-            cell, text="alt/üst boşluk hariç",
+            cell, text="Cilt payı dahil; alt/üst boşluk sonuç yüksekliğine eklenir.",
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
             text_color=COLOR_TEXT_SECONDARY, anchor="w", justify="left", wraplength=NOTE_WRAP_W,
         )
@@ -488,6 +526,19 @@ class PageLayoutTab(BaseTab):
         )
         self.lbl_fit_note.place(3, 0, expand_x=True)
         self.ctx.bind_wraplength(self.lbl_fit_note, cell, 30)
+        self._fit_custom_row = ctk.CTkFrame(cell, fg_color="transparent")
+        self._fit_custom_row.place(4, 0, align="w")
+        self.f_fit_width = FieldRow(self._fit_custom_row, "Genişlik", "210", minimum=1,
+                                    maximum=2000, on_change=self.ctx.on_field_changed)
+        self.f_fit_width.put("h", margins=(0, 0, SP_S, 0))
+        self.f_fit_height = FieldRow(self._fit_custom_row, "Yükseklik", "297", minimum=1,
+                                     maximum=2000, on_change=self.ctx.on_field_changed)
+        self.f_fit_height.put("h")
+        self.f_fit_margin = FieldRow(cell, "Çevreden boşluk", "0", minimum=0,
+                                     maximum=500, on_change=self.ctx.on_field_changed)
+        self.f_fit_margin.place(5, 0, align="w")
+        self.menu_fit.configure(command=lambda _v: (self.update_fit_state(), self.ctx.on_field_changed()))
+        self.update_fit_state()
 
     def _on_fit_orient_changed(self) -> None:
         self.update_fit_state()
@@ -496,6 +547,9 @@ class PageLayoutTab(BaseTab):
     def update_fit_state(self) -> None:
         """"Dikeye döndür" yalnız yatay sayfalar yatay kalmayacaksa seçilebilir."""
         keep = self.chk_fit_orient.get() == 1
+        if hasattr(self, "_fit_custom_row"):
+            self._fit_custom_row.setVisible(FIT_LABELS.get(self.menu_fit.get()) == "custom")
+            self.f_fit_margin.setVisible(FIT_LABELS.get(self.menu_fit.get()) != "off")
         self.chk_fit_rotate.setEnabled(not keep)
         if keep:
             self.chk_fit_rotate.deselect()
@@ -581,6 +635,18 @@ class PageLayoutTab(BaseTab):
                 continue
         return False
 
+    def sync_size_source(self) -> None:
+        """Ebat kaynağı seçicisini yalnız karışık ebatlı belgede gösterir."""
+        row = getattr(self, "_size_source_row", None)
+        if row is None:
+            return
+        policy = getattr(getattr(self.ctx, "store", None), "page_size_policy", "dominant")
+        self.size_source_menu.set(SIZE_SOURCE_CODES.get(policy, SIZE_SOURCE_CODES["dominant"]))
+        row.setVisible(bool(getattr(self.ctx, "mixed_sizes", False)))
+
+    def _on_size_source_changed(self, label: str) -> None:
+        self.ctx.set_page_size_policy(SIZE_SOURCE_LABELS.get(label, "dominant"))
+
     def update_safe_edge_state(self) -> None:
         """Ebat moduna ve seçime uymayan satırları gizler, kalanın açıklamasını yazar (P2-36).
 
@@ -630,7 +696,7 @@ class PageLayoutTab(BaseTab):
         Oluşacak sayfa boyu zaten "Taşarsa ne olsun" altındaki sonuç cümlesinde yazar
         (``result_sentence``); burada tekrarlanması kafa karıştırıyordu.
         """
-        return "alt/üst boşluk hariç"
+        return "Cilt payı dahil; alt/üst boşluk sonuç yüksekliğine eklenir."
 
     # =====================================================================
     # Cilt payı davranışları

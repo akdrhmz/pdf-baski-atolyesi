@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from typing import Any, Callable, List, Optional, Tuple
+from types import SimpleNamespace
 
 
 class FakeContext:
     def __init__(self, unit: str = "mm"):
-        self.store = object()
+        self.store = SimpleNamespace(data={}, save=lambda: None, merge_preview_sequence=False, merge_handle_only=False)
         self.log = _NullLog()
         self.perf = object()
         self.unit = unit
@@ -15,6 +16,7 @@ class FakeContext:
         self.orig_page_count = 0
         self.orig_width_mm = 210.0
         self.orig_height_mm = 297.0
+        self.mixed_sizes = False
         self.current_tab = ""
         self.modules = {"gutter": False, "margin": False, "pnum": False}
         self.calls: List[Tuple[str, tuple]] = []
@@ -22,8 +24,14 @@ class FakeContext:
     def _record(self, name: str, *args: Any) -> None:
         self.calls.append((name, args))
 
+    def set_page_size_policy(self, policy: str) -> None:
+        self._record("set_page_size_policy", policy)
+
     def on_field_changed(self) -> None:
         self._record("on_field_changed")
+
+    def open_settings(self) -> None:
+        self._record("open_settings")
 
     def schedule_preview(self) -> None:
         self._record("schedule_preview")

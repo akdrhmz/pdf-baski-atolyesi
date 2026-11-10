@@ -137,7 +137,12 @@ class SettingsStore:
             "settings_version": SETTINGS_VERSION,
             "unit": "mm",
             "theme": "Sistem",
+            "language": "tr",
             "auto_open_output": False,
+            "merge_preview_sequence": False,
+            "merge_handle_only": False,
+            "page_size_policy": "dominant",
+            "merge_fit": {},
             "preview_width": 480,
             "preview_on_top": True,
             "last_state": {},
@@ -177,8 +182,15 @@ class SettingsStore:
             merged["unit"] = "mm"
         if merged.get("theme") not in THEMES:
             merged["theme"] = "Sistem"
+        if merged.get("language") not in ("tr", "en"):
+            merged["language"] = "tr"
         if not isinstance(merged.get("auto_open_output"), bool):
             merged["auto_open_output"] = False
+        for key in ("merge_preview_sequence", "merge_handle_only"):
+            if not isinstance(merged.get(key), bool):
+                merged[key] = False
+        if not isinstance(merged.get("merge_fit"), dict):
+            merged["merge_fit"] = {}
         return merged
 
     def reset(self) -> None:
@@ -206,6 +218,32 @@ class SettingsStore:
             logging.getLogger("studio").warning("Ayarlar kaydedilemedi: %s", exc)
 
     # -- basit alanlar ------------------------------------------------------
+    @property
+    def merge_preview_sequence(self) -> bool:
+        return self.data.get("merge_preview_sequence", False) is True
+
+    @merge_preview_sequence.setter
+    def merge_preview_sequence(self, value: bool) -> None:
+        self.data["merge_preview_sequence"] = bool(value)
+
+    @property
+    def merge_handle_only(self) -> bool:
+        return self.data.get("merge_handle_only", False) is True
+
+    @merge_handle_only.setter
+    def merge_handle_only(self, value: bool) -> None:
+        self.data["merge_handle_only"] = bool(value)
+
+    @property
+    def page_size_policy(self) -> str:
+        """Karışık ebatlı PDF'te hedef için kullanılacak sayfa boyutu seçimi."""
+        value = self.data.get("page_size_policy", "dominant")
+        return value if value in ("first", "dominant", "largest") else "dominant"
+
+    @page_size_policy.setter
+    def page_size_policy(self, value: str) -> None:
+        self.data["page_size_policy"] = value if value in ("first", "dominant", "largest") else "dominant"
+
     @property
     def preview_width(self) -> int:
         """Önizleme kolonunun kayıtlı genişliği (280–900 px arası)."""

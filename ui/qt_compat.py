@@ -14,6 +14,7 @@ from types import SimpleNamespace
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PIL import Image
+from ui.i18n import tr
 from PySide6.QtCore import QEvent, QObject, QPoint, QRectF, QSize, Qt, QTimer
 from PySide6.QtGui import (
     QColor,
@@ -578,7 +579,7 @@ class QtWidgetMixin:
         if "state" in kwargs:
             self.setEnabled(kwargs["state"] != "disabled")  # type: ignore[attr-defined]
         if "text" in kwargs and hasattr(self, "setText"):
-            self.setText(str(kwargs["text"]))  # type: ignore[attr-defined]
+            self.setText(tr(kwargs["text"]))  # type: ignore[attr-defined]
         if "width" in kwargs and kwargs["width"]:
             w = int(kwargs["width"])
             if w > 0:
@@ -971,7 +972,7 @@ class QtLabel(QLabel, QtWidgetMixin):
     ):
         ensure_qapp()
         parent = master._content_host() if hasattr(master, "_content_host") else master
-        super().__init__(str(text), parent)
+        super().__init__(tr(text), parent)
         self._init_mixin(master)
         if font is not None:
             self.setFont(font)
@@ -1080,7 +1081,7 @@ class QtButton(QPushButton, QtWidgetMixin):
     ):
         ensure_qapp()
         parent = master._content_host() if hasattr(master, "_content_host") else master
-        super().__init__(str(text), parent)
+        super().__init__(tr(text), parent)
         self._init_mixin(master)
         self._anchor = str(anchor or "center").lower()
         if font is not None:
@@ -1192,7 +1193,7 @@ class QtEntry(QLineEdit, QtWidgetMixin):
         self.setFrame(False)
         self.setTextMargins(6, 2, 6, 2)
         if placeholder_text:
-            self.setPlaceholderText(str(placeholder_text))
+            self.setPlaceholderText(tr(placeholder_text))
         if font is not None:
             self.setFont(font)
         if width and int(width) > 0:
@@ -1357,7 +1358,7 @@ class QtCheckBox(QCheckBox, QtWidgetMixin):
     ):
         ensure_qapp()
         parent = master._content_host() if hasattr(master, "_content_host") else master
-        super().__init__(str(text), parent)
+        super().__init__(tr(text), parent)
         self._init_mixin(master)
         if font is not None:
             self.setFont(font)
@@ -1459,7 +1460,8 @@ class QtOptionMenu(QComboBox, QtWidgetMixin):
         self._suppress = False
         self._values = list(values or [])
         if self._values:
-            self.addItems(self._values)
+            for value in self._values:
+                self.addItem(tr(value), value)
         self.currentTextChanged.connect(self._on_text_changed)
         self._canvas = self
         self._props.update(
@@ -1510,21 +1512,30 @@ class QtOptionMenu(QComboBox, QtWidgetMixin):
             "▾",
         )
 
+    def refresh_language(self):
+        previous = self.blockSignals(True)
+        try:
+            for index in range(self.count()):
+                value = self.itemData(index)
+                self.setItemText(index, tr(value if value is not None else self.itemText(index)))
+        finally:
+            self.blockSignals(previous)
+
     def _on_text_changed(self, value: str) -> None:
         if not self._suppress and self._command is not None:
-            self._command(value)
+            self._command(self.get())
 
     def get(self) -> str:
-        return self.currentText()
+        return self.currentData() if self.currentData() is not None else self.currentText()
 
     def set(self, value: str) -> None:
         self._suppress = True
         try:
-            idx = self.findText(str(value))
+            idx = self.findData(str(value))
             if idx >= 0:
                 self.setCurrentIndex(idx)
             else:
-                self.addItem(str(value))
+                self.addItem(tr(value), str(value))
                 self.setCurrentIndex(self.count() - 1)
         finally:
             self._suppress = False
@@ -1536,7 +1547,8 @@ class QtOptionMenu(QComboBox, QtWidgetMixin):
             self._suppress = True
             try:
                 self.clear()
-                self.addItems(self._values)
+                for value in self._values:
+                    self.addItem(tr(value), value)
                 if cur in self._values:
                     self.setCurrentIndex(self._values.index(cur))
             finally:
@@ -1735,7 +1747,7 @@ class QtTextbox(QTextEdit, QtWidgetMixin):
         return handled
 
     def insert(self, _index: Any, text: str) -> None:
-        self.insertPlainText(str(text))
+        self.insertPlainText(tr(text))
 
     def get(self, _start: Any = "1.0", _end: Any = "end") -> str:
         return self.toPlainText()
@@ -1763,7 +1775,7 @@ class QtToplevel(QDialog, QtWidgetMixin):
 
     def title(self, text: Optional[str] = None) -> str:
         if text is not None:
-            self.setWindowTitle(str(text))
+            self.setWindowTitle(tr(text))
         return self.windowTitle()
 
     def geometry(self, spec: Optional[str] = None) -> str:
@@ -1795,7 +1807,9 @@ class QtToplevel(QDialog, QtWidgetMixin):
 
     def closeEvent(self, event) -> None:
         if self._close_cb is not None:
-            self._close_cb()
+            if self._close_cb() is False:
+                event.ignore()
+                return
         super().closeEvent(event)
 
     def update(self, *args: Any) -> None:
@@ -1856,7 +1870,7 @@ class QtMainWindow(QMainWindow, QtWidgetMixin):
     # -- Pencere yönetimi ---------------------------------------------------
     def title(self, text: Optional[str] = None) -> str:
         if text is not None:
-            self.setWindowTitle(str(text))
+            self.setWindowTitle(tr(text))
         return self.windowTitle()
 
     def iconbitmap(self, path: str) -> None:
@@ -2067,19 +2081,19 @@ class _QtMessageBoxNamespace:
     @staticmethod
     def showinfo(title: str, message: str, **_kwargs: Any) -> str:
         ensure_qapp()
-        QMessageBox.information(None, str(title), str(message))
+        QMessageBox.information(None, tr(title), tr(message))
         return "ok"
 
     @staticmethod
     def showwarning(title: str, message: str, **_kwargs: Any) -> str:
         ensure_qapp()
-        QMessageBox.warning(None, str(title), str(message))
+        QMessageBox.warning(None, tr(title), tr(message))
         return "ok"
 
     @staticmethod
     def showerror(title: str, message: str, **_kwargs: Any) -> str:
         ensure_qapp()
-        QMessageBox.critical(None, str(title), str(message))
+        QMessageBox.critical(None, tr(title), tr(message))
         return "ok"
 
     @staticmethod
@@ -2087,14 +2101,19 @@ class _QtMessageBoxNamespace:
         ensure_qapp()
         res = QMessageBox.question(
             None,
-            str(title),
-            str(message),
+            tr(title),
+            tr(message),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         return res == QMessageBox.StandardButton.Yes
 
 
 class _QtFileDialogNamespace:
+    @staticmethod
+    def askdirectory(title="Klasör seç", initialdir="", **_kwargs):
+        ensure_qapp()
+        return QFileDialog.getExistingDirectory(None, tr(title), str(initialdir)) or ""
+
     @staticmethod
     def _filter_str(filetypes: Optional[List[Tuple[str, str]]]) -> str:
         if not filetypes:
@@ -2111,7 +2130,7 @@ class _QtFileDialogNamespace:
     ) -> str:
         ensure_qapp()
         path, _ = QFileDialog.getOpenFileName(
-            None, str(title), str(initialdir or ""), cls._filter_str(filetypes)
+            None, tr(title), str(initialdir or ""), cls._filter_str(filetypes)
         )
         return path or ""
 
@@ -2125,7 +2144,7 @@ class _QtFileDialogNamespace:
     ) -> Tuple[str, ...]:
         ensure_qapp()
         paths, _ = QFileDialog.getOpenFileNames(
-            None, str(title), str(initialdir or ""), cls._filter_str(filetypes)
+            None, tr(title), str(initialdir or ""), cls._filter_str(filetypes)
         )
         return tuple(paths or ())
 
@@ -2146,7 +2165,7 @@ class _QtFileDialogNamespace:
             else (initialdir or initialfile or "")
         )
         path, _ = QFileDialog.getSaveFileName(
-            None, str(title), start, cls._filter_str(filetypes)
+            None, tr(title), start, cls._filter_str(filetypes)
         )
         if path and defaultextension and not os.path.splitext(path)[1]:
             path += defaultextension

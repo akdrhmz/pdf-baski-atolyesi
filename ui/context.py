@@ -34,6 +34,7 @@ class TabContext(Protocol):
     # Geri çağrılar
     def on_field_changed(self) -> None: ...
     def schedule_preview(self) -> None: ...
+    def open_settings(self) -> None: ...
     def update_summary(self) -> None: ...
     def set_status(self, text: str, color: Optional[Any] = None) -> None: ...
     def select_tab(self, name: str) -> None: ...
@@ -99,12 +100,22 @@ class AppContext:
         return self._app.orig_height_mm
 
     @property
+    def mixed_sizes(self) -> bool:
+        return bool(getattr(self._app, "orig_mixed_sizes", False))
+
+    @property
     def current_tab(self) -> str:
         return self._app.current_tab
 
     # -- Geri çağrılar -------------------------------------------------------
+    def set_page_size_policy(self, policy: str) -> None:
+        self._app.set_page_size_policy(policy)
+
     def on_field_changed(self) -> None:
         self._app._on_field_changed()
+
+    def open_settings(self) -> None:
+        self._app._show_settings_dialog()
 
     def schedule_preview(self) -> None:
         self._app._schedule_preview()

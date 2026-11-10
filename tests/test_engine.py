@@ -85,6 +85,26 @@ def test_get_pdf_info(tmp_path):
     assert get_pdf_info(mixed)["mixed_sizes"] is True
 
 
+def test_get_pdf_info_uses_the_dominant_page_size(tmp_path):
+    """Kapak A3, gövde A4: hedef ebat çoğunluğa (A4) göre verilir."""
+    path = str(tmp_path / "kapakli.pdf")
+    doc = pymupdf.open()
+    doc.new_page(width=mm_to_pt(297), height=mm_to_pt(420))
+    for _ in range(3):
+        doc.new_page(width=mm_to_pt(210), height=mm_to_pt(297))
+    doc.save(path)
+    doc.close()
+    info = get_pdf_info(path)
+    assert info["mixed_sizes"] is True
+    assert round(info["width_mm"]) == 210 and round(info["height_mm"]) == 297
+    quick = get_pdf_info(path, quick=True)
+    assert round(quick["width_mm"]) == 297      # hızlı tarama yalnız ilk sayfaya bakar
+    first = get_pdf_info(path, size_policy="first")
+    largest = get_pdf_info(path, size_policy="largest")
+    assert round(first["width_mm"]) == 297
+    assert round(largest["width_mm"]) == 297 and round(largest["height_mm"]) == 420
+
+
 def test_duplex_gutter_transformation(tmp_path):
     input_path = str(tmp_path / "gutter_in.pdf")
     output_path = str(tmp_path / "gutter_out.pdf")

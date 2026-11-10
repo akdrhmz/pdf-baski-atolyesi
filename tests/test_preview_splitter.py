@@ -16,6 +16,11 @@ from ui.shell_build import PreviewSplitter
 
 @pytest.fixture(scope="module")
 def app(tmp_path_factory):
+    # Offscreen Qt reports an 800px virtual screen; exercise the standard layout
+    # here, while tests/test_startup_dpi.py covers compact high-DPI geometry.
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.setattr(ModernGutterApp, "winfo_screenwidth", lambda _self: 1920)
+    monkeypatch.setattr(ModernGutterApp, "winfo_screenheight", lambda _self: 1080)
     folder = tmp_path_factory.mktemp("preview_splitter")
     application = ModernGutterApp(
         settings_path=folder / "settings.json", log_path=folder / "studio.log")
@@ -29,6 +34,7 @@ def app(tmp_path_factory):
         pass
     gc.collect()
     time.sleep(0.2)
+    monkeypatch.undo()
 
 
 @pytest.fixture(autouse=True)
@@ -138,6 +144,19 @@ def test_fullscreen_card_fills_workspace_and_restores(app):
     assert app._content_frame.isVisibleTo(app._workspace)
     assert card.maximumWidth() == PreviewSplitter.MAX_WIDTH
     assert _sizes(app)[0] >= app.CENTER_MIN
+
+
+def test_window_preview_keeps_gutter_presets_left_aligned(app):
+    """Önizleme pencereye alınınca genişleyen içerik ortalanmaz, solda kalır."""
+    app.resize(1700, 900)
+    app._set_preview_display("window")
+    app.select_tab("Sayfa Düzeni")
+    tab = app._tabs["Sayfa Düzeni"]
+    tab.ensure_built()
+    _pump(12)
+    scroll = tab.frame.findChildren(QScrollArea)[0]
+    assert tab._preset_row.mapTo(scroll.viewport(), QPoint(0, 0)).x() < 80
+    assert tab._preset_row.width() <= 720
 
 
 @pytest.mark.parametrize("window", [(1260, 780), (1500, 880)])

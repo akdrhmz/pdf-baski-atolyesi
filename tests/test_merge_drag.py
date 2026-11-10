@@ -222,7 +222,7 @@ def test_handle_only_off_by_default_any_part_drags(shown):
 
 def test_handle_only_requires_the_handle(shown):
     tab, _ = shown
-    tab.chk_merge_handle_only.select()
+    tab.ctx.store.merge_handle_only = True
     assert tab.handle_only()
     row = tab.rows[0]
     # Satır gövdesi: seçer ama sürüklemez.
@@ -242,7 +242,7 @@ def test_handle_only_requires_the_handle(shown):
 
 def test_handle_only_click_on_body_of_multiselected_row_still_collapses_selection(shown):
     tab, _ = shown
-    tab.chk_merge_handle_only.select()
+    tab.ctx.store.merge_handle_only = True
     tab.select_item(0)
     tab.select_item(1, ctrl=True)
     row = tab.rows[1]

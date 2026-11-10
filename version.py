@@ -2,6 +2,6 @@
 
 APP_NAME = "PDF Baskı & Cilt Stüdyosu"
 APP_ID = "hamza.pdf.printstudio"
-VERSION = "2.7.4"
+VERSION = "2.9.0"
 AUTHOR = "Abdülkadir Hamza"
 CONTACT = "hamza_kadir@hotmail.com"

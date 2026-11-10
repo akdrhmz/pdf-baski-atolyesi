@@ -63,6 +63,9 @@ class MergeJobMixin:
             return
         self._discard_pending_merge()
         apply_pipeline = self.merge_tab.chk_merge_apply_pipeline.get() == 1
+        if not apply_pipeline and self.merge_tab.chk_merge_fit.get() == 1 and self.merge_tab._fit_error:
+            messagebox.showerror("Eşitleme ayarları", self.merge_tab._fit_error)
+            return
         config = None
         if apply_pipeline:
             config = self._build_config(notify=True)
@@ -99,19 +102,11 @@ class MergeJobMixin:
         config = self._work_config
         apply_pipeline = config is not None
         items = self.merge_tab.worker_items()
-        optimize = self.chk_optimize.get() == 1
+        optimize = self._output_quality != "print"
         add_bookmarks = self.merge_tab.chk_merge_bookmarks.get() == 1
         fit_plain = self.merge_tab.chk_merge_fit.get() == 1 and not apply_pipeline
-        fit_mode = "largest"
-        fit_keep, fit_rotate = True, False
-        if fit_plain:
-            current = self._build_config(notify=False) or getattr(self, "_last_valid_config", None)
-            if current is not None:
-                if current.fit_mode in FIT_MODES and current.fit_mode != "off":
-                    fit_mode = current.fit_mode
-                # Sayfa Düzeni'ndeki yön ayarları birleştirmede de geçerlidir.
-                fit_keep = current.fit_keep_orientation
-                fit_rotate = current.fit_rotate_landscape
+        fit_config = self.merge_tab.merge_fit_config()
+        fit_config.flatten_annotations = self._flatten_annotations
         expected_pages = self.merge_tab.expected_pages()
         self._cancel_event.clear()
 
@@ -136,9 +131,7 @@ class MergeJobMixin:
                             dir=os.path.dirname(os.path.abspath(output_path)))
                         os.close(fd)
                         try:
-                            build_fitted_pdf(output_path, fitted, PdfProcessConfig(
-                                fit_mode=fit_mode, fit_keep_orientation=fit_keep,
-                                fit_rotate_landscape=fit_rotate),
+                            build_fitted_pdf(output_path, fitted, fit_config,
                                              should_cancel=self._cancel_event.is_set)
                             os.replace(fitted, output_path)
                         finally:

@@ -11,9 +11,24 @@ import logging
 import os
 import time
 from contextlib import contextmanager
+from contextlib import nullcontext
+from functools import wraps
 from typing import Any, Dict, Iterator, List, Tuple
 
 _LOG = logging.getLogger("studio.perf")
+
+
+def record_ui(label):
+    """Arayüz eylemlerini APP_PERF kaydına ekler; test sahteleri de uyumludur."""
+    def decorate(function):
+        @wraps(function)
+        def measured(self, *args, **kwargs):
+            recorder = getattr(getattr(self, "ctx", None), "perf", None) or getattr(self, "perf", None)
+            measure = getattr(recorder, "measure", None)
+            with measure(label) if measure else nullcontext():
+                return function(self, *args, **kwargs)
+        return measured
+    return decorate
 
 
 def perf_enabled() -> bool:

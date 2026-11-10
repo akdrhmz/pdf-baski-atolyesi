@@ -123,8 +123,11 @@ FIT_LABELS = {
     "A5'e": "a5",
     "A4'e": "a4",
     "A3'e": "a3",
+    "Özel ebat": "custom",
 }
 FIT_CODES = {code: label for label, code in FIT_LABELS.items()}
+BINDING_LABELS = {"Soldan cilt": "left", "Sağdan cilt": "right", "Üstten cilt": "top"}
+BINDING_CODES = {code: label for label, code in BINDING_LABELS.items()}
 
 # --- Birleştirme listesi sürükle-bırak (P3-40) ---
 DRAG_START_PX = 4        # bu kadar piksel oynamadan tıklama sayılır, sürükleme başlamaz

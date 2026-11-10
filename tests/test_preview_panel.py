@@ -140,11 +140,25 @@ def test_state_exists_before_widgets_and_schedule_defers(root):
 def test_build_creates_widgets_and_defaults(built):
     panel, host = built
     assert panel.preview_mode_menu.get() == "Çift sayfa"
-    assert len(panel.slots) == 2 and set(panel.blank_images) == {"spread", "single"}
+    assert len(panel.slots) == 2
+    assert all(canvas._placeholder == "spread" for _s, canvas, _c in panel.slots)
+    # Belge yokken de kip, gezinme, açıklama ve eylemler görünür (eski panel).
+    assert not panel.preview_mode_menu.isHidden() and not panel.nav.isHidden()
+    assert not panel.legend.isHidden() and not panel.preview_buttons.isHidden()
+    assert panel.view_tools.isHidden()
     assert panel.preview_page_label.cget("text") == "—"
     assert panel.preview_prev_btn.cget("state") == "disabled"
     assert panel.preview_next_btn.cget("state") == "disabled"
     assert host.wrap_calls >= 3
+
+
+def test_render_zoom_grows_with_the_visible_page_width(built):
+    panel, host = built
+    canvas = panel.slots[0][1]
+    canvas.resize(200, 300)
+    assert panel._render_zoom() == 2.0
+    canvas.resize(1200, 1500)
+    assert panel._render_zoom() == 2.5
 
 
 def test_refresh_without_source_clears_and_without_config_warns(built):
@@ -177,6 +191,7 @@ def test_refresh_renders_in_background_and_caches_by_signature(built, monkeypatc
     assert calls == [(0, 1)]
     assert "210.0 × 297.0 mm" in panel.preview_info.cget("text")
     assert panel.preview_info.cget("text_color") == COLOR_TEXT_PRIMARY
+    assert not panel.view_tools.isHidden()
     gen = panel.gen
     panel.refresh()                         # aynı dosya + ayar + sayfa: yeniden üretilmez
     host.pump()

@@ -1,6 +1,6 @@
 # PDF Baskı & Cilt Stüdyosu
 
-**Sürüm:** `version.py` içindeki tek kaynaktan okunur (şu an 2.7.4)  
+**Sürüm:** `version.py` içindeki tek kaynaktan okunur (şu an 2.9.0)  
 **Geliştirici:** Abdülkadir Hamza — hamza_kadir@hotmail.com
 
 PyMuPDF ile vektörel (yeniden örneklemesiz) PDF hazırlığı yapan Windows masaüstü
@@ -9,6 +9,31 @@ taraması, sonuç doğrulama ve kayıpsız birleştirme.
 
 Kaynak dosyaya asla yazılmaz. Çıktı önce geçici dosyaya yazılır, başarılı olursa
 hedefe taşınır.
+
+## 2.9.0 arayüz ve toplu işlem yenilikleri
+
+- Kaynak PDF veya birleştirme listesi hazır değilse ana işlem düğmesi devre dışı kalır ve gereken adımı söyler.
+- Belge yokken önizleme alanı sade bir yönlendirme gösterir; işlem öncesi **Ön kontrol** özeti kaynağı, etkin ayarları ve çıktı tercihlerini listeler.
+- Üst çubuktan **Toplu işlem…** ile dosya/klasör seçin, alt klasörleri tarayın, mevcut ayarı veya kayıtlı profili kullanın; kırpma riski bulunanları atlayın ve dosya başına sonucu izleyin.
+- İşlem, iptal ve sonuç düğmeleri yalnız uygun aşamada görünür. Tema seçimi tek yerde, üst çubuktadır.
+
+## 2.8.0 özellikleri
+
+- Ayarlar: görünüm/birim/dil, liste ve önizleme, PDF çıktısı, sıfırlama. Optimizasyon ve form/açıklama gömme buraya taşındı.
+- Birleştirmede bağımsız eşitleme; özel ebat ve çevre boşluğu; uzun listede görünür satır kontrolleri ve 56×72 küçük resimler.
+- Önizlemede yakınlaştırma (Ctrl+tekerlek), gezinme, görünümü döndürme, Önce/Sonra geçişi.
+- Bölüm numaralandırması ve boş sayfa; soldan/sağdan/üstten cilt.
+- Üst çubuk → **PDF araçları…**: sayfa ayıklama/bölme, filigran/Bates, kesim işaretleri ve taşma payı, kitapçık ve 2-up/4-up montaj.
+- Açık/koyu tema tek tıklamayla boyanır; Türkçe/English arayüz Ayarlar’dan seçilir.
+
+Ayrıntı ve doğrulama: [2.9.0 sürüm notları](docs/v2.9.0-surum-notlari.md) · [2.8.1 DPI düzeltmesi](docs/v2.8.1-surum-notlari.md) · [2.8.0 özellikleri](docs/v2.8.0-surum-notlari.md). Yol haritası: [güncel plan](docs/app-bolme-plani.md).
+
+### Klasör bazlı toplu işlem
+
+```powershell
+python gutter_engine.py --profile "Tez (üniversite)" --input "C:\PDFler" --output "C:\Ciktilar"
+python studio_cli.py --profile "ayarlar.json" --input "C:\PDFler" --output "C:\Ciktilar" --recursive
+```
 
 ## Özellikler
 
@@ -118,11 +143,11 @@ python app.py
 ## Testler
 
 ```bat
-python -m pytest
+python -m pytest tests -q
 ```
 
 - Motor testleri gerçek PDF üretip PyMuPDF ile sonucu yeniden okur.
-- Arayüz testleri gerçek Tk penceresi kurar; taşma, doğrulama, birim dönüşümü,
+- Arayüz testleri gerçek Qt penceresi kurar; taşma, doğrulama, birim dönüşümü,
   önizleme, işlem hattı ve birleştirme akışını dener.
 - Görsel regresyon altın görüntülerle karşılaştırır:
   `tests/golden/`. Bilinçli güncelleme:
@@ -204,11 +229,17 @@ samples/referans/       Gerçek referans PDF seti
 
 ## Bilinen kapsam sınırları
 
-Bu sürüm planın Tur 1 kapsamını tamamlar. Şunlar sonraki turlara bırakılmıştır:
-Roma rakamı ve bölüm bazlı numaralama, özel metin şablonu/Unicode gömülü yazı
-tipi, 4'ün katına tamamlama, sayfa ayıklama sekmesi, toplu işlem, filigran,
-kesim işaretleri/bleed, kitapçık ve n-up impozisyon, creep telafisi, CLI,
-kurulum paketi ve İngilizce arayüz.
+2.8.0, plandaki P4 geliştirmelerini içerir. Sayfa araçları ayrı pencerededir;
+Önce/Sonra karşılaştırması geçişlidir; taşma payı mevcut tasarımın dışında yeni
+görsel üretmez. Katalog dışı işletim sistemi/kitaplık hataları özgün dilinde
+gösterilebilir. Ayrıntılı kapsam ve sınırlar sürüm notlarında belirtilmiştir.
 
 Windows %125/%150 ölçeklemede son görsel onay kullanıcı makinesinde
 yapılmalıdır.
+
+**Doğrulama:** Windows'ta nihai pakette **559 test geçti**. Tema geçişi ayrıca
+native Windows penceresinde tek tıklamayla boyama kontrolünden geçti.
+
+### Arayüz tercihleri (2.8.0)
+
+Ayarlar penceresindeki Birleştirme bölümünden tüm birleşik belgeyi önizleme ve yalnız tutamaktan sürükleme tercihleri belirlenir. Değişiklikler hemen uygulanır ve sonraki oturumlarda korunur. Birleştirme ekranındaki “Liste ve önizleme tercihleri…” düğmesi Ayarlar’ı açar. Çıktıya etki eden yer imi, eşitleme ve diğer sekmelerin ayarlarını uygulama seçenekleri Birleştirme ekranında kalır.

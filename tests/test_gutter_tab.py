@@ -82,6 +82,23 @@ def test_profile_and_quick_buttons_exist(built):
     assert len(tab._gutter_preset_row._buttons) == 4
 
 
+def test_preset_buttons_leave_room_for_their_text(built):
+    tab, _ = built
+    for button in tab._preset_row._buttons + tab._gutter_preset_row._buttons:
+        needed = button.fontMetrics().horizontalAdvance(button.text()) + 10
+        assert button.sizeHint().width() >= needed
+
+
+def test_size_source_row_only_appears_for_mixed_documents(built):
+    tab, ctx = built
+    assert tab._size_source_row.isHidden()
+    ctx.mixed_sizes = True
+    tab.sync_size_source()
+    assert not tab._size_source_row.isHidden()
+    tab._on_size_source_changed("En büyük sayfa")
+    assert ctx.calls[-1] == ("set_page_size_policy", ("largest",))
+
+
 def test_profile_button_hands_the_preset_to_the_shell(built):
     tab, ctx = built
     name = next(iter(PRESETS))
@@ -258,7 +275,8 @@ def test_target_note_never_repeats_page_height(built):
     tab.f_top.set_mm(0.0)
     for choice in (plm.CHOICE_EXTEND, plm.CHOICE_SHRINK, plm.CHOICE_CLIP):
         tab.set_overflow_choice(choice)
-        assert tab.lbl_target_note.cget("text") == "alt/üst boşluk hariç"
+        assert tab.lbl_target_note.cget("text") == (
+            "Cilt payı dahil; alt/üst boşluk sonuç yüksekliğine eklenir.")
     # sonuç cümlesi (Taşarsa ne olsun altında) sayfa boyunu yazmaya devam eder
     tab.set_overflow_choice(plm.CHOICE_EXTEND)
     assert "307" in tab.lbl_overflow_note.cget("text")

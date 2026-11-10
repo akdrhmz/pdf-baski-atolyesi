@@ -132,16 +132,18 @@ def test_render_check_still_detects_a_wrong_placement(tmp_path):
 
 
 # -- Arayüz ------------------------------------------------------------------------
-def test_fit_alone_counts_as_an_active_operation(app):  # noqa: F811
+def test_fit_alone_counts_as_an_active_operation(app, tmp_path):  # noqa: F811
     layout = app._layout_tab()
     for key in ("gutter", "margin", "pnum"):
         app._module_switch(key).deselect()
     layout.menu_fit.set([k for k, v in __import__("ui.theme", fromlist=["x"]).FIT_LABELS.items()
                          if v == "a4"][0])
+    app._load_file(_mixed(str(tmp_path / "fit-source.pdf")))
     app.update()
     assert app._fit_active() is True
     app._update_pipeline_summary()
-    assert app.btn_main_action.isEnabled()
+    assert app.btn_main_action.isEnabled()  # Etkin ayar ve gerçek kaynak PDF var.
+    assert "Eşitlenmiş" in app.btn_main_action.text()
     assert "Eşitlenmiş" in app.btn_main_action.text()
     layout.menu_fit.set([k for k, v in __import__("ui.theme", fromlist=["x"]).FIT_LABELS.items()
                          if v == "off"][0])
@@ -305,10 +307,10 @@ def test_sequence_total_and_captions(app, tmp_path):  # noqa: F811
     from ui.preview import render_sequence_preview
     tab = _seq_tab(app, tmp_path, [2, 3])
     host = app.preview_panel.host
-    tab.chk_merge_sequence.deselect()
+    tab.ctx.store.merge_preview_sequence = False
     tab.select_item(0)
     assert host.preview_page_count == 2
-    tab.chk_merge_sequence.select()
+    tab.ctx.store.merge_preview_sequence = True
     assert host.preview_page_count == 5
     variant = host.preview_variant()
     assert variant[4] and len(variant[4]) == 2
@@ -318,7 +320,7 @@ def test_sequence_total_and_captions(app, tmp_path):  # noqa: F811
     assert [p.page_index for p in pages] == [1, 2]
     assert "d0.pdf (2/2)" in pages[0].caption and "▶" not in pages[0].caption
     assert "▶ d1.pdf (1/3)" in pages[1].caption
-    tab.chk_merge_sequence.deselect()
+    tab.ctx.store.merge_preview_sequence = False
     app.tabview.set("Sayfa Düzeni")
 
 
@@ -328,7 +330,7 @@ def test_sequence_follows_order_range_and_rotation(app, tmp_path):  # noqa: F811
     tab.files[1]["page_range"] = "1-2"
     tab.files[0]["rotation"] = 90
     host = app.preview_panel.host
-    tab.chk_merge_sequence.select()
+    tab.ctx.store.merge_preview_sequence = True
     assert host.preview_page_count == 4
     items = host.sequence_items()
     counts = [host.item_count(i) for i in items]
@@ -336,7 +338,7 @@ def test_sequence_follows_order_range_and_rotation(app, tmp_path):  # noqa: F811
     assert pages[0].width_pt > pages[0].height_pt          # 90° döndürülmüş dikey sayfa yatay görünür
     tab.move_item(1, 0)
     assert host.sequence_items()[0]["name"] == "d1.pdf"
-    tab.chk_merge_sequence.deselect()
+    tab.ctx.store.merge_preview_sequence = False
     app.tabview.set("Sayfa Düzeni")
 
 
@@ -349,12 +351,12 @@ def test_sequence_fit_uses_whole_merged_document(app, tmp_path):  # noqa: F811
     tab.append_file(a)
     tab.refresh_list()
     app.tabview.set("PDF Birleştirme")
-    tab.chk_merge_sequence.select()
+    tab.ctx.store.merge_preview_sequence = True
     host = app.preview_panel.host
     items = host.sequence_items()
     pages = render_sequence_preview(items, [4], ("a4", False, True), None, (1, 3))
     assert [(round(p.width_mm), round(p.height_mm)) for p in pages] == [(210, 297)] * 2
-    tab.chk_merge_sequence.deselect()
+    tab.ctx.store.merge_preview_sequence = False
     app.tabview.set("Sayfa Düzeni")
 
 

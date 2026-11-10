@@ -126,6 +126,47 @@ class WorkflowMixin:
         self._begin_work("İşleniyor...")
         self._start_process_worker(scan_first=True)
 
+    def _show_preflight_summary(self) -> None:
+        """Show the current source, active work and output choices on demand."""
+        if "Birleştirme" in self.tabview.get():
+            merge = self._tabs["Birleştirme"]
+            items = merge.worker_items()
+            try:
+                expected = str(merge.expected_pages())
+            except Exception:
+                expected = "Sayfa aralıklarını düzeltin"
+            lines = [f"Kaynak dosya: {len(items)}", f"Beklenen sayfa: {expected}"]
+            lines.extend(f"• {os.path.basename(item['path'])}"
+                         f" — {item.get('page_range') or 'tüm sayfalar'}, {item.get('rotation', 0)}°"
+                         for item in items[:12])
+            if len(items) > 12:
+                lines.append(f"… ve {len(items) - 12} dosya daha")
+            lines.append("İşlem: Birleştirme" +
+                         (" ve etkin ayarlar" if merge.chk_merge_apply_pipeline.get() else " (ayarlar uygulanmayacak)"))
+        else:
+            config = self._build_config(notify=False)
+            if config is None:
+                return
+            lines = [f"Kaynak: {os.path.basename(self.input_pdf_path) or 'PDF seçilmedi'}",
+                     f"Sayfa sayısı: {self.orig_page_count}"]
+            actions = []
+            if config.page_boxes.enabled:
+                actions.append(f"Cilt payı ({config.page_boxes.binding})")
+            if config.margins.enabled:
+                actions.append("Alt/üst boşluk")
+            if config.page_numbers.enabled:
+                actions.append("Sayfa numarası")
+            if config.fit_mode != "off":
+                actions.append("Sayfa ebatlarını eşitle")
+            lines.append("İşlem: " + (", ".join(actions) if actions else "Etkin işlem yok"))
+            if config.fit_mode == "custom":
+                lines.append(f"Hedef ebat: {config.fit_width_mm:g} × {config.fit_height_mm:g} mm; "
+                             f"kenar payı {config.fit_margin_mm:g} mm")
+        lines.append(f"PDF optimizasyonu: {'açık' if self._output_quality != 'print' else 'kapalı'}")
+        lines.append(f"Açıklama/form gömme: {'açık' if self._flatten_annotations else 'kapalı'}")
+        lines.append("Kaynak dosya korunur; çıktı için kaydetme konumunu sonraki adımda seçersiniz.")
+        self._show_text_dialog("İşlem ön kontrolü", "İşlem ayarlarının özeti", "\n".join(lines))
+
     def _thread_progress(self, verb: str):
         """Arka plandan gelen ilerlemeyi Tk ana iş parçacığına güvenle taşır."""
         def callback(current: int, total: int) -> None:
@@ -205,17 +246,22 @@ class WorkflowMixin:
         self._cancel_event.clear()
         self.preview_panel.invalidate()
         self.btn_main_action.configure(state="disabled", text="İşleniyor...")
+        self.btn_pdf_tools.configure(state="disabled")
+        self.btn_top_batch.configure(state="disabled")
         self.btn_cancel.configure(state="normal", fg_color=COLOR_ERROR_BG,
                                   text_color=COLOR_ERROR)
         self.btn_open_pdf.configure(state="disabled")
         self.btn_open_folder.configure(state="disabled")
         self.btn_new_job.configure(state="disabled")
+        self.btn_preflight.hide()
+        self.btn_cancel.show()
         self.progress_bar.set(0)
         self._set_status(message, COLOR_ACCENT)
 
     def _reset_cancel_button(self) -> None:
         self.btn_cancel.configure(state="disabled", fg_color=COLOR_SUBCARD,
                                   text_color=COLOR_TEXT_SECONDARY)
+        self.btn_cancel.hide()
 
     def _new_job(self) -> None:
         """Yeni iş: belgeyi, birleştirme listesini ve sonuç düğmelerini sıfırlar.
@@ -235,6 +281,8 @@ class WorkflowMixin:
             merge.clear()
         self.btn_open_pdf.configure(state="disabled")
         self.btn_open_folder.configure(state="disabled")
+        self.btn_open_pdf.hide()
+        self.btn_open_folder.hide()
         self.progress_bar.set(0)
         self.title(APP_NAME)
         self.preview_panel.reset_for_new_document()
@@ -247,6 +295,8 @@ class WorkflowMixin:
         self.btn_new_job.configure(state="normal")
         self.progress_bar.set(0)
         self._reset_cancel_button()
+        self.btn_pdf_tools.configure(state="normal")
+        self.btn_top_batch.configure(state="normal")
         self._update_pipeline_summary()
         self._set_status(message, color)
 
@@ -272,6 +322,8 @@ class WorkflowMixin:
 
     def _on_success(self, report, warnings: List[str]) -> None:
         self._busy = False
+        self.btn_pdf_tools.configure(state="normal")
+        self.btn_top_batch.configure(state="normal")
         self.progress_bar.set(1.0)
         self._reset_cancel_button()
         self.btn_open_pdf.configure(state="normal")
@@ -304,6 +356,8 @@ class WorkflowMixin:
 
     def _on_error(self, title: str, exc: Exception, details: str = "") -> None:
         self._busy = False
+        self.btn_pdf_tools.configure(state="normal")
+        self.btn_top_batch.configure(state="normal")
         self.btn_new_job.configure(state="normal")
         self.progress_bar.set(0)
         self._reset_cancel_button()

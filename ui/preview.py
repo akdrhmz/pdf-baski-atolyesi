@@ -28,11 +28,14 @@ from ui.theme import *  # noqa: F401,F403
 # Titremeyi önlemek için son birkaç PhotoImage tutulur; 6-8 yeterlidir, fazlası büyük
 # sayfalarda gereksiz bellek harcar.
 PREVIEW_HISTORY_LIMIT = 8
+# Üretim çözünürlüğü: panelde küçültülerek gösterildiğinde yazılar keskin kalsın.
+PREVIEW_ZOOM = 2.5
+from gutter_engine import PDF_LOCK
+PDF_RENDER_LOCK = PDF_LOCK
 
 
 
 _SEQ_CACHE: dict = {"key": None, "path": None}
-
 
 def _drop_sequence_cache() -> None:
     path = _SEQ_CACHE.get("path")
@@ -45,7 +48,7 @@ def _drop_sequence_cache() -> None:
 
 
 def render_sequence_preview(items: list, counts: list, fit: Any, config: Any,
-                            wanted: tuple) -> list:
+                            wanted: tuple, zoom: float = PREVIEW_ZOOM) -> list:
     """Tüm birleşik dizinin sayfalarını (dosya sınırı işaretli) çizer.
 
     Dosyalar döndürme ve sayfa aralığıyla geçici bir PDF'te birleştirilir; kopya, dosya
@@ -71,17 +74,25 @@ def render_sequence_preview(items: list, counts: list, fit: Any, config: Any,
             atexit.register(_drop_sequence_cache)
     path = _SEQ_CACHE["path"]
     if config is not None:
-        pages = render_preview(path, config, pages=wanted, zoom=1.6)
+        pages = render_preview(path, config, pages=wanted, zoom=zoom)
     else:
-        pages, _n = render_plain_preview(path, 0, "", pages=wanted, zoom=1.6, fit=fit)
+        pages, _n = render_plain_preview(path, 0, "", pages=wanted, zoom=zoom, fit=fit)
     starts, total = [], 0
     for count in counts:
         starts.append(total)
         total += count
     for page in pages:
+        source_index = page.page_index
+        if config is not None and config.page_numbers.enabled and config.page_numbers.sections:
+            from gutter_engine import numbering_sections
+            blanks = numbering_sections(config)[1]
+            if source_index in blanks:
+                page.caption = f"{source_index + 1}. sayfa  •  Boş bölüm ayıracı"
+                continue
+            source_index -= sum(blank < page.page_index for blank in blanks)
         for number, (start, count) in enumerate(zip(starts, counts)):
-            if start <= page.page_index < start + count:
-                local = page.page_index - start + 1
+            if start <= source_index < start + count:
+                local = source_index - start + 1
                 name = os.path.basename(str(items[number]["path"]))
                 mark = "▶ " if local == 1 else ""
                 page.caption = f"{page.page_index + 1}. sayfa  •  {mark}{name} ({local}/{count})"
@@ -90,7 +101,7 @@ def render_sequence_preview(items: list, counts: list, fit: Any, config: Any,
 
 
 def render_merge_result_preview(path: str, rotation: int, page_range: str, config: Any,
-                                wanted: tuple) -> list:
+                                wanted: tuple, zoom: float = PREVIEW_ZOOM) -> list:
     """Birleştirme + aktif ayarlar seçiliyken seçili dosyanın SONUÇ önizlemesi.
 
     Dosya döndürme ve sayfa aralığıyla geçici bir PDF'e alınır; ayarlar (cilt, boşluk,
@@ -104,7 +115,7 @@ def render_merge_result_preview(path: str, rotation: int, page_range: str, confi
     try:
         merge_pdfs([{"path": path, "rotation": int(rotation or 0), "pages": str(page_range or "")}],
                    tmp, quality_mode="print")
-        return render_preview(tmp, config, pages=wanted, zoom=1.6)
+        return render_preview(tmp, config, pages=wanted, zoom=zoom)
     finally:
         try:
             os.remove(tmp)
@@ -140,7 +151,10 @@ class AppPreviewHost:
 
     @property
     def orig_page_count(self) -> int:
-        return self._app.orig_page_count
+        from gutter_engine import numbering_sections
+        config = self._app._build_config(notify=False)
+        blanks = numbering_sections(config)[1] if config and config.page_numbers.enabled else set()
+        return self._app.orig_page_count + len(blanks)
 
     def source_path(self) -> str:
         return self._app._preview_source_path()
@@ -158,7 +172,9 @@ class AppPreviewHost:
         if "Birleştirme" not in app.tabview.get():
             return None
         merge = app._tabs["Birleştirme"]
-        if not merge.sequence_enabled():
+        config = app._build_config(notify=False) if merge.built and merge.chk_merge_apply_pipeline.get() == 1 else None
+        sections_active = config is not None and config.page_numbers.enabled and bool(config.page_numbers.sections)
+        if not merge.sequence_enabled() and not sections_active:
             return None
         items = merge.existing_items()
         return items or None
@@ -185,11 +201,17 @@ class AppPreviewHost:
         seq = self.sequence_items()
         if seq:
             merge = self._app._tabs["Birleştirme"]
-            return sum(merge.item_count(entry) for entry in seq)
+            total = sum(merge.item_count(entry) for entry in seq)
+            if merge.chk_merge_apply_pipeline.get() == 1:
+                from gutter_engine import numbering_sections
+                config = self._app._build_config(notify=False)
+                if config and config.page_numbers.enabled:
+                    total += len(numbering_sections(config)[1])
+            return total
         item = self.merge_item()
         if item is not None:
             return self._app._tabs["Birleştirme"].item_count(item)
-        return self._app.orig_page_count
+        return self.orig_page_count
 
     def preview_variant(self) -> Optional[tuple]:
         item = self.merge_item()
@@ -204,15 +226,9 @@ class AppPreviewHost:
                                        or config.page_numbers.enabled or config.fit_mode != "off"):
                 pipeline = repr(config_to_dict(config))
         elif merge.chk_merge_fit.get() == 1:
-            config = self._app._build_config(notify=False) or getattr(
-                self._app, "_last_valid_config", None)
-            mode = "largest"
-            keep, rotate = True, False
-            if config is not None:
-                if config.fit_mode != "off":
-                    mode = config.fit_mode
-                keep, rotate = config.fit_keep_orientation, config.fit_rotate_landscape
-            fit = (mode, keep, rotate)
+            config = merge.merge_fit_config()
+            fit = (config.fit_mode, config.fit_keep_orientation, config.fit_rotate_landscape,
+                   config.fit_width_mm, config.fit_height_mm, config.fit_margin_mm)
         seq_key = None
         seq = self.sequence_items()
         if seq:
@@ -252,12 +268,11 @@ class PreviewPanel:
         self.page = 0
         self.gen = 0
         # Üretimler sıraya girer; sırası gelen eski üretim kendini iptal eder (bkz. refresh).
-        self._render_lock = threading.Lock()
+        self._render_lock = PDF_RENDER_LOCK
         self.after_id: Optional[Any] = None
         self.signature: Optional[Any] = None
         self.images: List[Any] = []
         self.history: List[Any] = []
-        self.blank_images: dict = {}
         self._decoded: list = []
         self.slots: list = []
         self.image_frame: Any = None
@@ -424,26 +439,8 @@ class PreviewPanel:
             caption.place(1, 0, align="c")
             self.slots.append((slot, image_label, caption))
 
-        try:
-            from PIL import ImageDraw
-            def _make_placeholder(w: int, h: int) -> Image.Image:
-                im = Image.new("RGBA", (w, h), (130, 140, 155, 16))
-                dr = ImageDraw.Draw(im)
-                dr.rounded_rectangle((2, 2, w - 3, h - 3), radius=6, outline=(130, 140, 155, 85), width=1)
-                for y in range(28, h - 32, 18):
-                    line_end = w - 24 if (y // 18) % 3 != 0 else w - 56
-                    dr.line((20, y, line_end, y), fill=(130, 140, 155, 42), width=2)
-                return im
-            blank_small = _make_placeholder(200, 283)
-            blank_large = _make_placeholder(340, 481)
-            self.blank_images = {
-                "spread": ctk.pil_to_pixmap(blank_small),
-                "single": ctk.pil_to_pixmap(blank_large),
-            }
-        except Exception:
-            self.blank_images = {}
-
         nav = ctk.CTkFrame(card, fg_color="transparent")
+        self.nav = nav
         nav.place(4, 0, expand_x=True)
         nav.grid_columnconfigure(1, weight=1)
         self.preview_prev_btn = ctk.CTkButton(
@@ -511,6 +508,7 @@ class PreviewPanel:
         self.legend = legend
 
         preview_buttons = ctk.CTkFrame(card, fg_color="transparent")
+        self.preview_buttons = preview_buttons
         preview_buttons.place(8, 0, expand_x=True)
         preview_buttons.grid_columnconfigure(0, weight=1)
         self.detach_images()
@@ -534,6 +532,32 @@ class PreviewPanel:
 
         self.apply_layout()
         self.update_nav()
+
+        view_tools = ctk.CTkFrame(card, fg_color="transparent")
+        self.view_tools = view_tools
+        view_tools.place(9, 0, expand_x=True)
+        for column, (text, action) in enumerate((
+            ("−", lambda canvas: canvas.zoom_by(1 / 1.25)),
+            ("+", lambda canvas: canvas.zoom_by(1.25)),
+            ("Döndür", lambda canvas: canvas.rotate_view()),
+            ("Sığdır", lambda canvas: canvas.reset_view()),
+        )):
+            ctk.CTkButton(view_tools, text=text, width=54, height=26,
+                          command=lambda action=action: [action(canvas) for _, canvas, _ in self.slots]
+                          ).place(0, column, align="w")
+        self._compare_source = False
+        self.compare_menu = ctk.CTkSegmentedButton(
+            view_tools, values=["Önce", "Sonra"], height=26,
+            command=self._set_comparison)
+        self.compare_menu.set("Sonra")
+        self.compare_menu.place(1, 0, columnspan=4, expand_x=True)
+        view_tools.setToolTip("Yakınlaştırma: Ctrl + fare tekerleği. Yakınlaştırınca sürükleyerek gezin. Döndür yalnız görünümü değiştirir.")
+        self.view_tools.hide()
+
+    def _set_comparison(self, value):
+        self._compare_source = value == "Önce"
+        self.signature = None
+        self.refresh_now()
 
     # =====================================================================
     # Önizleme ve tarama
@@ -606,6 +630,8 @@ class PreviewPanel:
         generation = self.gen
 
         wanted = self.wanted_pages()
+        compare_source = getattr(self, "_compare_source", False)
+        zoom = self._render_zoom()
 
         def worker():
             with self._render_lock:
@@ -613,18 +639,24 @@ class PreviewPanel:
                 if generation != self.gen:
                     return
                 try:
-                    if variant is not None and len(variant) > 4 and variant[4]:
+                    if compare_source and variant is not None and len(variant) > 4 and variant[4]:
+                        pages = render_sequence_preview(seq_items, seq_counts, None, None, wanted, zoom)
+                    elif compare_source:
+                        pages, _n = render_plain_preview(
+                            path, variant[0] if variant else 0, variant[1] if variant else "",
+                            pages=wanted, zoom=PREVIEW_ZOOM)
+                    elif variant is not None and len(variant) > 4 and variant[4]:
                         pages = render_sequence_preview(
-                            seq_items, seq_counts, variant[2], merge_config, wanted)
+                            seq_items, seq_counts, variant[2], merge_config, wanted, zoom)
                     elif variant is not None and len(variant) > 3 and variant[3]:
                         pages = render_merge_result_preview(
-                            path, variant[0], variant[1], merge_config, wanted)
+                            path, variant[0], variant[1], merge_config, wanted, zoom)
                     elif variant is not None:
                         pages, _n = render_plain_preview(
-                            path, variant[0], variant[1], pages=wanted, zoom=1.6,
+                            path, variant[0], variant[1], pages=wanted, zoom=zoom,
                             fit=variant[2] if len(variant) > 2 else None)
                     else:
-                        pages = render_preview(path, config, pages=wanted, zoom=1.6)
+                        pages = render_preview(path, config, pages=wanted, zoom=zoom)
                 except Exception as exc:
                     message = str(exc)
                     self.host.log.warning("Önizleme üretilemedi: %s", message)
@@ -660,8 +692,7 @@ class PreviewPanel:
 
     def _blank_slot(self, image_label, caption) -> None:
         try:
-            blank = self.blank_images.get(self.mode)
-            image_label.configure(image=blank if blank is not None else "", text="")
+            image_label.set_placeholder(self.mode)
         except Exception:
             pass
         try:
@@ -678,6 +709,9 @@ class PreviewPanel:
 
     def clear(self, message: str) -> None:
         self.detach_images()
+        # Boş durumda gezinme, kip, açıklama ve eylemler görünür kalır; yalnız
+        # yakınlaştırma araçları belge açılana kadar gizlenir.
+        self.view_tools.hide()
         self.preview_info.configure(text=message, text_color=COLOR_TEXT_SECONDARY)
         self.preview_warning.configure(text="")
 
@@ -693,6 +727,7 @@ class PreviewPanel:
             return
 
         self.detach_images()
+        self.view_tools.show()
         decoded = []
         for page in pages[:2]:
             try:
@@ -727,6 +762,18 @@ class PreviewPanel:
         else:
             self.preview_warning.configure(text="")
         self.update_nav()
+
+    def _render_zoom(self) -> float:
+        """Görünür sayfa genişliğine göre üretim ölçeği (1,5×–2,5×).
+
+        Küçük panelde gereksiz büyük pixmap üretilmez; geniş panelde yazı keskin kalır.
+        """
+        try:
+            canvas = self.slots[0][1]
+            width = max(int(canvas.width()), 1) * float(canvas.devicePixelRatioF())
+            return max(2.0, min(PREVIEW_ZOOM, width / 595.0 * 1.6))
+        except Exception:
+            return 2.0
 
     def fit_images(self) -> None:
         """Çözülmüş sayfaları tuvallere atar; oranlı sığdırmayı tuvaller boyarken yapar.

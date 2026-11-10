@@ -47,7 +47,7 @@ def test_workspace_and_action_card_margins_are_explicit(win):
 
 def test_status_row_and_options_margins_are_explicit(win):
     assert _m(win.status_label.master) == (12, 0, 0, 0)
-    assert _m(win.chk_optimize.master, "pack_h") == (0, 0, 12, 0)
+    assert not hasattr(win, "chk_optimize")  # PDF output preferences are in Settings
 
 
 def test_header_group_has_right_margin(win):

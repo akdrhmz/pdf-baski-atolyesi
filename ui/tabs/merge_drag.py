@@ -7,7 +7,7 @@ Fare bırakılınca seçili satırlar (tek ya da blok) çizginin gösterdiği ar
 * **Bırakma çizgisi:** satır ortalarına göre en yakın aralık (``slot_at``) vurgulanır.
 * **Otomatik kaydırma:** fare listenin alt/üst kenar şeridine ya da dışına gelince, fare
   kımıldamasa da zamanlayıcı listeyi kaydırır.
-* **Yalnız tutamaktan sürükleme:** ``chk_merge_handle_only`` açıkken sürükleme yalnız ⠿
+* **Yalnız tutamaktan sürükleme:** ``store.merge_handle_only`` açıkken sürükleme yalnız ⠿
   tutamacından başlar; satırın başka yerine tıklamak yalnızca seçer.
 """
 
@@ -17,7 +17,7 @@ from typing import Any, List, Optional
 
 from PySide6.QtCore import QPoint, Qt, QTimer
 from PySide6.QtGui import QColor, QPainter
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QWidget, QGraphicsOpacityEffect
 
 from ui import qt_compat as ctk
 from ui.theme import (COLOR_ACCENT, DRAG_SCROLL_MAX_STEP, DRAG_SCROLL_MS, DRAG_SCROLL_ZONE,
@@ -85,8 +85,7 @@ class MergeDragMixin:
 
     # -- Ayar ---------------------------------------------------------------------
     def handle_only(self) -> bool:
-        box = getattr(self, "chk_merge_handle_only", None)
-        return bool(self.built and box is not None and box.get() == 1)
+        return self.ctx.store.merge_handle_only
 
     # -- Olay bağlama -------------------------------------------------------------
     def bind_row_drag(self, row: Any, index: int) -> None:
@@ -144,13 +143,21 @@ class MergeDragMixin:
                 self.select_item(collapse)
 
         for widget in widgets:
-            widget.bind("<Button-1>", on_press, add="+")
-            widget.bind("<B1-Motion>", on_motion, add="+")
-            widget.bind("<ButtonRelease-1>", on_release, add="+")
+            widget.bind("<Button-1>", on_press)
+            widget.bind("<B1-Motion>", on_motion)
+            widget.bind("<ButtonRelease-1>", on_release)
 
     # -- Sürükleme yaşam döngüsü ---------------------------------------------------
     def _begin_drag(self) -> None:
         self._dragged = True
+        self._faded_rows = []
+        for index in self.selection():
+            if index < len(self.rows) and self.rows[index].isVisible():
+                row = self.rows[index]
+                effect = QGraphicsOpacityEffect(row)
+                effect.setOpacity(0.55)
+                row.setGraphicsEffect(effect)
+                self._faded_rows.append(row)
         if self._drag_timer is None:
             self._drag_timer = QTimer(self.merge_list_frame)
             self._drag_timer.setInterval(DRAG_SCROLL_MS)
@@ -163,6 +170,12 @@ class MergeDragMixin:
             self._drag_timer.stop()
         if self._drop_line is not None:
             self._drop_line.hide()
+        for row in getattr(self, "_faded_rows", []):
+            row.setGraphicsEffect(None)
+        self._faded_rows = []
+        visible_timer = getattr(self, "_visible_timer", None)
+        if visible_timer is not None:
+            visible_timer.start()
         self._dragged = False
         self._drag_slot = None
         self._press_collapse = None

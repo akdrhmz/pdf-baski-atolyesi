@@ -139,6 +139,17 @@ class NumberTab(BaseTab):
         tmpl_help.place(3, 0)
         self.ctx.bind_wraplength(tmpl_help, extra, 24)
 
+        from ui.section_editor import SectionEditor
+        sections = self.section(container, 2, "Bölüm numaralandırması")
+        self.section_editor = SectionEditor(sections, self.on_changed)
+        self.section_editor.place(0, 0, expand_x=True)
+        controls = ctk.CTkFrame(sections, fg_color="transparent")
+        controls.place(1, 0, align="w")
+        ctk.CTkButton(controls, text="Bölüm ekle", command=self.section_editor.add_section).put("h")
+        ctk.CTkButton(controls, text="Bölümü kaldır", command=self.section_editor.remove_selected).put("h")
+        ctk.CTkLabel(sections, text="Bölüm eklenirse üstteki başlangıç ve biçim yerine bölüm tablosu kullanılır. Sağ sayfada başla seçeneği gerektiğinde önüne boş sayfa ekler.",
+                      wraplength=500, anchor="w", justify="left").place(2, 0, expand_x=True)
+
         # Açılış durumu: rozet modül anahtarına göre kurulur, özet ve önizleme güncellenir.
         self.show_active(self.ctx.module_enabled("pnum"))
         self.ctx.on_field_changed()

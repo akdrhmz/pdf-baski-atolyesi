@@ -51,6 +51,10 @@ class ShortcutsMixin:
         self._invoke_main_action()
 
     def _on_escape(self) -> None:
+        merge = self._tabs["Birleştirme"]
+        if merge.built and (merge._dragged or merge.drag_idx is not None):
+            merge._end_drag()
+            return
         if getattr(self, "_preview_display", "docked") != "docked":
             self._set_preview_display("docked")
             return

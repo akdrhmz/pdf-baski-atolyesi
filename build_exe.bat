@@ -68,6 +68,7 @@ python -m PyInstaller ^
     --exclude-module PySide6.QtDataVisualization ^
     --exclude-module tkinter ^
     --add-data "assets;assets" ^
+    --add-data "locales;locales" ^
     --icon "assets\icon.ico" ^
     --name "PDF_Baski_Cilt_Studyosu_%APPVER%" ^
     app.py

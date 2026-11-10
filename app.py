@@ -43,7 +43,8 @@ from ui.shell_build import ShellBuildMixin
 from ui.shortcuts import ShortcutsMixin
 from ui.theme import *  # noqa: F401,F403  (testler ve dış kod buradan okur)
 from ui.widgets import FieldError, FieldRow, WrapButtonRow  # noqa: F401
-from ui.window import TAB_ALIASES, TAB_FULL_NAMES, TAB_NAMES, StudioWindow, TabNav  # noqa: F401
+from ui.window import (TAB_ALIASES, TAB_FULL_NAMES, TAB_NAMES, StudioWindow, TabNav,
+                       startup_window_sizes)  # noqa: F401
 from ui.workflow import WorkflowMixin
 
 
@@ -72,6 +73,8 @@ class ModernGutterApp(
         except Exception:
             self._crash_stream = None
         self.store = SettingsStore(settings_path)
+        from ui.i18n import set_language
+        set_language(self.store.data.get("language", "tr"))
         self.log.info("%s %s başlatıldı", APP_NAME, VERSION)
 
         self.title(APP_NAME)  # sürüm uygulama içi başlıkta; çift başlık yok (v2.3.0)
@@ -81,12 +84,27 @@ class ModernGutterApp(
         self._apply_app_icon()
         self.configure(fg_color=COLOR_BG)
 
+        # QScreen geometry (exposed by winfo_screen*) is already in Qt's
+        # device-independent pixels. Compact layouts relax the docked preview
+        # and center-column minima so 125/150% screens do not force a window
+        # larger than the available work area.
+        screen_w = self.winfo_screenwidth()
+        screen_h = self.winfo_screenheight()
+        self._startup_size = startup_window_sizes(screen_w, screen_h)
+        self._compact_screen = self._startup_size[4]
+        if self._compact_screen:
+            self.CENTER_MIN = 360
+            self._preview_min_width = 240
+        else:
+            self._preview_min_width = PREVIEW_MIN_W
+
         # Belge durumu
         self.input_pdf_path = ""
         self.output_pdf_path = ""
         self.orig_width_mm = 210.0
         self.orig_height_mm = 297.0
         self.orig_page_count = 0
+        self.orig_mixed_sizes = False
 
         self.current_tab = TAB_NAMES[0]
 
@@ -119,15 +137,9 @@ class ModernGutterApp(
 
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         self.update_idletasks()
-        # CTk geometry/minsize değerlerini pencere ölçeğiyle çarpar; ekran ölçüsü
-        # ise fiziksel pikseldir. İkisini aynı birime (mantıksal piksel) getir.
-        screen_scale = max(1.0, self.winfo_fpixels("1i") / 96.0)
-        screen_w = self.winfo_screenwidth() / screen_scale
-        screen_h = self.winfo_screenheight() / screen_scale
-        available_w = max(1200, screen_w - 80)
-        available_h = max(680, screen_h - 120)
-        self.geometry(f"{min(1440, max(1260, available_w)):.0f}x{min(920, max(780, available_h)):.0f}")
-        self.minsize(min(1200, available_w), min(700, available_h))
+        width, height, minimum_w, minimum_h, _compact = self._startup_size
+        self.geometry(f"{width}x{height}")
+        self.minsize(minimum_w, minimum_h)
         self.finish_initial_show()
 
     # =====================================================================
@@ -162,6 +174,16 @@ class ModernGutterApp(
             except Exception:
                 pass
         self._closing = True
+        merge = getattr(self, "_tabs", {}).get("Birleştirme")
+        if merge is not None:
+            merge._thumb_pool.shutdown(wait=False, cancel_futures=True)
+        tools_window = getattr(self, "_pdf_tools_window", None)
+        if tools_window is not None:
+            tools_window._cancel.set()
+            tools_window._pool.shutdown(wait=False, cancel_futures=True)
+        batch_dialog = getattr(self, "_batch_dialog", None)
+        if batch_dialog is not None and batch_dialog._busy:
+            batch_dialog._cancel.set()
         self._discard_pending_merge()
         try:
             self._cancel_event.set()
@@ -233,22 +255,6 @@ class ModernGutterApp(
     # =====================================================================
     # Yardımcılar: tema, birim, durum
     # =====================================================================
-
-    def _on_theme_changed(self, choice: str) -> None:
-        mode = {"Açık": "Light", "Koyu": "Dark"}.get(choice, "System")
-        with self.perf.measure("tema_degisimi"):
-            with self.freeze_redraw():
-                self._set_appearance_mode_fast(mode)
-                self.store.theme = choice
-                for tab in self._tabs.values():
-                    if not tab.built:
-                        continue
-                    try:
-                        tab.apply_theme()
-                    except Exception:
-                        self.log.exception("Sekme teması uygulanamadı: %s", tab.name)
-                self.preview_panel.apply_theme()
-                self.update_idletasks()
 
     def _on_unit_changed(self, label: str) -> None:
         new_unit = next((code for code in DISPLAY_UNITS if UNITS[code][0] == label), "mm")
@@ -325,7 +331,6 @@ class ModernGutterApp(
     _preview_signature = forward("preview_panel", "signature")
     _preview_images = forward("preview_panel", "images")
     _preview_history = forward("preview_panel", "history")
-    _blank_images = forward("preview_panel", "blank_images")
     _preview_slots = forward("preview_panel", "slots")
     preview_mode_menu = forward("preview_panel", "preview_mode_menu")
     preview_prev_btn = forward("preview_panel", "preview_prev_btn")

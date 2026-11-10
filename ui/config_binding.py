@@ -121,6 +121,7 @@ class ConfigBindingMixin:
             nt.entry_number_template.delete(0, "end")
             nt.entry_number_template.insert(0, numbers.text_template)
             nt.chk_continuous.select() if numbers.continuous_numbering else nt.chk_continuous.deselect()
+            nt.section_editor.set_sections(numbers.sections)
             # "Alt orta" konumunda yan boşluk alanı pasif, ipucu görünür (yüklenen ayarda da).
             nt.update_side_state()
         else:
@@ -212,6 +213,10 @@ class ConfigBindingMixin:
                             ("start_num", nt.f_start_num), ("num_bottom", nt.f_num_bottom),
                             ("num_side", nt.f_num_side)]))
         values: Dict[str, float] = {}
+        groups.append(("fit_size", lt.menu_fit.get() == FIT_CODES["custom"],
+                       [("fit_width", lt.f_fit_width), ("fit_height", lt.f_fit_height)]))
+        groups.append(("fit_margin", lt.menu_fit.get() != FIT_CODES["off"],
+                       [("fit_margin", lt.f_fit_margin)]))
         errors: List[tuple] = []
         for _group, active, rows in groups:
             for key, row in rows:
@@ -251,6 +256,7 @@ class ConfigBindingMixin:
         choice, loaded_pair = (layout.overflow_selection() if margin_built
                                else (plm.CHOICE_EXTEND, None))
         boxes = PageBoxSettings(
+            binding=BINDING_LABELS.get(layout.menu_binding.get(), "left"),
             enabled=self._module_switch("gutter").get() == 1,
             size_mode=SIZE_MODE_LABELS.get(lt.seg_size_mode.get(), "fixed"),
             safe_edge_mm=values["safe_edge"],
@@ -293,6 +299,7 @@ class ConfigBindingMixin:
             skip_pages = (pending.skip_pages_str or "").strip()
             continuous = bool(pending.continuous_numbering)
         numbers = PageNumberSettings(
+            sections=nt.section_editor.sections() if number_built else pending.sections,
             enabled=self._module_switch("pnum").get() == 1,
             position=POSITION_LABELS.get(position, "outer"),
             format_style=FORMAT_LABELS.get(format_label, "number"),
@@ -310,12 +317,15 @@ class ConfigBindingMixin:
             page_boxes=boxes,
             margins=margins,
             page_numbers=numbers,
-            quality_mode="standard" if self.chk_optimize.get() == 1 else "print",
-            flatten_annotations=self.chk_flatten.get() == 1,
+            quality_mode=self._output_quality,
+            flatten_annotations=self._flatten_annotations,
             pad_to_multiple=4 if pad4 else 0,
             fit_mode=FIT_LABELS.get(layout.menu_fit.get(), "off") if margin_built else "off",
             fit_keep_orientation=layout.chk_fit_orient.get() == 1 if margin_built else True,
             fit_rotate_landscape=(layout.chk_fit_rotate.get() == 1) if margin_built else False,
+            fit_width_mm=values["fit_width"],
+            fit_height_mm=values["fit_height"],
+            fit_margin_mm=values["fit_margin"],
         )
 
         validation = validate_config(config)
@@ -336,6 +346,7 @@ class ConfigBindingMixin:
         self._module_switch("pnum").select() if numbers.enabled else self._module_switch("pnum").deselect()
 
         layout = self._tabs[LAYOUT_TAB]
+        layout.menu_binding.set(BINDING_CODES.get(boxes.binding, BINDING_CODES["left"]))
         layout.seg_size_mode.set(SIZE_MODE_CODES.get(boxes.size_mode, "Hedef ebat sabit"))
 
         layout.f_width.set_mm(boxes.target_width_mm)
@@ -353,6 +364,9 @@ class ConfigBindingMixin:
         else:
             layout.chk_pad4.deselect()
         layout.menu_fit.set(FIT_CODES.get(config.fit_mode, FIT_CODES["off"]))
+        layout.f_fit_width.set_mm(config.fit_width_mm)
+        layout.f_fit_height.set_mm(config.fit_height_mm)
+        layout.f_fit_margin.set_mm(config.fit_margin_mm)
         if config.fit_keep_orientation:
             layout.chk_fit_orient.select()
         else:
@@ -367,8 +381,8 @@ class ConfigBindingMixin:
         layout.update_preset_highlight()
         self._set_section(NUMBER_TAB, {"numbers": numbers})
 
-        self.chk_optimize.select() if config.optimize else self.chk_optimize.deselect()
-        self.chk_flatten.select() if config.flatten_annotations else self.chk_flatten.deselect()
+        self._output_quality = config.quality_mode
+        self._flatten_annotations = config.flatten_annotations
 
         self._toggle_gutter_fields()
         self._toggle_margin_fields()
@@ -414,6 +428,11 @@ class ConfigBindingMixin:
     def _apply_factory_state(self) -> None:
         """Fabrika sıfırlamadan sonra ekrandaki tüm alanları ve modülleri varsayılana getirir."""
         self._restore_settings()
+        self._set_section(MERGE_TAB, {"apply_pipeline": False, "bookmarks": True})
+        merge = self._tabs[MERGE_TAB]
+        if merge.built:
+            merge.chk_merge_fit.deselect()
+            merge.restore_fit_preferences()
         self._update_pipeline_summary()
         self._schedule_preview()
 

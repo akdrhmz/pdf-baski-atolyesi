@@ -25,7 +25,7 @@ def build(count, folder):
     root = ctk.CTk()
     root.withdraw()
     ctx = FakeContext()
-    ctx.store = SimpleNamespace(add_recent_file=lambda _p: None)
+    ctx.store = SimpleNamespace(add_recent_file=lambda _p: None, data={}, save=lambda: None, merge_preview_sequence=False, merge_handle_only=False)
     frame = ctk.CTkFrame(root)
     frame.put("v", fill="both", expand=True)
     tab = MergeTab("Birleştirme", ctx, frame)

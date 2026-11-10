@@ -72,13 +72,15 @@ def fresh_state(app, request):
     layout_tab(app).set_rules([])
     app._merge_tab().chk_merge_apply_pipeline.deselect()
     app._merge_tab().chk_merge_bookmarks.select()
-    app.chk_optimize.deselect()
-    app.chk_flatten.select()
+    app._output_quality = "print"
+    app._flatten_annotations = True
     app._layout_tab().chk_pad4.deselect()
     app.merge_files.clear()
     app.selected_merge_idx = None
     app._refresh_merge_listbox()
     app.input_pdf_path = ""
+    app.output_pdf_path = ""
+    app.output_pdf_path = ""
     app.tabview.set("Sayfa Düzeni")
     app.unit = "mm"
     for row in app._all_field_rows():
@@ -129,9 +131,11 @@ def test_opt_in_defaults_and_shortcuts(app):
     assert app.switch_margin.get() == 0
     assert app.switch_pnum.get() == 0
     assert app.btn_main_action.cget("state") == "disabled"
+    assert "PDF" in app.btn_main_action.cget("text")
+    assert not app.btn_preflight.isVisible()
     assert app._number_tab().chk_continuous.get() == 1
-    assert app.chk_flatten.get() == 1
-    assert app.chk_optimize.get() == 0
+    assert app._flatten_annotations is True
+    assert app._output_quality == "print"
     assert app._merge_tab().chk_merge_apply_pipeline.get() == 0
 
 
@@ -141,7 +145,7 @@ def test_gutter_preset_builds_single_config(app):
     assert app.switch_gutter.get() == 1
     assert app._layout_tab().f_odd_x.get_value() == 15.0
     assert app._layout_tab().f_width.get_value() == 225.0
-    assert "Cilt" in app.btn_main_action.cget("text")
+    assert "PDF" in app.btn_main_action.cget("text")
 
     config = app._build_config(notify=False)
     assert config is not None
@@ -154,6 +158,43 @@ def test_gutter_preset_builds_single_config(app):
     app.update()
     assert app.switch_gutter.get() == 0
     assert app.btn_main_action.cget("state") == "disabled"
+
+
+def test_primary_action_requires_a_real_source_and_then_shows_preflight(app, tmp_path):
+    app._apply_gutter_preset(15.0)
+    app._update_pipeline_summary()
+    assert app.btn_main_action.cget("state") == "disabled"
+    assert "PDF" in app.btn_main_action.cget("text")
+    source = create_sample_a4_pdf(str(tmp_path / "source.pdf"))
+    app._load_file(source)
+    assert app.btn_main_action.cget("state") == "normal"
+    assert not app.btn_preflight.isHidden()
+
+
+def test_merge_action_waits_until_two_files_are_queued(app):
+    app.tabview.set("Birleştirme")
+    merge = app._merge_tab()
+    merge.files[:] = [dict(path="one.pdf", name="one.pdf", pages=1, size_mb=0.1,
+                           rotation=0, page_range="")]
+    app._update_pipeline_summary()
+    assert app.btn_main_action.cget("state") == "disabled"
+    assert "2 PDF" in app.btn_main_action.cget("text")
+    merge.files.append(dict(path="two.pdf", name="two.pdf", pages=1, size_mb=0.1,
+                            rotation=0, page_range=""))
+    app._update_pipeline_summary()
+    assert app.btn_main_action.cget("state") == "normal"
+    assert not app.btn_preflight.isHidden()
+
+
+def test_primary_action_requires_a_real_source_and_then_shows_preflight(app, tmp_path):
+    app._apply_gutter_preset(15.0)
+    app._update_pipeline_summary()
+    assert app.btn_main_action.cget("state") == "disabled"
+    assert "PDF" in app.btn_main_action.cget("text")
+    source = create_sample_a4_pdf(str(tmp_path / "source.pdf"))
+    app._load_file(source)
+    assert app.btn_main_action.cget("state") == "normal"
+    assert not app.btn_preflight.isHidden()
 
 
 def test_unit_conversion_roundtrip(app):
@@ -272,7 +313,8 @@ def test_module_bar_controls_all_modules(app):
     app.switch_pnum.select()
     app._toggle_pnum_fields()
     app.update()
-    assert app.btn_main_action.cget("state") == "normal"
+    # Enabled processing still requires a real input document.
+    assert app.btn_main_action.cget("state") == "disabled"
 
     app._disable_all_modules()
     app.update()
@@ -283,7 +325,7 @@ def test_module_bar_controls_all_modules(app):
 
     app.tabview.set("PDF Birleştirme")
     assert app.tabview.get() == "Birleştirme"
-    assert "birleştir" in app.btn_main_action.cget("text")
+    assert "2 PDF" in app.btn_main_action.cget("text")
 
 
 def test_about_dialog_fits_content(app):
@@ -480,12 +522,12 @@ def test_merge_tab_action_label(app):
     app.tabview.set("PDF Birleştirme")
     app._on_tab_changed()
     app.update()
-    assert "birleştir" in app.btn_main_action.cget("text")
+    assert "2 PDF" in app.btn_main_action.cget("text")
 
     app._merge_tab().chk_merge_apply_pipeline.select()
     app._update_pipeline_summary()
     app.update()
-    assert "aktif ayarları" in app.btn_main_action.cget("text")
+    assert "2 PDF" in app.btn_main_action.cget("text")
 
 
 def test_paper_size_template(app):

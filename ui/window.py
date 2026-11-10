@@ -35,6 +35,17 @@ TAB_ALIASES = {
 }
 
 
+def startup_window_sizes(screen_width: int, screen_height: int) -> tuple[int, int, int, int, bool]:
+    """Return a usable startup/minimum size in Qt's device-independent pixels."""
+    width, height = max(1, int(screen_width)), max(1, int(screen_height))
+    compact = width < 1200 or height < 700
+    target_w = min(1440, max(850 if compact else 1260, width - 32))
+    target_h = min(920, max(480 if compact else 780, height - 32))
+    minimum_w = min(1200 if not compact else 850, max(760 if compact else 1200, width - 16))
+    minimum_h = min(700 if not compact else 480, max(480, height - 16))
+    return target_w, target_h, minimum_w, minimum_h, compact
+
+
 class StudioWindow(ctk.QtMainWindow):
     """
     PySide6 (Qt 6) ana uygulama penceresi.
@@ -150,6 +161,37 @@ class StudioWindow(ctk.QtMainWindow):
         for tab_name in frames:
             if tab_name != getattr(self, "current_tab", "") and self._tabs[tab_name].built:
                 deferred[tab_name] = ([lambda _m, f=frames[tab_name]: self._mark_subtree_defer(f, False)], actual)
+
+    def _on_theme_changed(self, choice: str) -> None:
+        mode = {"Açık": "Light", "Koyu": "Dark"}.get(choice, "System")
+        with self.perf.measure("tema_degisimi"):
+            with self.freeze_redraw():
+                self._set_appearance_mode_fast(mode)
+                self.store.theme = choice
+                for tab in self._tabs.values():
+                    if not tab.built:
+                        continue
+                    try:
+                        tab.apply_theme()
+                    except Exception:
+                        self.log.exception("Sekme teması uygulanamadı: %s", tab.name)
+                self.preview_panel.apply_theme()
+                self.update_idletasks()
+        # Windows, yeniden etkinleştirilen backing store'u bazen bir sonraki
+        # giriş olayına kadar sunmuyordu. Boyamayı tıklama callback'i bittikten
+        # sonraki olay turunda tamamla; ikinci bir kullanıcı hareketi gerekmesin.
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(0, self, self._flush_theme_paint)
+        self.store.save()
+
+    def _flush_theme_paint(self):
+        if self._closing:
+            return
+        from PySide6.QtWidgets import QApplication, QWidget
+        for window in QApplication.topLevelWidgets():
+            if window.isVisible():
+                QWidget.update(window)
+                QWidget.repaint(window)
 
     def _windows_set_titlebar_color(self, color_mode: str) -> None:
         if not sys.platform.startswith("win"):

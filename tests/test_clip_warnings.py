@@ -116,6 +116,7 @@ def test_legend_swatch_sits_next_to_its_label_and_items_hug_the_left(monkeypatch
     try:
         root.resize(900, 700)
         root.show()
+        panel.legend.show()  # Legend is hidden in the no-document empty state.
         ctk_app = ctk.ensure_qapp()
         ctk_app.processEvents()
         items = [w for w in panel.legend.children() if isinstance(w, ctk.CTkFrame)]

@@ -1,6 +1,10 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.work-tests/
+.preview-check-temp/
+pytest-cache-files-*/
+teslimler/
 dist/
 build/
 *.spec

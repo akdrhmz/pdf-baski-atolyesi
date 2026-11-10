@@ -24,6 +24,18 @@ from ui.theme import *  # noqa: F401,F403
 class DialogsMixin:
     """İletişim kutuları ve Hakkında penceresi."""
 
+    def _show_pdf_tools(self):
+        if self._busy:
+            return
+        from ui.pdf_tools import PdfToolsWindow
+        self._pdf_tools_window = PdfToolsWindow(self)
+
+    def _show_batch_dialog(self):
+        if self._busy:
+            return
+        from ui.batch_dialog import BatchDialog
+        self._batch_dialog = BatchDialog(self)
+
     def _ask_clip_action(self, report) -> Optional[str]:
         """Kırpma riskinde üç seçenek sunar: 'shrink', 'clip' veya None (iptal).
 
@@ -104,6 +116,9 @@ class DialogsMixin:
         buttons = ctk.CTkFrame(frame, fg_color="transparent")
         buttons.place(3, 0, expand_x=True)
         buttons.grid_columnconfigure(0, weight=1)
+        # Qt bo? s?tunu esnetmeyebilir; ger?ek dolgu sa? hizay? korur.
+        spacer = ctk.CTkFrame(buttons, fg_color="transparent", width=0, height=0)
+        spacer.place(0, 0, expand_x=True)
         return buttons
 
     def _dialog_button(self, buttons, text: str, command, *, column: int,
@@ -150,11 +165,12 @@ class DialogsMixin:
         dialog = ctk.CTkToplevel(self)
         dialog.title(f"Hakkında - {APP_NAME}")
         dialog.geometry("720x600")
-        dialog.resizable(False, False)
+        dialog.resizable(True, True)
+        dialog.minsize(460, 320)
         dialog.transient(self)
         dialog.grab_set()
 
-        frame = ctk.CTkFrame(dialog, fg_color=COLOR_CARD, corner_radius=12)
+        frame = ctk.CTkScrollableFrame(dialog, fg_color=COLOR_CARD, corner_radius=12)
         frame.put("v", fill="both", expand=True, margins=(14, 10, 14, 10))
         frame.grid_columnconfigure(0, weight=1)
 
@@ -306,15 +322,16 @@ class DialogsMixin:
         ).place(5, 0, align="c")
 
     def _show_settings_dialog(self) -> None:
-        """Ayarlar penceresi: tema, ölçü birimi, çıktı klasörü açma ve fabrika sıfırlama."""
+        """Görünüm, liste/önizleme, PDF çıktısı ve sıfırlama tercihleri."""
         dialog = ctk.CTkToplevel(self)
         dialog.title(f"Ayarlar - {APP_NAME}")
-        dialog.geometry("460x340")
-        dialog.resizable(False, False)
+        dialog.geometry("520x620")
+        dialog.resizable(True, True)
+        dialog.minsize(460, 340)
         dialog.transient(self)
         dialog.grab_set()
 
-        frame = ctk.CTkFrame(dialog, fg_color=COLOR_CARD, corner_radius=12)
+        frame = ctk.CTkScrollableFrame(dialog, fg_color=COLOR_CARD, corner_radius=12)
         frame.put("v", fill="both", expand=True, margins=(14, 10, 14, 10))
         frame.grid_columnconfigure(0, weight=1)
         frame.set_padding(14, 10, 14, 2)  # eski sezgiden türeyen boşluk, şimdi açık
@@ -326,27 +343,11 @@ class DialogsMixin:
                 text_color=COLOR_TEXT_SECONDARY, anchor="w",
             ).place(row, 0, align="w")
 
-        # -- Tema -------------------------------------------------------------
-        _section_title(0, "Tema")
-
-        def _apply_theme(choice: str) -> None:
-            try:
-                self.theme_segmented.set(choice)
-            except Exception:
-                pass
-            self._on_theme_changed(choice)
-
-        theme_seg = ctk.CTkSegmentedButton(
-            frame, values=["Açık", "Koyu", "Sistem"], height=28,
-            border_width=0, fg_color=COLOR_SUBCARD, bg_color=COLOR_CARD,
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
-            selected_color=COLOR_SELECTED, selected_hover_color=COLOR_SELECTED_HOVER,
-            unselected_color=COLOR_SUBCARD, unselected_hover_color=COLOR_BTN_SUBTLE_HOVER,
-            text_color=COLOR_TEXT_PRIMARY, corner_radius=6,
-            command=_apply_theme,
-        )
-        theme_seg.set(self.store.theme)
-        theme_seg.place(1, 0, align="w")
+        # Tema için üst çubukta tek bir hızlı kontrol var; ayarlarda tekrar etmiyoruz.
+        _section_title(0, "Görünüm ve birimler")
+        ctk.CTkLabel(frame, text="Tema seçimi üst çubuktan yapılır.",
+                     font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
+                     text_color=COLOR_TEXT_SECONDARY, anchor="w").place(1, 0, align="w")
 
         # -- Ölçü birimi ------------------------------------------------------
         _section_title(2, "Ölçü birimi")
@@ -358,8 +359,10 @@ class DialogsMixin:
             except Exception:
                 pass
 
+        appearance_controls = ctk.CTkFrame(frame, fg_color="transparent")
+        appearance_controls.place(3, 0, align="w")
         unit_menu = ctk.CTkOptionMenu(
-            frame, values=[UNITS[u][0] for u in DISPLAY_UNITS], width=150, height=28,
+            appearance_controls, values=[UNITS[u][0] for u in DISPLAY_UNITS], width=150, height=28,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
             fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
             button_color=COLOR_SUBCARD, button_hover_color=COLOR_BTN_SUBTLE_HOVER,
@@ -369,7 +372,65 @@ class DialogsMixin:
             command=_apply_unit,
         )
         unit_menu.set(UNITS[self.unit][0])
-        unit_menu.place(3, 0, align="w")
+        unit_menu.put("h", margins=(0, 0, SP_M, 0))
+
+        def _apply_language(label):
+            from ui.i18n import set_language, refresh_widgets
+            self.store.data["language"] = "en" if label == "English" else "tr"
+            self.store.save()
+            set_language(self.store.data["language"])
+            refresh_widgets(self)
+
+        language_menu = ctk.CTkOptionMenu(appearance_controls, values=["Türkçe", "English"],
+                                         width=140, height=28, command=_apply_language)
+        language_menu.set("English" if self.store.data.get("language") == "en" else "Türkçe")
+        language_menu.setToolTip("Arayüz dili / Interface language")
+        language_menu.put("h")
+
+        # -- PDF çıktısı -----------------------------------------------------
+        _section_title(9, "PDF çıktısı")
+        output_boxes = {}
+        for row, key, text, tooltip in (
+            (10, "optimize", "Dosyayı optimize et (küçük boyut)",
+             "Kullanılmayan PDF nesnelerini temizler ve akışları sıkıştırır. Görüntü çözünürlüğünü düşürmez."),
+            (11, "flatten", "Açıklama ve form alanlarını sayfaya göm",
+             "Not, vurgu ve doldurulmuş form alanlarının görünümünü korur; çıktıdaki bu alanlar artık düzenlenemez."),
+        ):
+            box = ctk.CTkCheckBox(
+                frame, text=text, fg_color=COLOR_SOLID,
+                text_color=COLOR_TEXT_PRIMARY, hover_color=COLOR_ACCENT,
+                font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
+            )
+            active = self._output_quality != "print" if key == "optimize" else self._flatten_annotations
+            box.select() if active else box.deselect()
+            box.setToolTip(tooltip)
+            box.place(row, 0, align="w")
+            self._bind_wraplength(box, frame, 40)
+            output_boxes[key] = box
+
+            def toggle_output(key=key, box=box):
+                if key == "optimize":
+                    self._output_quality = "standard" if box.get() else "print"
+                else:
+                    self._flatten_annotations = bool(box.get())
+                # Yalnız çıktı tercihlerini güncelle: geçersiz bir form alanı
+                # nedeniyle diğer ayarları son geçerli yapılandırmayla ezme.
+                state = self.store.last_state or self._collect_state()
+                state["quality_mode"] = self._output_quality
+                state["flatten_annotations"] = self._flatten_annotations
+                self.store.last_state = state
+                self.store.save()
+                self._on_field_changed()
+
+            box.configure(command=toggle_output)
+
+        note = ctk.CTkLabel(
+            frame, text="Sayfaya gömülen açıklamalar ve form alanları çıktıda düzenlenemez.",
+            text_color=COLOR_TEXT_SECONDARY, anchor="w", justify="left",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
+        )
+        note.place(12, 0, expand_x=True)
+        self._bind_wraplength(note, frame, 30)
 
         # -- Çıktı klasörü ----------------------------------------------------
         chk_auto = ctk.CTkCheckBox(
@@ -380,13 +441,46 @@ class DialogsMixin:
         )
         if self.store.data.get("auto_open_output"):
             chk_auto.select()
-        chk_auto.place(5, 0, align="w")
+        chk_auto.place(13, 0, align="w")
+        self._bind_wraplength(chk_auto, frame, 40)
 
         def _toggle_auto() -> None:
             self.store.data["auto_open_output"] = bool(chk_auto.get())
             self.store.save()
 
         chk_auto.configure(command=_toggle_auto)
+
+        _section_title(4, "Liste ve önizleme")
+        preference_boxes = {}
+        for row, key, text, tooltip in (
+            (5, "merge_preview_sequence", "Önizlemede tüm birleşik belgeyi gez",
+             "Dosya sınırları işaretlenir. Kapalıyken yalnız seçili dosya gösterilir. "
+             "İlk açılışta geçici birleşik kopyanın hazırlanması zaman alabilir."),
+            (6, "merge_handle_only", "Satırları yalnız ⠿ tutamacından sürükle",
+             "Yanlışlıkla taşımayı önler; satırın diğer yerlerine tıklamak yalnızca seçer."),
+        ):
+            box = ctk.CTkCheckBox(
+                frame, text=text,
+                font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
+                text_color=COLOR_TEXT_PRIMARY, hover_color=COLOR_ACCENT,
+                fg_color=COLOR_SOLID,
+            )
+            box.select() if getattr(self.store, key) else box.deselect()
+            box.setToolTip(tooltip)
+            box.place(row, 0, align="w")
+            self._bind_wraplength(box, frame, 40)
+            preference_boxes[key] = box
+
+            def toggle_preference(key=key, box=box):
+                setattr(self.store, key, bool(box.get()))
+                self.store.save()
+                # Etkin sürüklemeyi iptal et; yeni tercih bir sonraki basışta kullanılır.
+                merge = self._tabs["Birleştirme"]
+                if merge.built:
+                    merge._end_drag()
+                self._schedule_preview()
+
+            box.configure(command=toggle_preference)
 
         # -- Fabrika sıfırlama + Kapat ---------------------------------------
         def _reset_to_factory() -> None:
@@ -396,13 +490,23 @@ class DialogsMixin:
                     "Profiller ve son durum da silinir. Devam edilsin mi?"):
                 return
             self.store.reset()
+            from ui.i18n import set_language, refresh_widgets
+            set_language("tr")
+            language_menu.set("Türkçe")
+            refresh_widgets(self)
             try:
                 self._apply_factory_state()  # ekrandaki alanlar da varsayılana döner
             except Exception:
                 self.log.exception("Fabrika durumu alanlara uygulanamadı")
-            theme_seg.set(self.store.theme)
             unit_menu.set(UNITS[self.store.unit][0])
             chk_auto.deselect()
+            for box in preference_boxes.values():
+                box.deselect()
+            output_boxes["optimize"].select() if self._output_quality != "print" else output_boxes["optimize"].deselect()
+            output_boxes["flatten"].select() if self._flatten_annotations else output_boxes["flatten"].deselect()
+            merge = self._tabs["Birleştirme"]
+            if merge.built:
+                merge._end_drag()
             try:
                 self._on_unit_changed(UNITS["mm"][0])  # alanlar da yeni birime döner
                 self._update_unit_button()
@@ -414,8 +518,9 @@ class DialogsMixin:
             except Exception:
                 self.log.exception("Fabrika teması uygulanamadı")
 
+        _section_title(14, "Sıfırlama")
         actions = ctk.CTkFrame(frame, fg_color="transparent")
-        actions.place(6, 0, expand_x=True)
+        actions.place(15, 0, expand_x=True)
         actions.grid_columnconfigure(1, weight=1)
         ctk.CTkButton(
             actions, text="Fabrika değerlerine sıfırla", width=170, height=30,

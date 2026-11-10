@@ -31,7 +31,7 @@ def root():
 def _make(root):
     ctx = FakeContext()
     ctx.recent = []
-    ctx.store = SimpleNamespace(add_recent_file=ctx.recent.append)
+    ctx.store = SimpleNamespace(add_recent_file=ctx.recent.append, data={}, save=lambda: None, merge_preview_sequence=False, merge_handle_only=False)
     frame = ctk.CTkFrame(root)
     frame.put("v", fill="both", expand=True)
     tab = MergeTab("Birleştirme", ctx, frame)

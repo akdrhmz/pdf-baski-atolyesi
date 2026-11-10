@@ -184,6 +184,12 @@ class ShellBuildMixin:
 
         right = ctk.CTkFrame(bar, fg_color="transparent")
         right.put("h")
+        self.btn_pdf_tools = ctk.CTkButton(right, text="Sayfa / baskı araçları…", width=154, height=30,
+                                           command=self._show_pdf_tools)
+        self.btn_pdf_tools.put("h", margins=(0, 0, SP_S, 0))
+        self.btn_top_batch = ctk.CTkButton(right, text="Toplu işlem…", width=104, height=30,
+                                           command=self._show_batch_dialog)
+        self.btn_top_batch.put("h", margins=(0, 0, SP_S, 0))
 
         self.theme_segmented = ctk.CTkSegmentedButton(
             right, values=["Açık", "Koyu", "Sistem"], width=186, height=30,
@@ -504,23 +510,9 @@ class ShellBuildMixin:
         bottom_row.place(2, 0, expand_x=True)
         bottom_row.grid_columnconfigure(0, weight=1)
 
-        options = ctk.CTkFrame(bottom_row, fg_color="transparent")
-        options.place(0, 0, align="w")
-        self.chk_optimize = ctk.CTkCheckBox(
-            options, text="Dosyayı optimize et (küçük boyut)",
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
-            text_color=COLOR_TEXT_SECONDARY, hover_color=COLOR_ACCENT_HOVER,
-            fg_color=COLOR_ACCENT,
-        )
-        self.chk_optimize.put("h", margins=(0, 0, 12, 0))  # eskiden padx=(0, 12)
-        self.chk_flatten = ctk.CTkCheckBox(
-            options, text="Açıklama ve form alanlarını sayfaya göm",
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
-            text_color=COLOR_TEXT_SECONDARY, hover_color=COLOR_ACCENT_HOVER,
-            fg_color=COLOR_ACCENT,
-        )
-        self.chk_flatten.select()
-        self.chk_flatten.put("h")
+        # PDF çıktı tercihleri Ayarlar'da düzenlenir; iş akışı widget'a bağlı değildir.
+        self._output_quality = "print"
+        self._flatten_annotations = True
 
         buttons = ctk.CTkFrame(bottom_row, fg_color="transparent")
         buttons.place(0, 1, align="e")
@@ -535,24 +527,36 @@ class ShellBuildMixin:
             "Belgeyi ve birleştirme listesini temizler; ayarlar korunur. "
             "Programı kapatıp açmadan yeni bir iş başlatır.")
         self.btn_new_job.place(0, 0, align="e")
+        self.btn_new_job.hide()
         self.btn_open_folder = ctk.CTkButton(
             buttons, text="Klasörde göster", width=116, height=34, state="disabled",
             fg_color=COLOR_BTN_SUBTLE, text_color=COLOR_TEXT_PRIMARY,
             hover_color=COLOR_BTN_SUBTLE_HOVER, command=self._open_output_folder,
         )
         self.btn_open_folder.place(0, 1, align="e")
+        self.btn_open_folder.hide()
         self.btn_open_pdf = ctk.CTkButton(
             buttons, text="PDF'i aç", width=92, height=34, state="disabled",
             fg_color=COLOR_BTN_SUBTLE, text_color=COLOR_TEXT_PRIMARY,
             hover_color=COLOR_BTN_SUBTLE_HOVER, command=self._open_output_pdf,
         )
         self.btn_open_pdf.place(0, 2, align="e")
+        self.btn_open_pdf.hide()
         self.btn_cancel = ctk.CTkButton(
             buttons, text="İptal", width=74, height=34, state="disabled",
             fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_SECONDARY,
             hover_color=COLOR_ERROR_BG, command=self._cancel_work,
         )
         self.btn_cancel.place(0, 3, align="e")
+        self.btn_cancel.hide()
+        self.btn_preflight = ctk.CTkButton(
+            buttons, text="Ön kontrol", width=90, height=34,
+            fg_color=COLOR_BTN_SUBTLE, text_color=COLOR_TEXT_PRIMARY,
+            hover_color=COLOR_BTN_SUBTLE_HOVER, command=self._show_preflight_summary,
+        )
+        self.btn_preflight.setToolTip("Kaynağı, etkin ayarları ve çıktı seçeneklerini gözden geçirin.")
+        self.btn_preflight.place(0, 4, align="e")
+        self.btn_preflight.hide()
         self.btn_main_action = ctk.CTkButton(
             buttons, text="PDF'i işle ve kaydet", width=ACTION_BTN_W, height=36,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_BODY, weight="bold"),
@@ -560,7 +564,7 @@ class ShellBuildMixin:
             text_color=COLOR_ON_ACCENT,
             command=self._start_processing,
         )
-        self.btn_main_action.place(0, 4, align="e")
+        self.btn_main_action.place(0, 5, align="e")
 
     # =====================================================================
     # Önizleme paneli: genişlik sınırı ve gösterim kipleri
@@ -578,8 +582,11 @@ class ShellBuildMixin:
     def _apply_preview_limits(self) -> None:
         """Önizleme kartının asgari/azami genişliği (yalnızca yerleşik kipte)."""
         card = self.preview_panel.card
-        card.setMinimumWidth(PreviewSplitter.MIN_WIDTH)
+        card.setMinimumWidth(self._preview_minimum_width())
         card.setMaximumWidth(PreviewSplitter.MAX_WIDTH)
+
+    def _preview_minimum_width(self) -> int:
+        return int(getattr(self, "_preview_min_width", PreviewSplitter.MIN_WIDTH))
 
     def _preview_max_width(self) -> int:
         """Ortadaki içerik alanına en az ``CENTER_MIN`` bırakan güvenli azami önizleme genişliği."""
@@ -587,10 +594,11 @@ class ShellBuildMixin:
         if total <= 0:
             return PreviewSplitter.DEFAULT_WIDTH
         limit = total - self._preview_splitter.handleWidth() - self.CENTER_MIN
-        return max(PreviewSplitter.MIN_WIDTH, min(PreviewSplitter.MAX_WIDTH, limit))
+        minimum = self._preview_minimum_width()
+        return max(minimum, min(PreviewSplitter.MAX_WIDTH, limit))
 
     def _effective_preview_width(self) -> int:
-        return max(PreviewSplitter.MIN_WIDTH, min(self._preview_width, self._preview_max_width()))
+        return max(self._preview_minimum_width(), min(self._preview_width, self._preview_max_width()))
 
     def _apply_preview_column(self) -> None:
         """Kullanıcının istediği önizleme genişliğini ayıraca uygular (pencere boyu değişince de)."""
@@ -610,7 +618,7 @@ class ShellBuildMixin:
     def _set_preview_width(self, width: int) -> None:
         """Önizleme kolonunun genişliğini ayarlar (ayraç çift tıklaması, kayıtlı ayar, testler)."""
         limit = min(PreviewSplitter.MAX_WIDTH, self._preview_max_width())
-        self._preview_width = max(PreviewSplitter.MIN_WIDTH, min(limit, int(width)))
+        self._preview_width = max(self._preview_minimum_width(), min(limit, int(width)))
         try:
             self._apply_preview_column()
             try:
@@ -661,7 +669,7 @@ class ShellBuildMixin:
     def _enter_preview_window(self) -> None:
         card = self.preview_panel.card
         card.setMaximumWidth(16777215)
-        card.setMinimumWidth(PreviewSplitter.MIN_WIDTH)
+        card.setMinimumWidth(self._preview_minimum_width())
         card.setParent(None)  # ayıraçtan çıkar; içerik alanı tam genişliği alır
         win = _PreviewWindow(self)
         win.setWindowTitle(f"Canlı önizleme - {APP_NAME}")
@@ -670,8 +678,8 @@ class ShellBuildMixin:
         lay.addWidget(card)
         card.show()
         geo = self.frameGeometry()
-        width = max(PreviewSplitter.MIN_WIDTH + 40, self._preview_width + 40)
-        height = max(560, self.height() - 120)
+        width = max(self._preview_minimum_width() + 40, self._preview_width + 40)
+        height = max(420 if self._compact_screen else 560, self.height() - 120)
         win.resize(width, height)
         win.move(max(0, geo.right() - width - 20), geo.top() + 60)
         self._preview_win = win
@@ -714,7 +722,7 @@ class ShellBuildMixin:
     def _enter_preview_fullscreen(self) -> None:
         card = self.preview_panel.card
         card.setMaximumWidth(16777215)
-        card.setMinimumWidth(PreviewSplitter.MIN_WIDTH)
+        card.setMinimumWidth(self._preview_minimum_width())
         for part in (self._sidebar, self._content_frame, self._action_card):
             part.grid_remove()
         self._set_workspace_columns(0, 0, 0)

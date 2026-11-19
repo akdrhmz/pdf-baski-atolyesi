@@ -22,11 +22,12 @@ class TabNav:
         self.app.select_tab(name)
 
 
-TAB_NAMES = ["Sayfa Düzeni", "Sayfa Numaraları", "Birleştirme"]
+TAB_NAMES = ["Sayfa Düzeni", "Sayfa Numaraları", "Birleştirme", "Baskı ve Araçlar"]
 TAB_FULL_NAMES = {
     "Sayfa Düzeni": "Sayfa Düzeni",
     "Sayfa Numaraları": "Sayfa Numaralandırma",
     "Birleştirme": "PDF Birleştirme",
+    "Baskı ve Araçlar": "Baskı ve Araçlar",
 }
 #: Eski sürümlerdeki ayrı sekmeler birleşti; adlar geçiş için kabul edilir.
 TAB_ALIASES = {

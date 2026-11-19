@@ -45,7 +45,7 @@ def test_no_notice_for_a_fresh_install(tmp_path):
 def test_window_title_has_no_version(tmp_path):
     app = _make(tmp_path, False)
     try:
-        assert app.title() == "PDF Baskı & Cilt Stüdyosu"
+        assert app.title() == "PDF Baskı Atölyesi"
     finally:
         app.destroy()
 

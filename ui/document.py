@@ -57,6 +57,9 @@ class DocumentMixin:
         self._apply_document_size(lt)
         self.title(f"{os.path.basename(path)} — {APP_NAME}")
         self._set_status(f"'{os.path.basename(path)}' yüklendi.", COLOR_TEXT_PRIMARY)
+        tools_tab = getattr(self, "_tabs", {}).get("Baskı ve Araçlar")
+        if tools_tab is not None and getattr(tools_tab, "built", False):
+            tools_tab.load(path)
         self.preview_panel.reset_for_new_document()
         self._update_pipeline_summary()
         self._schedule_preview()

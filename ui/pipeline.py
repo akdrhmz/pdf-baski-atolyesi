@@ -71,6 +71,25 @@ class PipelineMixin:
         self.btn_open_folder.setVisible(output_exists and not self._busy)
         self.btn_cancel.setVisible(self._busy)
 
+        if "Baskı ve Araçlar" in self.tabview.get():
+            tools = self._tabs["Baskı ve Araçlar"]
+            op = tools.operation.get() if tools.built else "Baskı Montajı"
+            action_labels = {
+                "Sayfaları Düzenle": "Seçili sayfaları kaydet…",
+                "Filigran & Bates": "Damgalı PDF oluştur…",
+                "Baskı Montajı": "Baskı montajı oluştur…",
+                "Güvenlik & Meta": "Güvenli PDF oluştur…",
+            }
+            self.action_title_label.configure(text=f"Baskı ve Araçlar • {op}")
+            self.btn_main_action.configure(
+                state="disabled" if (self._busy or not has_single_source) else "normal",
+                text=(action_labels.get(op, "Oluştur ve kaydet…")
+                      if has_single_source else "Önce PDF seçin"),
+                command=tools.run_active_tool if tools.built else self._start_processing,
+            )
+            self.btn_preflight.setVisible(False)
+            return
+
         if "Birleştirme" in self.tabview.get():
             apply_pipeline = self._tabs["Birleştirme"].chk_merge_apply_pipeline.get() == 1
             can_merge = merge_count >= 2

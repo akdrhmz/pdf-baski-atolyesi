@@ -118,6 +118,7 @@ class BaseTab:
         ).put("h")
         header._ensure_layout("pack_h").addStretch(1)  # sonradan eklenen rozet sağa yaslanır
         body = ctk.CTkFrame(sec, fg_color="transparent")
+        body._section_card = sec
         body.set_padding(0, 2, 0, 0, spacing=SP_S)
         # Gövde kart genişliğini doldursun: panel pencereye alınınca içerik ortalanmaz.
         body.place(1, 0, valign="fill" if expand else "c", expand_x=True)

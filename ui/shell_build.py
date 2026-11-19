@@ -24,6 +24,7 @@ from ui.paths import ASSETS_DIR
 from ui.tabs.merge import MergeTab
 from ui.tabs.number import NumberTab
 from ui.tabs.page_layout import PageLayoutTab
+from ui.tabs.tools import ToolsTab
 from ui.theme import *  # noqa: F401,F403
 from ui.window import TAB_NAMES, TabNav
 
@@ -184,8 +185,8 @@ class ShellBuildMixin:
 
         right = ctk.CTkFrame(bar, fg_color="transparent")
         right.put("h")
-        self.btn_pdf_tools = ctk.CTkButton(right, text="Sayfa / baskı araçları…", width=154, height=30,
-                                           command=self._show_pdf_tools)
+        self.btn_pdf_tools = ctk.CTkButton(right, text="Baskı ve araçlar", width=138, height=30,
+                                           command=lambda: self.select_tab("Baskı ve Araçlar"))
         self.btn_pdf_tools.put("h", margins=(0, 0, SP_S, 0))
         self.btn_top_batch = ctk.CTkButton(right, text="Toplu işlem…", width=104, height=30,
                                            command=self._show_batch_dialog)
@@ -226,11 +227,13 @@ class ShellBuildMixin:
         self.tab_layout = ctk.CTkFrame(content, fg_color=COLOR_CARD)
         self.tab_number = ctk.CTkFrame(content, fg_color=COLOR_CARD)
         self.tab_merge = ctk.CTkFrame(content, fg_color=COLOR_CARD)
-        self._tab_frames = [self.tab_layout, self.tab_number, self.tab_merge]
+        self.tab_tools = ctk.CTkFrame(content, fg_color=COLOR_CARD)
+        self._tab_frames = [self.tab_layout, self.tab_number, self.tab_merge, self.tab_tools]
         self._tab_frames_map = {
             "Sayfa Düzeni": self.tab_layout,
             "Sayfa Numaraları": self.tab_number,
             "Birleştirme": self.tab_merge,
+            "Baskı ve Araçlar": self.tab_tools,
         }
         for frame in self._tab_frames:
             frame.place(0, 0, valign="fill", expand_x=True, expand_y=True)
@@ -242,6 +245,7 @@ class ShellBuildMixin:
             "Sayfa Düzeni": PageLayoutTab("Sayfa Düzeni", ctx, self.tab_layout),
             "Sayfa Numaraları": NumberTab("Sayfa Numaraları", ctx, self.tab_number),
             "Birleştirme": MergeTab("Birleştirme", ctx, self.tab_merge),
+            "Baskı ve Araçlar": ToolsTab("Baskı ve Araçlar", ctx, self.tab_tools),
         }
         # Tembel kurulum (2.9): açılışta yalnızca görünen sekme kurulur; diğerleri ilk
         # gösterildiğinde (select_tab) ya da eski adla ilk erişimde kurulur.

@@ -196,8 +196,20 @@ class AppPreviewHost:
                 return seq[0]
         return None
 
+    def tool_preview_spec(self) -> Optional[tuple]:
+        app = self._app
+        if "Baskı ve Araçlar" not in app.tabview.get():
+            return None
+        tools = app._tabs.get("Baskı ve Araçlar")
+        if tools is None or not getattr(tools, "built", False):
+            return None
+        return tools.preview_spec()
+
     @property
     def preview_page_count(self) -> int:
+        tool_spec = self.tool_preview_spec()
+        if tool_spec is not None:
+            return int(tool_spec[2])
         seq = self.sequence_items()
         if seq:
             merge = self._app._tabs["Birleştirme"]
@@ -214,6 +226,9 @@ class AppPreviewHost:
         return self.orig_page_count
 
     def preview_variant(self) -> Optional[tuple]:
+        tool_spec = self.tool_preview_spec()
+        if tool_spec is not None:
+            return ("tools", tool_spec[0], repr(tool_spec[1]))
         item = self.merge_item()
         if item is None:
             return None
@@ -592,6 +607,8 @@ class PreviewPanel:
             self.signature = None
             self.clear("Belge seçildiğinde önizleme burada görünür.")
             return
+        tool_getter = getattr(self.host, "tool_preview_spec", None)
+        tool_spec = tool_getter() if callable(tool_getter) else None
         variant = self._variant()
         last = getattr(self, "_last_path", None)
         self._last_path = path
@@ -599,9 +616,9 @@ class PreviewPanel:
             self.page = 0  # birleştirmede başka dosya seçildi: ilk sayfadan başla
         config = self.host.build_config() if variant is None else None
         merge_config = (self.host.build_config()
-                        if variant is not None and len(variant) > 3 and variant[3] else None)
+                        if (tool_spec is None and variant is not None and len(variant) > 3 and variant[3]) else None)
         seq_items, seq_counts = None, None
-        if variant is not None and len(variant) > 4 and variant[4]:
+        if tool_spec is None and variant is not None and len(variant) > 4 and variant[4]:
             seq_items = [dict(e) for e in self.host.sequence_items() or []]
             seq_counts = [self.host.item_count(e) for e in seq_items]
             self.page = max(0, min(self.page, max(sum(seq_counts) - 1, 0)))
@@ -639,7 +656,36 @@ class PreviewPanel:
                 if generation != self.gen:
                     return
                 try:
-                    if compare_source and variant is not None and len(variant) > 4 and variant[4]:
+                    if tool_spec is not None:
+                        from core.gutter_engine import PreviewPage
+                        from core.pdf_tools import describe_impose_sheet, render_tool_preview
+                        kind, opts, total_tool, tool_warn = tool_spec
+                        pages = []
+                        for p_idx in wanted:
+                            data = render_tool_preview(path, kind, opts, page_index=p_idx, zoom=zoom)
+                            if kind == "impose":
+                                info = describe_impose_sheet(
+                                    getattr(self.host._app, "orig_page_count", 0) or total_tool,
+                                    opts, p_idx,
+                                )
+                                ptxt = ", ".join(str(p) if p is not None else "Boş" for p in info["pages"])
+                                cap = (f"{info['sheet']}. Yaprak · {info['face']} [{ptxt}]"
+                                       if opts.mode == "booklet" else f"Yaprak {p_idx + 1} [{ptxt}]")
+                            else:
+                                cap = f"{p_idx + 1}. sayfa (damga/Bates)"
+                            pages.append(PreviewPage(
+                                page_index=p_idx,
+                                png=data,
+                                width_pt=595.0,
+                                height_pt=842.0,
+                                scale=zoom,
+                                is_odd=(p_idx % 2 == 0),
+                                number_text=None,
+                                clipped=False,
+                                clip_mm=(0.0, 0.0, 0.0, 0.0),
+                                caption=cap,
+                            ))
+                    elif compare_source and variant is not None and len(variant) > 4 and variant[4]:
                         pages = render_sequence_preview(seq_items, seq_counts, None, None, wanted, zoom)
                     elif compare_source:
                         pages, _n = render_plain_preview(

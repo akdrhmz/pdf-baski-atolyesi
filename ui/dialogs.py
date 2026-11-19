@@ -679,7 +679,5 @@ class DialogsMixin:
     def _open_output_in_tools(self) -> None:
         if self._busy or not self.output_pdf_path or not os.path.exists(self.output_pdf_path):
             return
-        from ui.pdf_tools import PdfToolsWindow
-        win = PdfToolsWindow(self)
-        win.load(self.output_pdf_path)
-        self._pdf_tools_window = win
+        self._load_file(self.output_pdf_path)
+        self.select_tab("Baskı ve Araçlar")

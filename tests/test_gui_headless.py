@@ -1128,6 +1128,7 @@ def test_tabs_are_registered_built_and_follow_contract(app):
     from ui.window import TAB_NAMES
     assert list(app._tabs) == list(TAB_NAMES)
     for name, tab in app._tabs.items():
+        tab.ensure_built()
         assert isinstance(tab, BaseTab) and tab.name == name
         assert tab.built, f"{name} sekmesi açılışta kurulmuş olmalı"
         assert tab.frame is app._tab_frames_map[name]
@@ -1328,6 +1329,7 @@ def test_only_active_tab_is_built_at_startup_and_config_matches(app):
         "Sayfa Düzeni": True,
         "Sayfa Numaraları": False,
         "Birleştirme": False,
+        "Baskı ve Araçlar": False,
     }
     # Kurulmamış 3 sekmeyle üretilen açılış yapılandırması, tüm sekmeler kuruluyken
     # aynı başlangıç ayarlarıyla (_restore_settings) üretilenle birebir aynı olmalı.

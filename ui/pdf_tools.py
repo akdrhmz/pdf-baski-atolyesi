@@ -77,6 +77,7 @@ class PdfToolsWindow:
         self.window.set_drop_callback(self._on_drop_files)
 
         outer = ctk.CTkFrame(self.window, fg_color=COLOR_CARD)
+        self.outer = outer
         outer.put("v", fill="both", expand=True, margins=(12, 12, 12, 12))
         outer.grid_columnconfigure(0, weight=3)
         outer.grid_columnconfigure(1, weight=2)
@@ -414,13 +415,24 @@ class PdfToolsWindow:
 
     def update_operation(self):
         value = self.operation.get()
-        self.grid.setVisible(value == "Sayfaları düzenle ve böl")
-        self.page_options.setVisible(value == "Sayfaları düzenle ve böl")
+        is_pages = value == "Sayfaları düzenle ve böl"
+        show_preview = value in ("Filigran ve Bates", "Baskı montajı")
+        self.grid.setVisible(is_pages)
+        self.page_options.setVisible(is_pages)
         self.stamp_options.setVisible(value == "Filigran ve Bates")
         self.print_options.setVisible(value == "Baskı montajı")
         self.security_options.setVisible(value == "Güvenlik ve Meta Veri")
-        show_preview = value in ("Filigran ve Bates", "Baskı montajı")
         self.preview_card.setVisible(show_preview)
+        if show_preview:
+            self.outer.grid_columnconfigure(1, weight=2)
+            self.scroll.place(1, 0, columnspan=1, expand_x=True, expand_y=True, valign="fill")
+            self.preview_card.place(1, 1, expand_x=True, expand_y=True, valign="fill")
+        else:
+            self.outer.grid_columnconfigure(1, weight=0)
+            self.scroll.place(1, 0, columnspan=2, expand_x=True, expand_y=True, valign="fill")
+        self.scroll.grid_rowconfigure(1, weight=1 if is_pages else 0)
+        self.scroll.grid_rowconfigure(6, weight=0 if is_pages else 1)
+        self.grid.place(1, 0, expand_x=True, expand_y=is_pages, valign="fill" if is_pages else "center")
         if show_preview:
             self._schedule_tool_preview()
 

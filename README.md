@@ -1,7 +1,7 @@
 # PDF Baskı & Cilt Stüdyosu
 
 **Sürüm:** `version.py` içindeki tek kaynaktan okunur (şu an 2.9.0)  
-**Geliştirici:** Abdülkadir Hamza — hamza_kadir@hotmail.com
+**Geliştirici:** Abdülkadir Hamza — support@kadirhamza.com
 
 PyMuPDF ile vektörel (yeniden örneklemesiz) PDF hazırlığı yapan Windows masaüstü
 uygulaması: duplex cilt payı, sabit alt/üst pay, sayfa numaralandırma, kırpma

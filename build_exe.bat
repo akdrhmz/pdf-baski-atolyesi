@@ -5,7 +5,7 @@ cd /d "%~dp0"
 
 echo ================================================================
 echo   PDF Baski ^& Cilt Studyosu - Tasinabilir EXE Yapici
-echo   Gelistirici: Abdulkadir Hamza (hamza_kadir@hotmail.com)
+echo   Gelistirici: Abdulkadir Hamza (support@kadirhamza.com)
 echo ================================================================
 echo.
 

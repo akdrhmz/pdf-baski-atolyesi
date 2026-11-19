@@ -1,6 +1,6 @@
 """
 PDF Baskı & Cilt Stüdyosu - Geometri, Numaralandırma ve Birleştirme Motoru
-Geliştirici: Abdülkadir Hamza (hamza_kadir@hotmail.com)
+Geliştirici: Abdülkadir Hamza (support@kadirhamza.com)
 
 PyMuPDF ile vektörel (yeniden örneklemesiz) PDF dönüşümleri yapar.
 

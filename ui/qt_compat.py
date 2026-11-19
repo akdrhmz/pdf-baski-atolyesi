@@ -22,6 +22,7 @@ from PySide6.QtGui import (
     QDropEvent,
     QFont,
     QIcon,
+    QFontMetrics,
     QImage,
     QKeySequence,
     QPainter,
@@ -1375,6 +1376,15 @@ class QtCheckBox(QCheckBox, QtWidgetMixin):
             command=command,
         )
 
+    def sizeHint(self) -> QSize:
+        fm = QFontMetrics(self.font())
+        w = fm.horizontalAdvance(self.text()) + 34
+        h = max(24, fm.height() + 6)
+        return QSize(w, h)
+
+    def minimumSizeHint(self) -> QSize:
+        return self.sizeHint()
+
     def paintEvent(self, _event) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
@@ -1615,7 +1625,7 @@ class QtSegmentedButton(QtFrame):
                 corner_radius=max(4, corner_radius - 2),
                 command=lambda v=val: self._on_seg_click(v),
             )
-            lay.addWidget(btn, 1)
+            lay.addWidget(btn, 1 if (width and int(width) > 0) else 0)
             self._seg_buttons[val] = btn
         self._sync_segments()
 
@@ -1773,6 +1783,7 @@ class QtToplevel(QDialog, QtWidgetMixin):
         self._init_mixin(master)
         self._close_cb: Optional[Callable[[], None]] = None
         self._drop_callback: Optional[Callable[[List[str]], None]] = None
+        self._drop_callback: Optional[Callable[[List[str]], None]] = None
 
     def title(self, text: Optional[str] = None) -> str:
         if text is not None:
@@ -1823,6 +1834,24 @@ class QtToplevel(QDialog, QtWidgetMixin):
             super().update()
         except Exception:
             pass
+
+    def set_drop_callback(self, callback: Callable[[List[str]], None]) -> None:
+        self._drop_callback = callback
+        self.setAcceptDrops(callback is not None)
+
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
+        if self._drop_callback is not None and event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event: QDropEvent) -> None:
+        if self._drop_callback is None or not event.mimeData().hasUrls():
+            return
+        paths = [url.toLocalFile() for url in event.mimeData().urls() if url.isLocalFile()]
+        if paths:
+            event.acceptProposedAction()
+            self._drop_callback(paths)
 
     def set_drop_callback(self, callback: Callable[[List[str]], None]) -> None:
         self._drop_callback = callback

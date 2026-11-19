@@ -8,6 +8,7 @@ from PySide6.QtGui import QColor, QIcon, QPixmap
 from PySide6.QtWidgets import QColorDialog, QLabel, QListWidget, QListWidgetItem, QAbstractItemView
 
 from ui import qt_compat as ctk
+from ui.preview_canvas import PreviewCanvas
 from ui.qt_compat import filedialog, messagebox
 from ui.widgets import FieldRow, FieldError
 from ui.theme import *
@@ -263,6 +264,12 @@ class PdfToolsWindow:
         pnav.place(0, 0, expand_x=True)
         ctk.CTkLabel(pnav, text="Canlı önizleme", font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold")).put("h", fill="x", expand=True)
         ctk.CTkButton(
+            pnav, text="Sığdır", width=56, height=24,
+            fg_color=COLOR_BTN_SUBTLE, text_color=COLOR_TEXT_PRIMARY,
+            border_width=1, border_color=COLOR_BORDER, hover_color=COLOR_BTN_SUBTLE_HOVER,
+            command=self._reset_preview_zoom,
+        ).put("h", margins=(0, 0, 6, 0))
+        ctk.CTkButton(
             pnav, text="<", width=32, height=24,
             fg_color=COLOR_BTN_SUBTLE, text_color=COLOR_TEXT_PRIMARY,
             border_width=1, border_color=COLOR_BORDER, hover_color=COLOR_BTN_SUBTLE_HOVER,
@@ -277,10 +284,10 @@ class PdfToolsWindow:
             command=lambda: self._step_preview(1),
         ).put("h")
 
-        self.preview_image_lbl = QLabel("Önizleme için PDF ve araç seçin.")
-        self.preview_image_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.preview_image_lbl.setMinimumSize(260, 320)
-        self.preview_card._ensure_layout("grid").addWidget(self.preview_image_lbl, 1, 0)
+        self.preview_image_lbl = PreviewCanvas(self.preview_card, bg=COLOR_CARD)
+        self.preview_image_lbl.set_placeholder("single")
+        self.preview_image_lbl.setToolTip("Ctrl+tekerlek ile yakınlaştırın, sürükleyerek kaydırın.")
+        self.preview_image_lbl.place(1, 0, expand_x=True, expand_y=True, valign="fill")
 
         actions = ctk.CTkFrame(outer, fg_color="transparent")
         actions.place(2, 0, columnspan=2, expand_x=True)
@@ -344,6 +351,10 @@ class PdfToolsWindow:
             )
             self._schedule_tool_preview()
 
+    def _reset_preview_zoom(self) -> None:
+        if hasattr(self.preview_image_lbl, "set_zoom"):
+            self.preview_image_lbl.set_zoom(1.0)
+
     def _step_preview(self, delta: int) -> None:
         self._preview_page = max(0, self._preview_page + delta)
         self.preview_page_lbl.configure(text=str(self._preview_page + 1))
@@ -378,7 +389,7 @@ class PdfToolsWindow:
         path = self.path
 
         def work():
-            return render_tool_preview(path, kind, opts, page_index=page_idx, zoom=1.2)
+            return render_tool_preview(path, kind, opts, page_index=page_idx, zoom=2.0)
 
         def done(future):
             try:
@@ -391,18 +402,12 @@ class PdfToolsWindow:
                 if getattr(self.window, "_destroyed", False) or gen != self._preview_gen:
                     return
                 if err or not data:
-                    self.preview_image_lbl.setText(err or "Önizleme üretilemedi.")
+                    self.preview_image_lbl.set_source(None)
+                    self.preview_image_lbl.configure(text=err or "Önizleme üretilemedi.")
                     return
                 pix = QPixmap()
                 if pix.loadFromData(data):
-                    target = self.preview_image_lbl.size()
-                    scaled = pix.scaled(
-                        max(220, target.width() - 8),
-                        max(280, target.height() - 8),
-                        Qt.AspectRatioMode.KeepAspectRatio,
-                        Qt.TransformationMode.SmoothTransformation,
-                    )
-                    self.preview_image_lbl.setPixmap(scaled)
+                    self.preview_image_lbl.set_source(pix)
             self.app._ui(apply)
 
         self._pool.submit(work).add_done_callback(done)

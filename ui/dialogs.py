@@ -327,9 +327,9 @@ class DialogsMixin:
         """Görünüm, liste/önizleme, PDF çıktısı ve sıfırlama tercihleri."""
         dialog = ctk.CTkToplevel(self)
         dialog.title(f"Ayarlar - {APP_NAME}")
-        dialog.geometry("520x620")
+        dialog.geometry("560x660")
         dialog.resizable(True, True)
-        dialog.minsize(460, 340)
+        dialog.minsize(500, 380)
         dialog.transient(self)
         dialog.grab_set()
 
@@ -406,7 +406,7 @@ class DialogsMixin:
             active = self._output_quality != "print" if key == "optimize" else self._flatten_annotations
             box.select() if active else box.deselect()
             box.setToolTip(tooltip)
-            box.place(row, 0, align="w")
+            box.place(row, 0, expand_x=True)
             self._bind_wraplength(box, frame, 40)
             output_boxes[key] = box
 
@@ -469,7 +469,7 @@ class DialogsMixin:
             )
             box.select() if getattr(self.store, key) else box.deselect()
             box.setToolTip(tooltip)
-            box.place(row, 0, align="w")
+            box.place(row, 0, expand_x=True)
             self._bind_wraplength(box, frame, 40)
             preference_boxes[key] = box
 

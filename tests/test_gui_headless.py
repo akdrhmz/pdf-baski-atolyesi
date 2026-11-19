@@ -21,8 +21,8 @@ import pytest
 import pymupdf
 
 from app import COLOR_CARD, COLOR_ON_ACCENT, ModernGutterApp
-import page_layout_model as plm
-from gutter_engine import config_from_dict, config_to_dict, mm_to_unit, pt_to_mm
+import core.page_layout_model as plm
+from core.gutter_engine import config_from_dict, config_to_dict, mm_to_unit, pt_to_mm
 from tests.pdf_factory import create_sample_a4_pdf
 
 # "mbcs" kod sayfası yalnızca Windows'ta vardır (Linux'ta LookupError verir).
@@ -1303,7 +1303,7 @@ def test_gutter_tab_shell_bridge_routes_to_the_tab(app):
 
 
 def test_gutter_profile_button_applies_the_named_preset_through_the_shell(app):
-    from settings_store import PRESETS
+    from core.settings_store import PRESETS
     tab = layout_tab(app)
     name = next(iter(PRESETS))
     tab._preset_row._buttons[0].invoke()
@@ -1337,7 +1337,7 @@ def test_only_active_tab_is_built_at_startup_and_config_matches(app):
 
 
 def test_unbuilt_tabs_roundtrip_config_unit_and_apply_on_build(app):
-    from settings_store import PRESETS
+    from core.settings_store import PRESETS
     preset_cfg = config_from_dict(PRESETS["Tez (üniversite)"])
     preset_cfg.margins.exclude_pages_str = "2, 4"
     preset_cfg.page_numbers.skip_pages_str = "1, 3"

@@ -7,8 +7,8 @@ import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from app import ModernGutterApp
-from gutter_engine import PdfProcessConfig, config_to_dict
-from settings_store import SettingsStore
+from core.gutter_engine import PdfProcessConfig, config_to_dict
+from core.settings_store import SettingsStore
 
 
 def _make(tmp_path, enable_gutter: bool):

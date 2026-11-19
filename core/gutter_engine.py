@@ -817,7 +817,8 @@ def _number_font_candidates() -> List[str]:
     windir = os.environ.get("WINDIR", r"C:\Windows")
     for name in ("segoeui.ttf", "arial.ttf", "calibri.ttf", "tahoma.ttf", "DejaVuSans.ttf"):
         candidates.append(os.path.join(windir, "Fonts", name))
-    candidates.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "DejaVuSans.ttf"))
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    candidates.append(os.path.join(root_dir, "assets", "DejaVuSans.ttf"))
     return candidates
 
 

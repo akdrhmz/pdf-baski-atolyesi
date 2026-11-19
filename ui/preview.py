@@ -20,7 +20,7 @@ from PIL import Image
 
 from ui import qt_compat as ctk
 
-from gutter_engine import (config_to_dict, format_clip_group, group_clip_lines,
+from core.gutter_engine import (config_to_dict, format_clip_group, group_clip_lines,
                            render_plain_preview, render_preview)
 from ui.preview_canvas import PreviewCanvas, fit_size  # noqa: F401  (fit_size dışa aktarılır)
 from ui.theme import *  # noqa: F401,F403
@@ -30,7 +30,7 @@ from ui.theme import *  # noqa: F401,F403
 PREVIEW_HISTORY_LIMIT = 8
 # Üretim çözünürlüğü: panelde küçültülerek gösterildiğinde yazılar keskin kalsın.
 PREVIEW_ZOOM = 2.5
-from gutter_engine import PDF_LOCK
+from core.gutter_engine import PDF_LOCK
 PDF_RENDER_LOCK = PDF_LOCK
 
 
@@ -58,7 +58,7 @@ def render_sequence_preview(items: list, counts: list, fit: Any, config: Any,
     """
     import atexit
     import tempfile
-    from gutter_engine import merge_pdfs
+    from core.gutter_engine import merge_pdfs
     key = tuple((str(i["path"]), os.stat(str(i["path"])).st_mtime_ns, int(i.get("rotation", 0)),
                  str(i.get("page_range", "") or "")) for i in items)
     if _SEQ_CACHE["key"] != key or not _SEQ_CACHE["path"] or not os.path.exists(_SEQ_CACHE["path"]):
@@ -84,7 +84,7 @@ def render_sequence_preview(items: list, counts: list, fit: Any, config: Any,
     for page in pages:
         source_index = page.page_index
         if config is not None and config.page_numbers.enabled and config.page_numbers.sections:
-            from gutter_engine import numbering_sections
+            from core.gutter_engine import numbering_sections
             blanks = numbering_sections(config)[1]
             if source_index in blanks:
                 page.caption = f"{source_index + 1}. sayfa  •  Boş bölüm ayıracı"
@@ -109,7 +109,7 @@ def render_merge_result_preview(path: str, rotation: int, page_range: str, confi
     sayfa sırasına göredir (birleşik belgedeki konumu değil).
     """
     import tempfile
-    from gutter_engine import merge_pdfs
+    from core.gutter_engine import merge_pdfs
     fd, tmp = tempfile.mkstemp(prefix=".~prev-", suffix=".pdf")
     os.close(fd)
     try:
@@ -151,7 +151,7 @@ class AppPreviewHost:
 
     @property
     def orig_page_count(self) -> int:
-        from gutter_engine import numbering_sections
+        from core.gutter_engine import numbering_sections
         config = self._app._build_config(notify=False)
         blanks = numbering_sections(config)[1] if config and config.page_numbers.enabled else set()
         return self._app.orig_page_count + len(blanks)
@@ -203,7 +203,7 @@ class AppPreviewHost:
             merge = self._app._tabs["Birleştirme"]
             total = sum(merge.item_count(entry) for entry in seq)
             if merge.chk_merge_apply_pipeline.get() == 1:
-                from gutter_engine import numbering_sections
+                from core.gutter_engine import numbering_sections
                 config = self._app._build_config(notify=False)
                 if config and config.page_numbers.enabled:
                     total += len(numbering_sections(config)[1])

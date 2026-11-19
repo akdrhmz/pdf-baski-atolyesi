@@ -7,12 +7,12 @@ import gc
 from ui import qt_compat as ctk
 import pytest
 
-from settings_store import PRESETS
+from core.settings_store import PRESETS
 from tests.fake_context import FakeContext
 from ui.theme import COLOR_OK, COLOR_SELECTED, SIZE_MODE_CODES, SIZE_MODE_LABELS
 from ui.tabs import BaseTab
 from ui.tabs.page_layout import PageLayoutTab, CHOICE_LABELS
-import page_layout_model as plm
+import core.page_layout_model as plm
 
 
 @pytest.fixture(scope="module")

@@ -24,7 +24,7 @@ import threading
 from ui import qt_compat as ctk
 from ui.qt_compat import filedialog, messagebox
 
-from gutter_engine import (get_pdf_info, invalid_range_tokens, parse_page_ranges,
+from core.gutter_engine import (get_pdf_info, invalid_range_tokens, parse_page_ranges,
                            PdfProcessConfig, config_from_dict, config_to_dict, validate_config)
 from ui.tabs.base import BaseTab
 from ui.tabs.merge_drag import MergeDragMixin
@@ -706,7 +706,7 @@ class MergeTab(MergeDragMixin, BaseTab):
 
         def render():
             from ui.preview import PDF_RENDER_LOCK
-            from gutter_engine import open_pdf
+            from core.gutter_engine import open_pdf
             import pymupdf
             with PDF_RENDER_LOCK, open_pdf(key[0]) as doc:
                 picked = sorted(p for p in parse_page_ranges(key[4]) if 1 <= p <= len(doc))

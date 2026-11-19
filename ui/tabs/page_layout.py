@@ -17,9 +17,9 @@ from typing import List, Optional, Tuple
 
 from ui import qt_compat as ctk
 
-import page_layout_model as plm
-from gutter_engine import format_measure, invalid_range_tokens
-from settings_store import PRESETS
+import core.page_layout_model as plm
+from core.gutter_engine import format_measure, invalid_range_tokens
+from core.settings_store import PRESETS
 from ui.tabs.base import BaseTab
 from ui.theme import *  # noqa: F401,F403
 from ui.widgets import FieldError, FieldRow, WrapButtonRow

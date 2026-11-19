@@ -13,7 +13,7 @@ from PySide6.QtWidgets import QLabel
 from app import ModernGutterApp
 from ui import theme
 from ui.qt_compat import QtScrollableFrame, _ThinScrollBar
-from version import APP_NAME, VERSION
+from core.version import APP_NAME, VERSION
 
 
 @pytest.fixture(scope="module")
@@ -130,7 +130,7 @@ def test_layout_constants_live_in_theme():
 
 
 def test_settings_store_bounds_match_theme(tmp_path):
-    from settings_store import SettingsStore
+    from core.settings_store import SettingsStore
     store = SettingsStore(tmp_path / "s.json")
     store.preview_width = 10_000
     assert store.preview_width == theme.PREVIEW_STORE_MAX_W

@@ -5,8 +5,8 @@ from pathlib import Path
 import pymupdf
 import pytest
 
-import gutter_engine as ge
-from pdf_tools import (export_pages, split_pages, stamp_pdf, impose_pdf, StampOptions,
+import core.gutter_engine as ge
+from core.pdf_tools import (export_pages, split_pages, stamp_pdf, impose_pdf, StampOptions,
                        PrintOptions, booklet_order)
 
 

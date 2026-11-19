@@ -9,7 +9,7 @@ from ui import qt_compat as ctk
 
 HAS_WINDND = True
 
-from gutter_engine import (
+from core.gutter_engine import (
     UNITS,
     format_measure,
     unit_to_mm,

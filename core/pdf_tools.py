@@ -7,7 +7,7 @@ import math
 
 import pymupdf
 
-from gutter_engine import (open_pdf, same_path, OutputPathError, ConfigError, ProcessCancelled,
+from core.gutter_engine import (open_pdf, same_path, OutputPathError, ConfigError, ProcessCancelled,
                            _atomic_save, mm_to_pt, normalize_page_rotations, fit_matrix,
                            PageNumberSettings, resolve_number_font, sanitize_toc, unique_output_path,
                            pdf_operation, parse_page_ranges, invalid_range_tokens)
@@ -347,7 +347,7 @@ def apply_security_and_metadata(source, output, options: SecurityMetaOptions, sh
     try:
         if doc.needs_pass:
             if not options.source_password or not doc.authenticate(options.source_password):
-                from gutter_engine import PdfPasswordError
+                from core.gutter_engine import PdfPasswordError
                 raise PdfPasswordError("Kaynak PDF parolalı; geçerli parola gerekli.")
         if should_cancel and should_cancel():
             raise ProcessCancelled("İşlem iptal edildi.")

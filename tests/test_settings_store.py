@@ -6,8 +6,8 @@ import json
 
 import pytest
 
-from gutter_engine import PageBoxSettings, PdfProcessConfig
-from settings_store import SettingsStore
+from core.gutter_engine import PageBoxSettings, PdfProcessConfig
+from core.settings_store import SettingsStore
 
 
 def test_defaults_and_units(tmp_path):
@@ -77,7 +77,7 @@ def test_last_state_and_recent_files(tmp_path):
 
 
 def test_preview_width_roundtrip_and_clamp(tmp_path):
-    from settings_store import SettingsStore
+    from core.settings_store import SettingsStore
     store = SettingsStore(tmp_path / "s.json")
     assert store.preview_width == 480
     store.preview_width = 620

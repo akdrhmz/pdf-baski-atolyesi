@@ -17,7 +17,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional
 
-from version import APP_NAME, VERSION
+from core.version import APP_NAME, VERSION
 
 PATH_MASK = "<yol>"
 _WIN_PATH = re.compile(r"^[A-Za-z]:[\\/]")

@@ -2,8 +2,8 @@
 import os, sys, json
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pymupdf
-import gutter_engine as ge
-import page_layout_model as plm
+import core.gutter_engine as ge
+import core.page_layout_model as plm
 
 doc = pymupdf.open(); pg = doc.new_page(width=595.28, height=841.89)
 pg.draw_rect(pymupdf.Rect(0.5, 0.5, 594.8, 841.4), fill=(0, 0, 0))   # içerik hemen hemen sayfa boyunda

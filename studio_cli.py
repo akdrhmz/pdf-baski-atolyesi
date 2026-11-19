@@ -6,9 +6,9 @@ import json
 import sys
 from pathlib import Path
 
-from gutter_engine import (config_from_dict, process_pdf, same_path,
+from core.gutter_engine import (config_from_dict, process_pdf, same_path,
                            unique_output_path, validate_config)
-from settings_store import PRESETS, SettingsStore
+from core.settings_store import PRESETS, SettingsStore
 
 
 def main(argv=None) -> int:

@@ -7,12 +7,12 @@ import gc
 from ui import qt_compat as ctk
 import pytest
 
-from gutter_engine import format_measure
+from core.gutter_engine import format_measure
 from tests.fake_context import FakeContext
 from ui.tabs import BaseTab
 from ui.tabs.page_layout import PageLayoutTab, CHOICE_LABELS
 from ui.theme import COLOR_ERROR, COLOR_OK, COLOR_TEXT_SECONDARY, MARGIN_PRESETS_MM
-import page_layout_model as plm
+import core.page_layout_model as plm
 
 
 @pytest.fixture(scope="module")

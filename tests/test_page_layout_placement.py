@@ -16,7 +16,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication, QSizePolicy  # noqa: E402
 
-import page_layout_model as plm  # noqa: E402
+import core.page_layout_model as plm  # noqa: E402
 from ui import qt_compat as ctk  # noqa: E402
 from ui.theme import SP_M, SP_S  # noqa: E402
 

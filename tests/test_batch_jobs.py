@@ -2,7 +2,7 @@
 
 import pymupdf
 
-from gutter_engine import PdfProcessConfig
+from core.gutter_engine import PdfProcessConfig
 from ui.batch_jobs import run_batch
 
 

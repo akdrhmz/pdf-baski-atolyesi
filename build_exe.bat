@@ -33,7 +33,7 @@ if errorlevel 1 (
 
 echo.
 echo [2/4] Surum ve simge hazirlaniyor...
-for /f "delims=" %%V in ('python -c "import version; print(version.VERSION)"') do set "APPVER=%%V"
+for /f "delims=" %%V in ('python -c "from core import version; print(version.VERSION)"') do set "APPVER=%%V"
 if "%APPVER%"=="" set "APPVER=0.0.0"
 echo Surum: %APPVER%
 if not exist "assets\icon.ico" (

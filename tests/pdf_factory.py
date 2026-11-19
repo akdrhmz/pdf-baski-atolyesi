@@ -6,7 +6,7 @@ from typing import Iterable, Tuple
 
 import pymupdf
 
-from gutter_engine import mm_to_pt
+from core.gutter_engine import mm_to_pt
 
 
 def create_sample_a4_pdf(file_path: str, pages: int = 4,

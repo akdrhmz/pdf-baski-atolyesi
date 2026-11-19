@@ -58,7 +58,7 @@ def test_unit_label_never_overlaps_entry(shown, width):
     """Tüm ``FieldRow``'larda birim etiketinin sol kenarı ≥ giriş kutusunun sağ kenarı."""
     tab, frame, resize = shown
     # Güvenli kenar satırı yalnız sabit ebat + "İçerik küçülsün" iken görünür (P2-36).
-    import page_layout_model as plm
+    import core.page_layout_model as plm
     tab.set_overflow_choice(plm.CHOICE_SHRINK)
     resize(width)
     checked = 0

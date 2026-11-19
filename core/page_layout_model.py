@@ -19,7 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
-from gutter_engine import (
+from core.gutter_engine import (
     MAX_PAGE_NUMBER,
     MarginSettings,
     PageBoxSettings,

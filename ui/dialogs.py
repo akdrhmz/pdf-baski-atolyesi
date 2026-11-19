@@ -15,10 +15,10 @@ from ui.qt_compat import filedialog, messagebox
 
 HAS_WINDND = True
 
-from settings_store import LOG_PATH
-import page_layout_model as plm
-from gutter_engine import UNITS, config_from_dict, config_to_dict
-from version import APP_NAME, AUTHOR, CONTACT, VERSION
+from core.settings_store import LOG_PATH
+import core.page_layout_model as plm
+from core.gutter_engine import UNITS, config_from_dict, config_to_dict
+from core.version import APP_NAME, AUTHOR, CONTACT, VERSION
 from ui.paths import ASSETS_DIR
 from ui.theme import *  # noqa: F401,F403
 
@@ -618,7 +618,7 @@ class DialogsMixin:
 
     def _export_diagnostics(self) -> None:
         """Günlük + anonim ayar + sürüm/DPI bilgisini tek .zip olarak kaydeder."""
-        from diagnostics import build_diagnostics_zip, default_filename
+        from core.diagnostics import build_diagnostics_zip, default_filename
         path = filedialog.asksaveasfilename(
             title="Tanılama paketini kaydet",
             initialfile=default_filename(),

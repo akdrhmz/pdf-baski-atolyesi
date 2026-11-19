@@ -10,12 +10,12 @@ import itertools
 
 import pytest
 
-from gutter_engine import (
+from core.gutter_engine import (
     PdfProcessConfig, compute_layout, config_from_dict, config_to_dict, mm_to_pt, pt_to_mm,
     validate_config,
 )
-import page_layout_model as plm
-from page_layout_model import (
+import core.page_layout_model as plm
+from core.page_layout_model import (
     CHOICE_CLIP, CHOICE_EXTEND, CHOICE_SHRINK, CHOICE_TO_ENGINE, MODE_GUTTER_ONLY,
     MODE_MARGIN_ONLY, MODE_NONE, SpecialRule,
 )
@@ -203,7 +203,7 @@ def test_empty_excludes_give_no_rules():
     ("", ""), ("1, 5", "1, 5"), ("", "1-3, 8"), ("2, 4-6", ""), ("1-3, 7", "2-4, 7, 9"),
 ])
 def test_excludes_roundtrip_preserves_effective_pages(boxes_text, margins_text):
-    from gutter_engine import excluded_pages
+    from core.gutter_engine import excluded_pages
     config = PdfProcessConfig()
     config.page_boxes.exclude_pages_str = boxes_text
     config.margins.exclude_pages_str = margins_text

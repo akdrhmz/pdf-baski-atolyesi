@@ -8,18 +8,18 @@ import traceback
 from typing import List
 
 from ui.qt_compat import filedialog, messagebox
-from version import APP_NAME
+from core.version import APP_NAME
 
 HAS_WINDND = True
 
-from gutter_engine import (
+from core.gutter_engine import (
     ProcessCancelled,
     process_pdf,
     scan_clipping,
     unique_output_path,
     verify_output,
 )
-import page_layout_model as plm
+import core.page_layout_model as plm
 from ui.theme import *  # noqa: F401,F403
 
 

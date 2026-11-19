@@ -12,8 +12,8 @@ from ui.preview_canvas import PreviewCanvas
 from ui.qt_compat import filedialog, messagebox
 from ui.widgets import FieldRow, FieldError
 from ui.theme import *
-from gutter_engine import open_pdf, unique_output_path, PDF_LOCK
-from pdf_tools import (
+from core.gutter_engine import open_pdf, unique_output_path, PDF_LOCK
+from core.pdf_tools import (
     export_pages, split_pages, stamp_pdf, impose_pdf, apply_security_and_metadata,
     render_tool_preview, StampOptions, PrintOptions, SecurityMetaOptions,
 )

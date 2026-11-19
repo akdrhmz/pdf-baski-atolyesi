@@ -8,7 +8,7 @@ import pymupdf
 import pytest
 from PIL import Image
 
-from gutter_engine import (
+from core.gutter_engine import (
     PageNumberSettings,
     PdfProcessConfig,
     config_from_dict,
@@ -16,7 +16,7 @@ from gutter_engine import (
     number_anchor,
     process_pdf,
 )
-from pdf_tools import (
+from core.pdf_tools import (
     PrintOptions,
     SecurityMetaOptions,
     StampOptions,

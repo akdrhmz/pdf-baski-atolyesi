@@ -15,7 +15,7 @@ import pymupdf
 import pytest
 from PIL import Image, ImageChops
 
-from gutter_engine import (
+from core.gutter_engine import (
     MarginSettings,
     PageBoxSettings,
     PageNumberSettings,

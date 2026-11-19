@@ -21,7 +21,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from gutter_engine import PdfProcessConfig, config_to_dict, config_from_dict
+from core.gutter_engine import PdfProcessConfig, config_to_dict, config_from_dict
 
 APP_FOLDER = "PDFBaskiCiltStudyosu"
 SETTINGS_VERSION = 1

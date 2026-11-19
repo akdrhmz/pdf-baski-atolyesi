@@ -5,7 +5,7 @@ from __future__ import annotations
 import pymupdf
 import pytest
 
-from gutter_engine import PdfProcessConfig, compute_layout, mm_to_pt, process_pdf, pt_to_mm
+from core.gutter_engine import PdfProcessConfig, compute_layout, mm_to_pt, process_pdf, pt_to_mm
 from tests.pdf_factory import create_sample_a4_pdf
 
 

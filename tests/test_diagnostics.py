@@ -3,7 +3,7 @@
 import json
 import zipfile
 
-from diagnostics import (PATH_MASK, anonymize_settings, build_diagnostics_zip, collect_info,
+from core.diagnostics import (PATH_MASK, anonymize_settings, build_diagnostics_zip, collect_info,
                          scrub_text)
 
 
@@ -63,7 +63,7 @@ def test_build_zip_without_log_still_works(tmp_path):
 
 
 def test_build_zip_failure_cleans_part(tmp_path, monkeypatch):
-    import diagnostics
+    import core.diagnostics as diagnostics
 
     def boom(*_a, **_k):
         raise RuntimeError("x")

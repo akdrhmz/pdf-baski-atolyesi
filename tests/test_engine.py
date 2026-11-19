@@ -12,7 +12,7 @@ import os
 import pymupdf
 import pytest
 
-from gutter_engine import (
+from core.gutter_engine import (
     CLIP_TOLERANCE_PT,
     MarginSettings,
     OutputPathError,
@@ -909,13 +909,13 @@ def test_merge_page_range_with_orphan_toc_level_does_not_crash(tmp_path):
 
 
 def test_sanitize_toc_fixes_first_level_and_jumps():
-    from gutter_engine import sanitize_toc
+    from core.gutter_engine import sanitize_toc
     assert sanitize_toc([[3, "a", 1], [5, "b", 2], [1, "c", 3]]) == [
         [1, "a", 1], [2, "b", 2], [1, "c", 3]]
 
 
 def test_parse_page_ranges_accepts_en_dash_semicolon_and_caps_huge_ranges():
-    from gutter_engine import MAX_PAGE_NUMBER, invalid_range_tokens
+    from core.gutter_engine import MAX_PAGE_NUMBER, invalid_range_tokens
     assert parse_page_ranges("3–5; 9") == {3, 4, 5, 9}
     huge = parse_page_ranges("1-999999999")
     assert len(huge) == MAX_PAGE_NUMBER
@@ -924,7 +924,7 @@ def test_parse_page_ranges_accepts_en_dash_semicolon_and_caps_huge_ranges():
 
 
 def test_number_text_without_unicode_font_raises_instead_of_bullets(tmp_path, monkeypatch):
-    import gutter_engine as ge
+    import core.gutter_engine as ge
     monkeypatch.setattr(ge, "_number_font_candidates", lambda: [])
     src = tmp_path / "s.pdf"
     _make_toc_pdf(src, 2, None)
@@ -951,7 +951,7 @@ def _make_marked_pdf(path, rotation=0, pages=3):
 
 @pytest.mark.parametrize("rotation", [0, 90, 180, 270])
 def test_verify_render_check_passes_for_correct_output(tmp_path, rotation):
-    from gutter_engine import verify_output
+    from core.gutter_engine import verify_output
     src = tmp_path / "s.pdf"
     _make_marked_pdf(src, rotation)
     cfg = PdfProcessConfig()
@@ -968,7 +968,7 @@ def test_verify_render_check_passes_for_correct_output(tmp_path, rotation):
 
 def test_verify_render_check_catches_unrotated_output(tmp_path):
     """Eski hata: /Rotate yok sayılarak basılan sayfa görsel karşılaştırmada yakalanmalı."""
-    from gutter_engine import verify_output
+    from core.gutter_engine import verify_output
     src = tmp_path / "s.pdf"
     _make_marked_pdf(src, 90)
     cfg = PdfProcessConfig()
@@ -989,7 +989,7 @@ def test_verify_render_check_catches_unrotated_output(tmp_path):
 # Birleştirme: sayfa aralığı tam kopya çıkarmadan eklenir
 # ---------------------------------------------------------------------------
 def test_contiguous_runs_groups_consecutive_pages():
-    from gutter_engine import _contiguous_runs
+    from core.gutter_engine import _contiguous_runs
     assert _contiguous_runs([1, 2, 3, 7, 9, 10]) == [(1, 3), (7, 7), (9, 10)]
     assert _contiguous_runs([5]) == [(5, 5)]
     assert _contiguous_runs([]) == []

@@ -15,7 +15,7 @@ from typing import List
 
 from ui.qt_compat import filedialog, messagebox
 
-from gutter_engine import (
+from core.gutter_engine import (
     ProcessCancelled,
     FIT_MODES,
     PdfProcessConfig,

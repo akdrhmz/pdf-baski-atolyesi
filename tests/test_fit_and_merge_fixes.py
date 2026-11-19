@@ -9,8 +9,8 @@ import pymupdf
 import pytest
 from PySide6.QtWidgets import QApplication
 
-import gutter_engine as ge
-from gutter_engine import (PdfProcessConfig, config_from_dict, config_to_dict, mm_to_pt,
+import core.gutter_engine as ge
+from core.gutter_engine import (PdfProcessConfig, config_from_dict, config_to_dict, mm_to_pt,
                            pt_to_mm, render_plain_preview)
 from tests.pdf_factory import create_sample_a4_pdf
 from tests.test_merge_multiselect import five  # noqa: F401

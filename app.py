@@ -23,12 +23,12 @@ from ui.qt_compat import messagebox
 
 HAS_WINDND = True
 
-from gutter_engine import (
+from core.gutter_engine import (
     UNITS,
     PdfProcessConfig,
 )
-from settings_store import LOG_PATH, SettingsStore, setup_logging
-from version import APP_ID, APP_NAME, VERSION
+from core.settings_store import LOG_PATH, SettingsStore, setup_logging
+from core.version import APP_ID, APP_NAME, VERSION
 from ui.bridge import forward
 from ui.config_binding import ConfigBindingMixin, field_row_names
 from ui.dialogs import DialogsMixin

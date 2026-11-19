@@ -16,8 +16,8 @@ from typing import Any, Dict, List, Optional
 from ui import qt_compat as ctk  # noqa: F401
 from ui.qt_compat import messagebox
 
-import page_layout_model as plm
-from gutter_engine import (
+import core.page_layout_model as plm
+from core.gutter_engine import (
     MarginSettings,
     PageBoxSettings,
     PageNumberSettings,
@@ -27,8 +27,8 @@ from gutter_engine import (
     invalid_range_tokens,
     validate_config,
 )
-from gutter_engine import format_measure, unit_to_mm
-from settings_store import PRESETS
+from core.gutter_engine import format_measure, unit_to_mm
+from core.settings_store import PRESETS
 from ui.theme import *  # noqa: F401,F403
 from ui.widgets import FieldError, FieldRow
 

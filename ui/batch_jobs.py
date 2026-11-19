@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Iterable, Optional
 
-from gutter_engine import (ProcessCancelled, PdfProcessConfig, process_pdf,
+from core.gutter_engine import (ProcessCancelled, PdfProcessConfig, process_pdf,
                            same_path, scan_clipping, unique_output_path, verify_output)
 
 

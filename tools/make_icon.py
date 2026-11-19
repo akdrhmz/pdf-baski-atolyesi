@@ -18,7 +18,7 @@ from typing import Dict
 
 from PIL import Image, ImageDraw
 
-ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets")
 
 BG = (9, 84, 158)             # #09549E
 BG_EDGE = (6, 64, 122)

@@ -15,8 +15,8 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 import pytest  # noqa: E402
 from PySide6.QtGui import QColor  # noqa: E402
 
-import page_layout_model as plm  # noqa: E402
-from gutter_engine import (  # noqa: E402
+import core.page_layout_model as plm  # noqa: E402
+from core.gutter_engine import (  # noqa: E402
     ClipIssue,
     ScanReport,
     format_clip_group,
@@ -67,7 +67,7 @@ def test_choice_names_come_from_the_ui_labels():
 
 
 def test_engine_shift_warning_is_translated_to_ui_names():
-    from gutter_engine import validate_config, PdfProcessConfig
+    from core.gutter_engine import validate_config, PdfProcessConfig
     cfg = PdfProcessConfig()
     cfg.margins.enabled = True
     cfg.margins.bottom_mode = "shift"

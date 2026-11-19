@@ -6,8 +6,8 @@ import os
 
 from ui.qt_compat import filedialog
 
-from gutter_engine import get_pdf_info
-from version import APP_NAME
+from core.gutter_engine import get_pdf_info
+from core.version import APP_NAME
 from ui.theme import *  # noqa: F401,F403
 
 

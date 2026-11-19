@@ -10,8 +10,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import QListWidget, QListWidgetItem
 
-from gutter_engine import config_from_dict, validate_config
-from settings_store import PRESETS
+from core.gutter_engine import config_from_dict, validate_config
+from core.settings_store import PRESETS
 from ui import qt_compat as ctk
 from ui.qt_compat import filedialog, messagebox
 from ui.theme import *  # noqa: F401,F403

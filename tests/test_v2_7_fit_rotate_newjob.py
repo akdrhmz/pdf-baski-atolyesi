@@ -8,8 +8,8 @@ import pymupdf
 import pytest
 from PIL import Image
 
-import gutter_engine as ge
-from gutter_engine import PdfProcessConfig, mm_to_pt, pt_to_mm
+import core.gutter_engine as ge
+from core.gutter_engine import PdfProcessConfig, mm_to_pt, pt_to_mm
 from tests.test_fit_and_merge_fixes import _mixed, _sizes
 from tests.test_gui_headless import app  # noqa: F401
 

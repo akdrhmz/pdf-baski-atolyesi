@@ -9,8 +9,8 @@ from __future__ import annotations
 import pymupdf
 import pytest
 
-import gutter_engine as ge
-import page_layout_model as plm
+import core.gutter_engine as ge
+import core.page_layout_model as plm
 
 EXTEND, SHRINK, CLIP = plm.CHOICE_EXTEND, plm.CHOICE_SHRINK, plm.CHOICE_CLIP
 

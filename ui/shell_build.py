@@ -17,8 +17,8 @@ from PySide6.QtWidgets import QSplitter, QSplitterHandle, QVBoxLayout, QWidget
 from ui import qt_compat as ctk
 from PIL import Image
 
-from gutter_engine import UNITS
-from version import APP_NAME, VERSION
+from core.gutter_engine import UNITS
+from core.version import APP_NAME, VERSION
 from ui.context import AppContext
 from ui.paths import ASSETS_DIR
 from ui.tabs.merge import MergeTab

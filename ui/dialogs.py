@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
 from typing import Optional
 
@@ -575,6 +576,16 @@ class DialogsMixin:
             f"Paket kaydedildi:\n{path}\n\nDosya yolları ve kullanıcı adı maskelenmiştir; "
             "göndermeden önce içeriğine bakabilirsiniz.")
 
+    @staticmethod
+    def _open_with_os(target: str) -> None:
+        """Dosya veya klasörü işletim sisteminin varsayılan uygulamasıyla açar."""
+        if sys.platform.startswith("win"):
+            os.startfile(target)  # type: ignore[attr-defined]
+        elif sys.platform == "darwin":
+            subprocess.Popen(["open", target], start_new_session=True)
+        else:
+            subprocess.Popen(["xdg-open", target], start_new_session=True)
+
     def _open_about_path(self, path, folder: bool) -> None:
         try:
             target = str(path)
@@ -582,7 +593,7 @@ class DialogsMixin:
                 os.makedirs(target, exist_ok=True)
             elif not os.path.exists(target):
                 target = os.path.dirname(target) or "."
-            os.startfile(target)
+            self._open_with_os(target)
         except Exception as exc:
             messagebox.showerror("Hata", f"Dosya/klasör açılamadı: {exc}")
 
@@ -592,13 +603,13 @@ class DialogsMixin:
     def _open_output_pdf(self) -> None:
         if self.output_pdf_path and os.path.exists(self.output_pdf_path):
             try:
-                os.startfile(self.output_pdf_path)
+                self._open_with_os(self.output_pdf_path)
             except Exception as exc:
                 messagebox.showerror("Hata", f"PDF açılamadı: {exc}")
 
     def _open_output_folder(self) -> None:
         if self.output_pdf_path and os.path.exists(self.output_pdf_path):
             try:
-                os.startfile(os.path.dirname(os.path.abspath(self.output_pdf_path)))
+                self._open_with_os(os.path.dirname(os.path.abspath(self.output_pdf_path)))
             except Exception as exc:
                 messagebox.showerror("Hata", f"Klasör açılamadı: {exc}")

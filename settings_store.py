@@ -16,6 +16,7 @@ import logging
 import logging.handlers
 import os
 import shutil
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -26,8 +27,22 @@ APP_FOLDER = "PDFBaskiCiltStudyosu"
 SETTINGS_VERSION = 1
 VALID_UNITS = ("mm", "cm", "pt")
 
-APPDATA = Path(os.environ.get("APPDATA") or Path.home())
-LOCALAPPDATA = Path(os.environ.get("LOCALAPPDATA") or APPDATA)
+def _default_app_dirs() -> tuple[Path, Path]:
+    """İşletim sistemine uygun ayar ve günlük kök dizinlerini döndürür."""
+    if sys.platform.startswith("win"):
+        appdata = Path(os.environ.get("APPDATA") or Path.home())
+        local_appdata = Path(os.environ.get("LOCALAPPDATA") or appdata)
+        return appdata, local_appdata
+    if sys.platform == "darwin":
+        support = Path.home() / "Library" / "Application Support"
+        logs = Path.home() / "Library" / "Logs"
+        return support, logs
+    config_home = Path(os.environ.get("XDG_CONFIG_HOME") or (Path.home() / ".config"))
+    state_home = Path(os.environ.get("XDG_STATE_HOME") or (Path.home() / ".local" / "state"))
+    return config_home, state_home
+
+
+APPDATA, LOCALAPPDATA = _default_app_dirs()
 SETTINGS_PATH = APPDATA / APP_FOLDER / "settings.json"
 LOG_PATH = LOCALAPPDATA / APP_FOLDER / "studio.log"
 

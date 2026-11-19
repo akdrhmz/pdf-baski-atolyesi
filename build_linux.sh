@@ -5,8 +5,70 @@ APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$APP_DIR"
 
 if [[ ! -x ".venv/bin/python" ]]; then
-    echo "Önce ./install_linux.sh ile .venv ortamını kurun." >&2
-    exit 1
+    echo "Önce .venv ortamı oluşturuluyor..."
+    PYTHON_BIN="$(command -v python3.12 || command -v python3.11 || command -v python3 || true)"
+    if [[ -z "$PYTHON_BIN" ]]; then
+        echo "HATA: Python 3.10+ bulunamadı." >&2
+        exit 1
+    fi
+    "$PYTHON_BIN" -m venv .venv
+    .venv/bin/pip install --quiet --upgrade pip
+    .venv/bin/pip install --quiet -r requirements.txt
+fi
+
+WANT_RPM=0
+WANT_DEB=0
+
+if [[ $# -eq 0 ]]; then
+    echo "=== PDF Baskı Atölyesi — Linux Paketleme ==="
+    echo "Hangi paketler üretilsin?"
+    echo "  1) Yalnız taşınabilir .tar.gz (tüm Linux dağıtımları)"
+    echo "  2) .rpm + .tar.gz (Fedora / RHEL / openSUSE)"
+    echo "  3) .deb + .tar.gz (Debian / Ubuntu / Pardus / Mint)"
+    echo "  4) Tümü (.tar.gz + .rpm + .deb)"
+    read -rp "Seçiminiz [1-4, varsayılan 4]: " CHOICE
+    CHOICE="${CHOICE:-4}"
+    case "$CHOICE" in
+        1) ;;
+        2) WANT_RPM=1 ;;
+        3) WANT_DEB=1 ;;
+        4) WANT_RPM=1; WANT_DEB=1 ;;
+        *) echo "Geçersiz seçim." >&2; exit 1 ;;
+    esac
+else
+    for arg in "$@"; do
+        case "$arg" in
+            --rpm) WANT_RPM=1 ;;
+            --deb) WANT_DEB=1 ;;
+            --all) WANT_RPM=1; WANT_DEB=1 ;;
+            --tar) ;;
+            *) echo "Bilinmeyen parametre: $arg (kullanım: --tar | --rpm | --deb | --all)" >&2; exit 1 ;;
+        esac
+    done
+fi
+
+install_pkg() {
+    local pkg_fedora="$1" pkg_debian="$2" pkg_arch="$3"
+    if command -v dnf >/dev/null 2>&1; then
+        sudo dnf install -y "$pkg_fedora"
+    elif command -v apt-get >/dev/null 2>&1; then
+        sudo apt-get update && sudo apt-get install -y "$pkg_debian"
+    elif command -v pacman >/dev/null 2>&1; then
+        sudo pacman -Sy --noconfirm "$pkg_arch"
+    else
+        echo "Otomatik paket yöneticisi bulunamadı; lütfen '$pkg_fedora' / '$pkg_debian' elle kurun." >&2
+        return 1
+    fi
+}
+
+if [[ "$WANT_RPM" -eq 1 ]] && ! command -v rpmbuild >/dev/null 2>&1; then
+    echo "'rpmbuild' kurulu değil; kurulum başlatılıyor (sudo şifresi istenebilir)..."
+    install_pkg "rpm-build" "rpm" "rpm-tools"
+fi
+
+if [[ "$WANT_DEB" -eq 1 ]] && ! command -v dpkg-deb >/dev/null 2>&1; then
+    echo "'dpkg-deb' kurulu değil; kurulum başlatılıyor (sudo şifresi istenebilir)..."
+    install_pkg "dpkg" "dpkg" "dpkg"
 fi
 
 if ! .venv/bin/python -c "import PyInstaller" >/dev/null 2>&1; then
@@ -18,10 +80,9 @@ APP_VER="$(.venv/bin/python -c "from core import version; print(version.VERSION)
 PKG_NAME="pdf-baski-atolyesi"
 BUNDLE_NAME="PDFBaskiAtolyesi-v${APP_VER}-linux-x86_64"
 
-echo "=== PDF Baskı Atölyesi v${APP_VER} — Linux Paketleme ==="
+echo "=== PDF Baskı Atölyesi v${APP_VER} Derleniyor ==="
 rm -rf build/ "dist/${PKG_NAME}" "dist/${BUNDLE_NAME}"
 
-# 1. Yalnızca çalışma dosyalarıyla bağımsız ikili derle (tests/, docs/, .venv hariç)
 .venv/bin/pyinstaller \
     --noconfirm \
     --windowed \
@@ -47,7 +108,7 @@ rm -rf build/ "dist/${PKG_NAME}" "dist/${BUNDLE_NAME}"
     --hidden-import "core.version" \
     app.py
 
-# 2. Venvsiz kurulabilir taşınabilir arşiv (.tar.gz + install.sh)
+# Taşınabilir .tar.gz paketi (venvsiz install.sh içerir)
 BUNDLE_DIR="dist/${BUNDLE_NAME}"
 mkdir -p "$BUNDLE_DIR/app"
 cp -a "dist/${PKG_NAME}/." "$BUNDLE_DIR/app/"
@@ -80,6 +141,7 @@ StartupWMClass=pdf-baski-atolyesi
 DESK
 chmod +x "$APP_DIR/pdf-baski-atolyesi.desktop"
 command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$APP_DIR" >/dev/null 2>&1 || true
+command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" >/dev/null 2>&1 || true
 command -v kbuildsycoca6 >/dev/null 2>&1 && kbuildsycoca6 >/dev/null 2>&1 || true
 echo "Kuruldu: $TARGET_DIR (Python/venv gerektirmez)."
 EOF
@@ -97,8 +159,7 @@ chmod +x "$BUNDLE_DIR/install.sh" "$BUNDLE_DIR/uninstall.sh"
 tar -C dist -czf "dist/${BUNDLE_NAME}.tar.gz" "$BUNDLE_NAME"
 echo "Hazır (tüm Linuxlar): dist/${BUNDLE_NAME}.tar.gz"
 
-# 3. Sistemde dpkg-deb varsa .deb kurulum paketi de üret
-if command -v dpkg-deb >/dev/null 2>&1; then
+if [[ "$WANT_DEB" -eq 1 ]] && command -v dpkg-deb >/dev/null 2>&1; then
     DEB_ROOT="build/deb/${PKG_NAME}_${APP_VER}_amd64"
     rm -rf "build/deb"
     mkdir -p "$DEB_ROOT/DEBIAN" "$DEB_ROOT/opt/${PKG_NAME}" \
@@ -133,8 +194,7 @@ CTRL
     echo "Hazır (Debian/Ubuntu/Pardus): dist/${PKG_NAME}_${APP_VER}_amd64.deb"
 fi
 
-# 4. Sistemde rpmbuild varsa .rpm kurulum paketi de üret (Fedora/RHEL/openSUSE)
-if command -v rpmbuild >/dev/null 2>&1; then
+if [[ "$WANT_RPM" -eq 1 ]] && command -v rpmbuild >/dev/null 2>&1; then
     RPM_TOP="$APP_DIR/build/rpm"
     rm -rf "$RPM_TOP"
     mkdir -p "$RPM_TOP"/{BUILD,RPMS,SOURCES,SPECS,SRPMS}

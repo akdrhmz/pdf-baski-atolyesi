@@ -4,7 +4,7 @@ chcp 65001 >nul
 cd /d "%~dp0"
 
 echo ================================================================
-echo   PDF Baski ^& Cilt Studyosu - Tasinabilir EXE Yapici
+echo   PDF Baski Atolyesi - Tasinabilir EXE Yapici
 echo   Gelistirici: Abdulkadir Hamza (support@kadirhamza.com)
 echo ================================================================
 echo.
@@ -38,7 +38,7 @@ if "%APPVER%"=="" set "APPVER=0.0.0"
 echo Surum: %APPVER%
 if not exist "assets\icon.ico" (
     echo Simge uretiliyor...
-    python make_icon.py
+    python tools\make_icon.py
     if errorlevel 1 goto fail
 )
 
@@ -69,14 +69,20 @@ python -m PyInstaller ^
     --exclude-module tkinter ^
     --add-data "assets;assets" ^
     --add-data "locales;locales" ^
+    --hidden-import "core.gutter_engine" ^
+    --hidden-import "core.pdf_tools" ^
+    --hidden-import "core.page_layout_model" ^
+    --hidden-import "core.settings_store" ^
+    --hidden-import "core.diagnostics" ^
+    --hidden-import "core.version" ^
     --icon "assets\icon.ico" ^
-    --name "PDF_Baski_Cilt_Studyosu_%APPVER%" ^
+    --name "PDF_Baski_Atolyesi_%APPVER%" ^
     app.py
 if errorlevel 1 goto fail
 
 echo.
 echo ================================================================
-echo   EXE hazir: %~dp0dist\PDF_Baski_Cilt_Studyosu_%APPVER%.exe
+echo   EXE hazir: %~dp0dist\PDF_Baski_Atolyesi_%APPVER%.exe
 echo ================================================================
 echo.
 explorer "%~dp0dist"

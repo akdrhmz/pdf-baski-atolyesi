@@ -1,252 +1,149 @@
-# PDF Baskı Atölyesi
+<p align="center">
+  <img src="assets/icon.png" alt="PDF Baskı Atölyesi" width="96" height="96">
+</p>
 
-**Sürüm:** `core/version.py` içindeki tek kaynaktan okunur (şu an 2.10.0)  
-**Geliştirici:** Abdülkadir Hamza — support@kadirhamza.com
+<h1 align="center">PDF Baskı Atölyesi</h1>
 
-PyMuPDF ile vektörel (yeniden örneklemesiz) PDF hazırlığı yapan **Windows ve Linux** masaüstü
-uygulaması: duplex cilt payı, sabit alt/üst pay, sayfa numaralandırma, kırpma
-taraması, sonuç doğrulama, kayıpsız birleştirme ve entegre baskı/montaj araçları.
+<p align="center">
+  <strong>Windows ve Linux için vektörel (kayıpsız) PDF baskı, cilt payı, numaralandırma, birleştirme ve kitapçık montaj stüdyosu.</strong>
+</p>
 
-Kaynak dosyaya asla yazılmaz. Çıktı önce geçici dosyaya yazılır, başarılı olursa
-hedefe taşınır.
+<p align="center">
+  <a href="https://github.com/akdrhmz/pdf-baski-cilt-studyosu/releases/latest"><strong>İndir (Releases)</strong></a> ·
+  <a href="#özellikler">Özellikler</a> ·
+  <a href="#kurulum-ve-çalıştırma">Kurulum</a> ·
+  <a href="#lisans-ve-iletişim">Lisans</a>
+</p>
 
-## 2.9.0 arayüz ve toplu işlem yenilikleri
+---
 
-- Kaynak PDF veya birleştirme listesi hazır değilse ana işlem düğmesi devre dışı kalır ve gereken adımı söyler.
-- Belge yokken önizleme alanı sade bir yönlendirme gösterir; işlem öncesi **Ön kontrol** özeti kaynağı, etkin ayarları ve çıktı tercihlerini listeler.
-- Üst çubuktan **Toplu işlem…** ile dosya/klasör seçin, alt klasörleri tarayın, mevcut ayarı veya kayıtlı profili kullanın; kırpma riski bulunanları atlayın ve dosya başına sonucu izleyin.
-- İşlem, iptal ve sonuç düğmeleri yalnız uygun aşamada görünür. Tema seçimi tek yerde, üst çubuktadır.
+**Sürüm:** `core/version.py` (güncel: `2.10.3`) · **Lisans:** [MIT](LICENSE) (Ücretsiz ve Açık Kaynak) · **İletişim:** support@kadirhamza.com
 
-## 2.8.0 özellikleri
+PyMuPDF ve PySide6 (Qt 6) ile geliştirilen **PDF Baskı Atölyesi**, kaynak PDF'lere asla dokunmadan atomik kayıt, işlem öncesi kırpma riski taraması ve işlem sonrası piksel/metin doğrulaması ile baskıya hazır PDF'ler üretir.
 
-- Ayarlar: görünüm/birim/dil, liste ve önizleme, PDF çıktısı, sıfırlama. Optimizasyon ve form/açıklama gömme buraya taşındı.
-- Birleştirmede bağımsız eşitleme; özel ebat ve çevre boşluğu; uzun listede görünür satır kontrolleri ve 56×72 küçük resimler.
-- Önizlemede yakınlaştırma (Ctrl+tekerlek), gezinme, görünümü döndürme, Önce/Sonra geçişi.
-- Bölüm numaralandırması ve boş sayfa; soldan/sağdan/üstten cilt.
-- Üst çubuk → **PDF araçları…**: sayfa ayıklama/bölme, filigran/Bates, kesim işaretleri ve taşma payı, kitapçık ve 2-up/4-up montaj.
-- Açık/koyu tema tek tıklamayla boyanır; Türkçe/English arayüz Ayarlar’dan seçilir.
+---
 
-Ayrıntı ve doğrulama: [2.9.0 sürüm notları](docs/v2.9.0-surum-notlari.md) · [2.8.1 DPI düzeltmesi](docs/v2.8.1-surum-notlari.md) · [2.8.0 özellikleri](docs/v2.8.0-surum-notlari.md). Yol haritası: [güncel plan](docs/app-bolme-plani.md).
+## İndir (Hazır Kurulum Paketleri)
 
-### Klasör bazlı toplu işlem
+Python veya sanal ortam kurmadan doğrudan çalıştırmak için [Releases](https://github.com/akdrhmz/pdf-baski-cilt-studyosu/releases/latest) sayfasından sisteminize uygun paketi indirin:
 
-```powershell
-python gutter_engine.py --profile "Tez (üniversite)" --input "C:\PDFler" --output "C:\Ciktilar"
-python studio_cli.py --profile "ayarlar.json" --input "C:\PDFler" --output "C:\Ciktilar" --recursive
-```
+| Platform | Paket | Açıklama |
+| :--- | :--- | :--- |
+| **Windows (Kurulum)** | `PDF_Baski_Atolyesi_<sürüm>_Setup.exe` | Başlat Menüsü ve Masaüstü kısayollu standart kurulum |
+| **Windows (Taşınabilir)** | `PDF_Baski_Atolyesi_<sürüm>_Portable.exe` | Kurulum gerektirmeyen tek dosya `.exe` |
+| **Fedora / RHEL / openSUSE** | `pdf-baski-atolyesi-<sürüm>-1.x86_64.rpm` | `sudo dnf install ./pdf-baski-atolyesi-*.rpm` |
+| **Ubuntu / Debian / Pardus / Mint** | `pdf-baski-atolyesi_<sürüm>_amd64.deb` | `sudo apt install ./pdf-baski-atolyesi_*.deb` |
+| **Tüm Linux Dağıtımları** | `PDFBaskiAtolyesi-v<sürüm>-linux-x86_64.tar.gz` | Arşivi açıp `./install.sh` çalıştırın |
+
+---
 
 ## Özellikler
 
-### Sayfa düzeni
-- **Tek sekme**: Cilt payı, alt/üst boşluk, sayfa boyutu ve özel sayfalar aynı
-  "Sayfa Düzeni" adımında; her bölüm kendi kartında.
-- Cilt payı ve alt/üst boşluk **ayrı anahtarlarla** açılır; anahtar bölüm
-  başlığındadır, rozet (Etkin / Devre dışı) durumu gösterir.
-- Tek ve çift sayfalar için ayrı X/Y ofseti (duplex kitap düzeni).
-- İki ebat modu: **hedef ebat sabit** veya **kaynak ebat + cilt payı** (karışık
-  ebatlı belgelerde kırpma olmaz).
-- Tek "Taşarsa ne olsun" seçimi: **Sayfa uzasın** (kırpmaz, varsayılan),
-  **İçerik küçülsün** (orantılı küçültür) veya **Taşan kırpılsın** (kırpabilir;
-  önizlemede kırmızı uyarı). Kırpma riski taraması risk bulduğunda seçim
-  yapılmasını ister.
-- Döndürülmüş (`/Rotate`) ve kırpılmış (`CropBox`) sayfalar görünür hâlleriyle
-  işlenir; döndürmeden kaynaklanan içerik kaybı olmaz.
-- Hazır cilt payı düğmeleri: 10 / 15 / 20 mm.
-- Kağıt şablonları: A4, A5, B5, Letter; dikey/yatay.
-- **Özel sayfalar**: sayfa aralığı + üç mod (yalnız cilt payı, yalnız alt/üst
-  boşluk, hiçbiri) kural satırları; ara kapak için tek tık kuralı. Çakışan
-  aralıklar satır altında uyarıyla gösterilir.
-- **Tek yerden modül açma**: şeritteki üç onay kutusu cilt payı, boşluk ve
-  numarayı da yönetir; bir alana değer girildiğinde ilgili modül kendiliğinden
-  etkinleşir. Şeritteki düğme duruma göre **Tümünü aç** veya **Tümünü kapat**
-  olur.
-- Alt/üst boşluk bölümünde "Kitapçık için 4'ün katına tamamla" onayı vardır.
+### 1. Sayfa Düzeni
+* **Duplex Cilt Payı:** Tek ve çift sayfalar için ayrı X/Y ofseti; soldan, sağdan ve üstten ciltleme; hazır şablonlar (*Tez*, *Spiral cilt*, *Sıcak tutkal cilt*, *Kitapçık*) ve 10 / 15 / 20 mm hızlı düğmeler.
+* **Alt / Üst Boşluk & Kitapçık Tamamlama:** Sabit alt/üst pay ekleme ve kitapçık baskı için sayfa sayısını otomatik 4'ün katına tamamlama.
+* **Sayfa Boyutu & Eşitleme ("Sığdır"):** Karışık ebatlı PDF'leri *A5 / A4 / A3 / Özel* ebatlara veya ilk/en büyük/baskın sayfaya oranını bozmadan sığdırma; yatay sayfaları koruma ya da 90° döndürme.
+* **Özel Sayfa Kuralları:** Belirli sayfalarda veya ara kapaklarda cilt/boşluk kurallarını ayrı yönetme (katlanabilir bölüm).
+* **Taşma Kontrolü:** *Sayfa uzasın* (varsayılan, kırpmaz), *İçerik küçülsün* veya *Taşan kırpılsın*.
 
-### Sayfa numaralandırma
-- Dış kenar, alt orta veya iç kenar.
-- Biçimler: `1`, `- 1 -`, `1 / Toplam`, `Sayfa 1`.
-- Başlangıç sayfası, ilk numara, taban ve yan boşluk.
-- Numarasız sayfalar (`1, 2, 15, 24-26`) ve ardışık sayaç (90 → kapak → 91).
+### 2. Sayfa Numaraları
+* **Konum & Stil:** Yatay (*Dış kenar*, *Alt orta*, *İç kenar*) ve dikey (*Alt kenar*, *Üst kenar*) konum; yazı rengi seçimi (`QColorDialog`); özel şablonlar (`{n}`, `{N}`, `{roman}`, `{ROMAN}`).
+* **Bölüm Numaralandırması:** Romen rakamından Arap rakamına geçiş, bölüm başında numara gizleme ve sağ sayfada başlatmak için otomatik boş sayfa ekleme.
+* **Numarasız Sayfalar:** Ara kapaklar için numara atlama ve ardışık sayacı koruma.
 
-### Kalite ve güvenilirlik
-- **Kırpma riski taraması**: işlemden önce hangi sayfada ne kadar içeriğin
-  taşacağını listeler; onay olmadan devam etmez.
-- **Sonuç doğrulama raporu**: sayfa sayısı, ebat, metin, bağlantı ve
-  açıklama/form karşılaştırması; ayrıca kaynak ile çıktının **görsel (piksel)
-  karşılaştırması** (60 sayfaya kadar eşit aralıklı örnekleme). Taranmış PDF'lerde
-  ve döndürme/yerleşim hatalarında metin karşılaştırmasının göremediği içerik
-  kaybını yakalar.
-- **Atomik kayıt**: yarım/bozuk çıktı bırakmaz, kaynağı değiştirmez.
-- **Günlük**: `%LOCALAPPDATA%\PDFBaskiCiltStudyosu\studio.log` (1 MB'ta döner,
-  3 yedek). Hata penceresinde "Panoya kopyala" vardır.
-- **Tanılama paketi**: Kılavuz & Hakkında → "Tanılama paketi oluştur (.zip)" günlüğü,
-  anonim ayarları (son dosyalar ve yollar çıkarılır) ve sürüm/DPI bilgisini tek zip'e koyar;
-  destek istenirken gönderilebilir. PDF içeriği pakete girmez.
-- **Canlı önizleme**: çift sayfa açılımı (1-2, 3-4…; tek sayıda son sayfa tek); cilt şeridi, alt/üst pay ve
-  numara konumu işaretli. Ayar değişince kendiliğinden yenilenir; "Önizlemeyi
-  yenile" düğmesi vardır. Birleştirme sekmesinde **seçili PDF** önizlenir.
-- **Sürükle-bırak**: PDF'leri pencereye bırakın; Türkçe karakterli yollar
-  desteklenir. Birleştirme sekmesinde hepsi listeye eklenir, diğer sekmelerde
-  ilki açılır ve durum çubuğu kaç dosya olduğunu bildirir.
-- **Alan bazlı doğrulama**: hatalı kutu kırmızı olur, altında kısa açıklama çıkar.
+### 3. PDF Birleştirme
+* **Kayıpsız Birleştirme & Görsel Ekleme:** Birden fazla PDF'i ve görseli (`.png`, `.jpg`, `.webp`, `.bmp`, `.tif`) sürükle-bırak ile sıralama, dosya başına döndürme (0/90/180/270°) ve sayfa aralığı seçimi.
+* **Çoklu Seçim & Akıcı Liste:** `Ctrl+tık`, `Shift+tık`, `Ctrl+A`, `Del`, `Alt+↑/↓`; 56×72 küçük resimler ve yer imi (TOC) aktarımı.
+* **Tek Geçişte Uygulama:** Birleştirdikten sonra Sayfa Düzeni ve Numaralandırma ayarlarını tek seferde uygulama veya bağımsız ebat eşitleme.
 
-### Birleştirme
-- Sürükleyerek sıralama: sürüklerken satırlar yerinde kalır, **bırakılacak yer mavi çizgiyle** gösterilir
-  ve fare bırakılınca seçili satırlar (tek ya da blok) oraya taşınır; fareyi listenin alt/üst
-  kenarına getirince liste kendiliğinden kayar. "Satırları yalnız ⠿ tutamacından sürükle"
-  seçeneği yanlışlıkla taşımayı önler.
-- Dosya başına 0/90/180/270° rotasyon; seçim yokken
-  rotasyon düğmeleri hiçbir dosyayı değiştirmez, **Tümünü döndür** ayrıdır.
-- Satır başında sürükleme tutamacı, dosya adı, sayfa aralığı alanı ve rotasyon
-  rozeti; seçili satırda rozet okunabilirliğini korur.
-- **Çoklu seçim:** `Ctrl+tık` ekler/çıkarır, `Shift+tık` aralık seçer, `Ctrl+A` tümünü seçer.
-  Silme, döndürme ve taşıma tüm seçili dosyalara uygulanır; seçili satırlar sürüklenince blok olarak taşınır.
-- Kısayollar: `Del` seçilenleri kaldırır, `Alt+↑/↓` seçilenleri sıralar, `Ctrl+A` tümünü seçer.
-- Seçili dosya canlı önizleme panelinde gösterilir.
-- Yer imleri (TOC) sayfa numaraları kaydırılarak korunur; ilk dosyanın meta
-  verisi korunur.
-- "Birleştirdikten sonra aktif ayarları uygula" ile tek geçişte cilt payı,
-  boşluk ve numaralandırma.
-- Eksik dosyalar atlanır ve sonuç raporunda açıkça bildirilir.
+### 4. Baskı ve Araçlar *(Ana Canlı Önizlemeye Entegre)*
+* **Sayfaları Düzenle:** Küçük resim ızgarasında sürükle-bırak sıralama, sayfa döndürme, seçili sayfaları ayıklama veya N'er sayfalık parçalara bölme.
+* **Filigran & Bates:** Şeffaf filigran metni (renk, açı, saydamlık, sayfa aralığı) ve belge takip numarası (Bates) ekleme.
+* **Baskı Montajı:** Kitapçık (forma kalınlığı ve iç sayfa kayma/creep telafisi), 2-up (yatayda `2×1`, dikeyde `1×2`), 4-up (`2×2`), RTL (sağdan-sola) dizilim, kesim işaretleri, taşma payı (TrimBox/BleedBox) ve ayırıcı çizgiler.
+* **Güvenlik & Meta Veri:** AES-256 açılış/izin parolası, yazdırma/kopyalama izinleri, başlık/yazar düzenleme veya temizleme, taranmış PDF'ler için DPI bazlı görsel sıkıştırma.
 
-### Arayüz
-- Açık / koyu / sistem teması; okunabilir seçili düğme renkleri.
-- Tema değişiminde pencere gizlenmez: başlık çubuğu rengi doğrudan Windows
-  özniteliğiyle değişir (CustomTkinter'in gizle/göster hilesi devre dışı).
-- Pencere boyutu ve minimum boyut, ekran ölçeğinden bağımsız doğru hesaplanır.
-- Profiller: kaydet, yükle, sil (JSON). Hazır öneriler: Tez, Spiral cilt,
-  Sıcak tutkal cilt, Kitapçık.
-- Birim: mm, cm, pt. İnç motor desteği ileride açılmak üzere arayüzde kapalıdır.
-- Son ayarlar ve tema otomatik hatırlanır.
-- Hakkında penceresi: sürüm, geliştirici, altyapı, kısayollar, ayar/günlük yolları
-  ve bu klasörleri açma düğmeleri.
-- Kısayollar: `Ctrl+O` dosya aç, `Ctrl+Enter` işle, `Enter` işle, `Esc` iptal.
-- Çıktı adı çakışırsa `ad (2).pdf` biçiminde otomatik numaralanır.
+### Canlı Önizleme, Toplu İşlem ve CLI
+* **Canlı Önizleme:** Çift sayfa açılımı, yakınlaştırma (`Ctrl+tekerlek`), sürükleyerek kaydırma, görünümü döndürme, *Önce / Sonra* karşılaştırması, tam ekran ve ayrı pencere kipi.
+* **Toplu İşlem:** Klasör/alt klasör bazlı toplu PDF işleme (GUI kuyruğu + `studio_cli.py`).
+* **Kalite Güvencesi:** İşlem öncesi kırpma riski taraması, işlem sonrası metin + piksel doğrulama raporu, JSON profil dışa/içe aktarma ve tanılama paketi (`.zip`).
 
-## Kurulum ve çalıştırma
-
-Python 3.10+ (3.12 önerilir) gerekir.
-
-**Linux:**
 ```bash
-python3.12 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-./baslat.sh
+python studio_cli.py --profile "ayarlar.json" --input "./PDFler" --output "./Ciktilar" --recursive
 ```
 
-**Windows:**
+---
+
+## Kaynak Koddan Kurulum ve Paketleme
+
+Python **3.10+** (3.12 önerilir) gerekir.
+
+### Linux
+```bash
+git clone https://github.com/akdrhmz/pdf-baski-cilt-studyosu.git
+cd pdf-baski-cilt-studyosu
+./install_linux.sh      # .venv kurar ve uygulama menüsüne ekler
+```
+* **Çalıştırma:** `./baslat.sh` (veya uygulama menüsünden *PDF Baskı Atölyesi*)
+* **Paketleme (`.tar.gz`, `.deb`, `.rpm`):** `./build_linux.sh`
+
+### Windows
 ```bat
-python -m pip install -r requirements.txt
-Baslat.bat
+git clone https://github.com/akdrhmz/pdf-baski-cilt-studyosu.git
+cd pdf-baski-cilt-studyosu
+install_windows.bat     # .venv kurar ve Masaüstü/Başlat Menüsü kısayolu ekler
 ```
+* **Çalıştırma:** `Baslat.bat` (veya `python app.py`)
+* **Paketleme (`Setup.exe` + `Portable.exe`):** `build_exe.bat`
 
-Elle çalıştırma:
-
-```bash
-python app.py
-```
+---
 
 ## Testler
 
-```bat
+```bash
+# Linux (ekran dışı Qt)
+QT_QPA_PLATFORM=offscreen .venv/bin/python -m pytest tests -q
+
+# Windows
 python -m pytest tests -q
 ```
 
-- Motor testleri gerçek PDF üretip PyMuPDF ile sonucu yeniden okur.
-- Arayüz testleri gerçek Qt penceresi kurar; taşma, doğrulama, birim dönüşümü,
-  önizleme, işlem hattı ve birleştirme akışını dener.
-- Görsel regresyon altın görüntülerle karşılaştırır:
-  `tests/golden/`. Bilinçli güncelleme:
+---
 
-```bat
-set UPDATE_GOLDENS=1
-python -m pytest tests/test_visual_regression.py
-set UPDATE_GOLDENS=
+## Klasör Yapısı
+
+```text
+pdf-baski-cilt-studyosu/
+├── app.py                     # Ana masaüstü uygulama giriş noktası
+├── studio_cli.py              # Komut satırı toplu işlem aracı
+├── core/                      # Çekirdek motor, montaj, ayarlar ve sürüm
+│   ├── gutter_engine.py       # Geometri, cilt payı, numaralandırma, tarama, doğrulama
+│   ├── pdf_tools.py           # Sayfa bölme, filigran/Bates, kitapçık/N-up, güvenlik
+│   ├── page_layout_model.py   # Sayfa Düzeni modeli
+│   ├── settings_store.py      # Ayar/profil kalıcılığı ve günlük
+│   ├── diagnostics.py         # Anonim tanılama paketi (.zip)
+│   └── version.py             # Tek sürüm ve uygulama adı kaynağı
+├── ui/                        # PySide6 arayüz katmanı ve sekmeler
+│   └── tabs/                  # page_layout.py, number.py, merge.py, tools.py
+├── assets/                    # Uygulama simgeleri (.png/.ico) ve DejaVuSans.ttf
+├── locales/                   # Türkçe ve İngilizce arayüz çevirileri
+├── packaging/                 # Windows Inno Setup betiği
+├── tools/                     # İkon üretici ve ölçüm betikleri
+├── samples/referans/          # Örnek PDF seti
+├── docs/                      # Geliştirme planı ve sürüm notları
+└── tests/                     # Birim, arayüz ve görsel regresyon testleri
 ```
 
-Performans ölçümü (tema değişimi, sekme geçişi, açılış süresi, `withdraw` sayısı,
-widget sayısı) kapalı gelir; açmak için:
+---
 
-```bat
-set APP_PERF=1
-python app.py
-```
+## Ayarlar ve Gizlilik
 
-Süreler `studio.log` içinde `PERF` satırları olarak, kapanışta özet olarak yazılır.
-Widget diyetinde her adımdan önce ve sonra bu çıktı karşılaştırılır.
+* **Windows:** Ayarlar `%APPDATA%\PDFBaskiCiltStudyosu\settings.json`, Günlük `%LOCALAPPDATA%\PDFBaskiCiltStudyosu\studio.log`
+* **Linux:** Ayarlar `~/.config/PDFBaskiCiltStudyosu/settings.json`, Günlük `~/.local/state/PDFBaskiCiltStudyosu/studio.log`
+* Hiçbir PDF içeriği veya kullanıcı verisi ağa gönderilmez; tüm işlemler yerelde yapılır.
 
-Referans PDF setini yeniden üretmek için:
+---
 
-```bat
-python tools/make_reference_set.py
-```
+## Lisans ve İletişim
 
-## EXE oluşturma
-
-```bat
-build_exe.bat
-```
-
-Betik bağımlılıkları denetler, testleri çalıştırır, simgeyi üretir ve
-`dist\PDF_Baski_Cilt_Studyosu_<sürüm>.exe` dosyasını oluşturur.
-
-## Dosya düzeni
-
-```
-app.py                  Pencere kabuğu (ModernGutterApp): yaşam döngüsü, sekme seçimi, ortak durum, geçiş köprüleri, main()
-ui/shell_build.py       Pencere kurulumu: üst çubuk, dosya çubuğu, çalışma alanı (sekmeler | QSplitter | önizleme), modül şeridi, eylem çubuğu
-ui/pipeline.py          Modül anahtarlarını topluca açma/kapama, eylem çubuğunun işlem hattı özeti
-ui/document.py          Ana belgenin seçilmesi ve yüklenmesi
-ui/shortcuts.py         Klavye kısayolları (Ctrl+O, Ctrl+Enter, Esc, Delete, Alt+Yön) ve ana eylem yönlendirmesi
-ui/bridge.py            forward: eski pencere öznitelik adlarını taşınmış nesnelere yönlendiren geçiş köprüsü (2.9'da kalkar)
-ui/paths.py             ROOT_DIR ve ASSETS_DIR (simge/yazı tipi yolları tek yerde)
-ui/theme.py             Renkler, yazı boyutları, etiket tabloları
-ui/widgets.py           FieldRow, WrapButtonRow, FieldError
-ui/window.py            StudioWindow (tema geçişinde gizlemeyen CTk), sekme denetleyicisi
-ui/merge_job.py         Birleştirme eylemi: doğrulama, arka plan işçisi, kırpma onayı, geçici dosya
-ui/preview.py           PreviewPanel: canlı önizleme kartı, durum, üretim iş parçacığı, gezinme (PreviewHost yüzeyi)
-ui/preview_canvas.py    PreviewCanvas: sayfayı paintEvent ile oranlı sığdıran tuval (yeniden örnekleme yok)
-ui/workflow.py          İşleme, tarama, ilerleme ve sonuç akışı
-ui/dialogs.py           İletişim kutuları, Hakkında penceresi
-ui/config_binding.py     Ayar okuma/yazma, profiller, ön ayarlar (alanlar ↔ PdfProcessConfig)
-ui/context.py           AppContext: sekmelerin pencereyle konuştuğu dar yüzey
-ui/tabs/base.py         BaseTab sözleşmesi (build / on_show / apply_theme) ve LegacyTab geçiş bağdaştırıcısı (artık kullanan sekme yok)
-ui/tabs/number.py       Sayfa Numaraları sekmesi (BaseTab; ilk taşınan sekme)
-ui/tabs/page_layout.py   Sayfa Düzeni sekmesi: cilt payı, alt/üst boşluk, ebat ve özel sayfa kuralları (BaseTab)
-ui/tabs/merge.py        Birleştirme sekmesi: dosya listesi, sıralama, döndürme, sayfa aralığı (BaseTab)
-ui/tabs/merge_drag.py   Birleştirme listesi sürükleme: bırakma çizgisi, kenarda otomatik kaydırma, tutamaktan sürükleme
-ui/dnd.py               Sürükle-bırak
-ui/perf.py              APP_PERF=1 ölçüm kaydedicisi (kapalıyken maliyetsiz)
-gutter_engine.py        Geometri, numaralandırma, tarama, doğrulama, birleştirme
-settings_store.py       Ayar/profil deposu, günlük kurulumu
-page_layout_model.py    Birleşik Sayfa Düzeni ayar modeli (taşma seçimi, özel sayfa kuralları; Qt'siz)
-version.py              Tek sürüm kaynağı
-make_icon.py            Çok boyutlu simge üreticisi
-tests/                  Motor, arayüz, depo ve görsel regresyon testleri
-tools/                  Referans PDF seti üreticisi, ölçüm betikleri (ör. `olcum_surukleme.py`)
-samples/referans/       Gerçek referans PDF seti
-```
-
-## Ayarlar ve gizlilik
-
-- Ayarlar: `%APPDATA%\PDFBaskiCiltStudyosu\settings.json`
-- Günlük: `%LOCALAPPDATA%\PDFBaskiCiltStudyosu\studio.log`
-- Hiçbir veri ağa gönderilmez; dosyalar yalnızca yerelde işlenir.
-
-## Bilinen kapsam sınırları
-
-2.8.0, plandaki P4 geliştirmelerini içerir. Sayfa araçları ayrı pencerededir;
-Önce/Sonra karşılaştırması geçişlidir; taşma payı mevcut tasarımın dışında yeni
-görsel üretmez. Katalog dışı işletim sistemi/kitaplık hataları özgün dilinde
-gösterilebilir. Ayrıntılı kapsam ve sınırlar sürüm notlarında belirtilmiştir.
-
-Windows %125/%150 ölçeklemede son görsel onay kullanıcı makinesinde
-yapılmalıdır.
-
-**Doğrulama:** Windows'ta nihai pakette **559 test geçti**. Tema geçişi ayrıca
-native Windows penceresinde tek tıklamayla boyama kontrolünden geçti.
-
-### Arayüz tercihleri (2.8.0)
-
-Ayarlar penceresindeki Birleştirme bölümünden tüm birleşik belgeyi önizleme ve yalnız tutamaktan sürükleme tercihleri belirlenir. Değişiklikler hemen uygulanır ve sonraki oturumlarda korunur. Birleştirme ekranındaki “Liste ve önizleme tercihleri…” düğmesi Ayarlar’ı açar. Çıktıya etki eden yer imi, eşitleme ve diğer sekmelerin ayarlarını uygulama seçenekleri Birleştirme ekranında kalır.
+Bu proje **[MIT Lisansı](LICENSE)** ile ücretsiz ve açık kaynak olarak sunulmaktadır.  
+Soru, öneri ve hata bildirimleri için: **support@kadirhamza.com** · [GitHub Issues](https://github.com/akdrhmz/pdf-baski-cilt-studyosu/issues)

@@ -45,17 +45,17 @@ Type=Application
 Name=PDF Baskı Atölyesi
 Comment=Vektörel PDF baskı, cilt payı, numaralandırma ve montaj atölyesi
 Exec=$APP_DIR/baslat.sh %f
-Icon=pdf-baski-atolyesi
+Icon=$ICON_DIR/pdf-baski-atolyesi.png
 Terminal=false
 Categories=Office;Publishing;Utility;
 MimeType=application/pdf;
-StartupWMClass=hamza.pdf.printstudio
+StartupWMClass=pdf-baski-atolyesi
 EOF
 
 chmod +x "$APP_MENU_DIR/pdf-baski-atolyesi.desktop"
-if command -v update-desktop-database >/dev/null 2>&1; then
-    update-desktop-database "$APP_MENU_DIR" >/dev/null 2>&1 || true
-fi
+command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$APP_MENU_DIR" >/dev/null 2>&1 || true
+command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" >/dev/null 2>&1 || true
+command -v kbuildsycoca6 >/dev/null 2>&1 && kbuildsycoca6 >/dev/null 2>&1 || true
 
 echo "[3/3] Kurulum tamamlandı!"
 echo "Uygulama menüsünden 'PDF Baskı Atölyesi' olarak başlatabilir"

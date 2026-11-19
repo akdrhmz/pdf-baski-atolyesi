@@ -72,14 +72,15 @@ Type=Application
 Name=PDF Baskı Atölyesi
 Comment=Vektörel PDF baskı, cilt payı, numaralandırma ve montaj atölyesi
 Exec=$TARGET_DIR/pdf-baski-atolyesi %f
-Icon=pdf-baski-atolyesi
+Icon=$ICON_DIR/pdf-baski-atolyesi.png
 Terminal=false
 Categories=Office;Publishing;Utility;
 MimeType=application/pdf;
-StartupWMClass=hamza.pdf.printstudio
+StartupWMClass=pdf-baski-atolyesi
 DESK
 chmod +x "$APP_DIR/pdf-baski-atolyesi.desktop"
 command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$APP_DIR" >/dev/null 2>&1 || true
+command -v kbuildsycoca6 >/dev/null 2>&1 && kbuildsycoca6 >/dev/null 2>&1 || true
 echo "Kuruldu: $TARGET_DIR (Python/venv gerektirmez)."
 EOF
 
@@ -113,11 +114,11 @@ Type=Application
 Name=PDF Baskı Atölyesi
 Comment=Vektörel PDF baskı, cilt payı, numaralandırma ve montaj atölyesi
 Exec=/opt/${PKG_NAME}/${PKG_NAME} %f
-Icon=${PKG_NAME}
+Icon=/usr/share/icons/hicolor/512x512/apps/${PKG_NAME}.png
 Terminal=false
 Categories=Office;Publishing;Utility;
 MimeType=application/pdf;
-StartupWMClass=hamza.pdf.printstudio
+StartupWMClass=pdf-baski-atolyesi
 DESK
     cat > "$DEB_ROOT/DEBIAN/control" <<CTRL
 Package: ${PKG_NAME}

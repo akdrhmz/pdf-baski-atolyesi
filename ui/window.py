@@ -100,6 +100,29 @@ class StudioWindow(ctk.QtMainWindow):
                 w.update()
         self.update()
 
+    def apply_studio_icon(self, assets_dir: str, app_id: str) -> None:
+        """Windows AppUserModelID ve Linux/Windows pencere simgesini uygular."""
+        import os
+        try:
+            import ctypes
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+        except Exception:
+            pass
+        try:
+            from PySide6.QtGui import QGuiApplication, QIcon
+            QGuiApplication.setDesktopFileName("pdf-baski-atolyesi")
+            icon_png = os.path.join(assets_dir, "icon.png")
+            icon_ico = os.path.join(assets_dir, "icon.ico")
+            if os.path.exists(icon_png):
+                qicon = QIcon(icon_png)
+                self.setWindowIcon(qicon)
+                QGuiApplication.setWindowIcon(qicon)
+                return
+            if os.path.exists(icon_ico):
+                self.iconbitmap(icon_ico)
+        except Exception:
+            pass
+
     def state(self, newstate: Any = None) -> Any:
         """Tam ekran / normal geçişini ölçer ve tek karede uygular."""
         if newstate is None:

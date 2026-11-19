@@ -211,30 +211,7 @@ class ModernGutterApp(
             pass
 
     def _apply_app_icon(self) -> None:
-        try:
-            import ctypes
-            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(APP_ID)
-        except Exception:
-            pass
-        try:
-            from PySide6.QtGui import QGuiApplication, QIcon
-            QGuiApplication.setDesktopFileName("pdf-baski-atolyesi")
-            icon_png = os.path.join(ASSETS_DIR, "icon.png")
-            icon_ico = os.path.join(ASSETS_DIR, "icon.ico")
-            if os.path.exists(icon_png):
-                qicon = QIcon(icon_png)
-                self.setWindowIcon(qicon)
-                QGuiApplication.setWindowIcon(qicon)
-                return
-            if os.path.exists(icon_ico):
-                self.iconbitmap(icon_ico)
-        except Exception:
-            icon = os.path.join(ASSETS_DIR, "icon.ico")
-            if os.path.exists(icon):
-                try:
-                    self.iconbitmap(icon)
-                except Exception:
-                    pass
+        self.apply_studio_icon(ASSETS_DIR, APP_ID)
 
     # =====================================================================
     # Sekme seçimi

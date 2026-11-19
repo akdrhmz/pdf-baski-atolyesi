@@ -15,18 +15,30 @@ if ! .venv/bin/python -c "import PyInstaller" >/dev/null 2>&1; then
 fi
 
 APP_VER="$(.venv/bin/python -c "from core import version; print(version.VERSION)")"
-OUT_NAME="PDFBaskiAtolyesi-v${APP_VER}-linux-x86_64"
+PKG_NAME="pdf-baski-atolyesi"
+BUNDLE_NAME="PDFBaskiAtolyesi-v${APP_VER}-linux-x86_64"
 
-echo "Linux paketi derleniyor ($OUT_NAME)..."
-rm -rf build/ dist/"$OUT_NAME"
+echo "=== PDF Baskı Atölyesi v${APP_VER} — Linux Paketleme ==="
+rm -rf build/ "dist/${PKG_NAME}" "dist/${BUNDLE_NAME}"
 
+# 1. Yalnızca çalışma dosyalarıyla bağımsız ikili derle (tests/, docs/, .venv hariç)
 .venv/bin/pyinstaller \
     --noconfirm \
     --windowed \
-    --name "$OUT_NAME" \
+    --onedir \
+    --name "$PKG_NAME" \
     --icon "assets/icon.png" \
     --add-data "assets:assets" \
     --add-data "locales:locales" \
+    --exclude-module PySide6.QtWebEngineCore \
+    --exclude-module PySide6.QtWebEngineWidgets \
+    --exclude-module PySide6.Qt3DCore \
+    --exclude-module PySide6.Qt3DRender \
+    --exclude-module PySide6.QtQuick \
+    --exclude-module PySide6.QtQml \
+    --exclude-module PySide6.QtMultimedia \
+    --exclude-module PySide6.QtCharts \
+    --exclude-module tkinter \
     --hidden-import "core.gutter_engine" \
     --hidden-import "core.pdf_tools" \
     --hidden-import "core.page_layout_model" \
@@ -35,6 +47,87 @@ rm -rf build/ dist/"$OUT_NAME"
     --hidden-import "core.version" \
     app.py
 
-echo "Arşivleniyor..."
-tar -C dist -czf "dist/${OUT_NAME}.tar.gz" "$OUT_NAME"
-echo "Hazır: dist/${OUT_NAME}/ ve dist/${OUT_NAME}.tar.gz"
+# 2. Venvsiz kurulabilir taşınabilir arşiv (.tar.gz + install.sh)
+BUNDLE_DIR="dist/${BUNDLE_NAME}"
+mkdir -p "$BUNDLE_DIR/app"
+cp -a "dist/${PKG_NAME}/." "$BUNDLE_DIR/app/"
+cp "assets/icon.png" "$BUNDLE_DIR/icon.png"
+
+cat > "$BUNDLE_DIR/install.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TARGET_DIR="$HOME/.local/opt/pdf-baski-atolyesi"
+ICON_DIR="$HOME/.local/share/icons/hicolor/512x512/apps"
+APP_DIR="$HOME/.local/share/applications"
+
+mkdir -p "$TARGET_DIR" "$ICON_DIR" "$APP_DIR"
+rm -rf "$TARGET_DIR"/*
+cp -a "$HERE/app/." "$TARGET_DIR/"
+cp "$HERE/icon.png" "$ICON_DIR/pdf-baski-atolyesi.png"
+
+cat > "$APP_DIR/pdf-baski-atolyesi.desktop" <<DESK
+[Desktop Entry]
+Type=Application
+Name=PDF Baskı Atölyesi
+Comment=Vektörel PDF baskı, cilt payı, numaralandırma ve montaj atölyesi
+Exec=$TARGET_DIR/pdf-baski-atolyesi %f
+Icon=pdf-baski-atolyesi
+Terminal=false
+Categories=Office;Publishing;Utility;
+MimeType=application/pdf;
+StartupWMClass=hamza.pdf.printstudio
+DESK
+chmod +x "$APP_DIR/pdf-baski-atolyesi.desktop"
+command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$APP_DIR" >/dev/null 2>&1 || true
+echo "Kuruldu: $TARGET_DIR (Python/venv gerektirmez)."
+EOF
+
+cat > "$BUNDLE_DIR/uninstall.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+rm -rf "$HOME/.local/opt/pdf-baski-atolyesi"
+rm -f "$HOME/.local/share/applications/pdf-baski-atolyesi.desktop"
+rm -f "$HOME/.local/share/icons/hicolor/512x512/apps/pdf-baski-atolyesi.png"
+echo "Kaldırıldı."
+EOF
+chmod +x "$BUNDLE_DIR/install.sh" "$BUNDLE_DIR/uninstall.sh"
+
+tar -C dist -czf "dist/${BUNDLE_NAME}.tar.gz" "$BUNDLE_NAME"
+echo "Hazır (tüm Linuxlar): dist/${BUNDLE_NAME}.tar.gz"
+
+# 3. Sistemde dpkg-deb varsa .deb kurulum paketi de üret
+if command -v dpkg-deb >/dev/null 2>&1; then
+    DEB_ROOT="build/deb/${PKG_NAME}_${APP_VER}_amd64"
+    rm -rf "build/deb"
+    mkdir -p "$DEB_ROOT/DEBIAN" "$DEB_ROOT/opt/${PKG_NAME}" \
+             "$DEB_ROOT/usr/share/applications" \
+             "$DEB_ROOT/usr/share/icons/hicolor/512x512/apps" \
+             "$DEB_ROOT/usr/local/bin"
+    cp -a "dist/${PKG_NAME}/." "$DEB_ROOT/opt/${PKG_NAME}/"
+    cp "assets/icon.png" "$DEB_ROOT/usr/share/icons/hicolor/512x512/apps/${PKG_NAME}.png"
+    ln -sf "/opt/${PKG_NAME}/${PKG_NAME}" "$DEB_ROOT/usr/local/bin/${PKG_NAME}"
+    cat > "$DEB_ROOT/usr/share/applications/${PKG_NAME}.desktop" <<DESK
+[Desktop Entry]
+Type=Application
+Name=PDF Baskı Atölyesi
+Comment=Vektörel PDF baskı, cilt payı, numaralandırma ve montaj atölyesi
+Exec=/opt/${PKG_NAME}/${PKG_NAME} %f
+Icon=${PKG_NAME}
+Terminal=false
+Categories=Office;Publishing;Utility;
+MimeType=application/pdf;
+StartupWMClass=hamza.pdf.printstudio
+DESK
+    cat > "$DEB_ROOT/DEBIAN/control" <<CTRL
+Package: ${PKG_NAME}
+Version: ${APP_VER}
+Section: utils
+Priority: optional
+Architecture: amd64
+Maintainer: Abdulkadir Hamza <support@kadirhamza.com>
+Description: Vektorel PDF baski, cilt payi, numaralandirma ve montaj atolyesi
+CTRL
+    dpkg-deb --build "$DEB_ROOT" "dist/${PKG_NAME}_${APP_VER}_amd64.deb"
+    echo "Hazır (Debian/Ubuntu/Pardus): dist/${PKG_NAME}_${APP_VER}_amd64.deb"
+fi

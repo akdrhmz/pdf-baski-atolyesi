@@ -25,9 +25,19 @@ import core.page_layout_model as plm
 from core.gutter_engine import config_from_dict, config_to_dict, mm_to_unit, pt_to_mm
 from tests.pdf_factory import create_sample_a4_pdf
 
-# "mbcs" kod sayfası yalnızca Windows'ta vardır (Linux'ta LookupError verir).
+def _mbcs_supports_turkish() -> bool:
+    if sys.platform != "win32":
+        return False
+    try:
+        "şüğçöıİ".encode("mbcs")
+        return True
+    except (LookupError, UnicodeEncodeError):
+        return False
+
+
+# "mbcs" kod sayfası yalnızca Türkçe kodlamalı Windows'ta Türkçe harfleri taşır.
 requires_mbcs = pytest.mark.skipif(
-    sys.platform != "win32", reason="mbcs kodlaması yalnızca Windows'ta var")
+    not _mbcs_supports_turkish(), reason="mbcs kodlaması bu sistemde Türkçe desteklemiyor")
 
 
 @pytest.fixture(scope="module")
@@ -837,7 +847,7 @@ def test_drop_handler_opens_first_pdf_in_single_mode(app, tmp_path, monkeypatch)
     monkeypatch.setattr("app.messagebox.showerror",
                         lambda *a, **kw: infos.append(("HATA", a)))
 
-    ansi = "mbcs" if sys.platform == "win32" else "utf-8"
+    ansi = "mbcs" if _mbcs_supports_turkish() else "utf-8"
     app._handle_dropped_files([first.encode("utf-8"), second.encode(ansi)])
     app.update()
     assert app.input_pdf_path == first

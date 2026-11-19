@@ -2,6 +2,6 @@
 
 APP_NAME = "PDF Baskı Atölyesi"
 APP_ID = "hamza.pdf.printstudio"
-VERSION = "2.10.2"
+VERSION = "2.10.3"
 AUTHOR = "Abdülkadir Hamza"
 CONTACT = "support@kadirhamza.com"

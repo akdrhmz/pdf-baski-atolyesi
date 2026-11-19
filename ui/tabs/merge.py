@@ -125,8 +125,8 @@ class MergeTab(MergeDragMixin, BaseTab):
         btn_clear.put("h")
         toolbar._ensure_layout("pack_h").addStretch(1)
 
-        ops = WrapButtonRow(files, stretch=False, wrap=False, gap=SP_S)
-        ops.place(1, 0, align="w")
+        ops = WrapButtonRow(files, stretch=False, wrap=True, gap=SP_S)
+        ops.place(1, 0, expand_x=True)
         ops.add_button("Döndür ⟲", self.rotate_selected_left, width=80)
         ops.add_button("Döndür ⟳", self.rotate_selected_right, width=80)
         ops.add_button("Yukarı taşı", self.move_up, width=85)

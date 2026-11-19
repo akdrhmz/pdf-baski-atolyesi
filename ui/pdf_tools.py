@@ -15,7 +15,7 @@ from ui.theme import *
 from core.gutter_engine import open_pdf, unique_output_path, PDF_LOCK
 from core.pdf_tools import (
     export_pages, split_pages, stamp_pdf, impose_pdf, apply_security_and_metadata,
-    render_tool_preview, StampOptions, PrintOptions, SecurityMetaOptions,
+    render_tool_preview, describe_impose_sheet, StampOptions, PrintOptions, SecurityMetaOptions,
 )
 
 _PAPER_PRESETS = {
@@ -94,10 +94,18 @@ class PdfToolsWindow:
         self.scroll.grid_columnconfigure(0, weight=1)
         self.scroll.grid_rowconfigure(6, weight=1)
         self.scroll.set_padding(8, 8, 8, 8, spacing=10)
-        self.operation = ctk.CTkOptionMenu(
+        self.operation = ctk.CTkSegmentedButton(
             self.scroll,
             values=["Sayfaları düzenle ve böl", "Filigran ve Bates", "Baskı montajı", "Güvenlik ve Meta Veri"],
-            width=280, command=lambda _v: self.update_operation())
+            height=30,
+            border_width=0, fg_color=COLOR_CARD, bg_color=COLOR_SUBCARD,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
+            selected_color=COLOR_SELECTED, selected_hover_color=COLOR_SELECTED_HOVER,
+            unselected_color=COLOR_CARD, unselected_hover_color=COLOR_BTN_SUBTLE_HOVER,
+            text_color=COLOR_TEXT_PRIMARY,
+            command=lambda _v: self.update_operation(),
+        )
+        self.operation.set("Sayfaları düzenle ve böl")
         self.operation.place(0, 0, align="w")
 
         self.grid = PageGrid(self.scroll)
@@ -258,7 +266,8 @@ class PdfToolsWindow:
         self.preview_card = ctk.CTkFrame(outer, fg_color=COLOR_SUBCARD)
         self.preview_card.place(1, 1, expand_x=True, expand_y=True, valign="fill")
         self.preview_card.grid_columnconfigure(0, weight=1)
-        self.preview_card.grid_rowconfigure(1, weight=1)
+        self.preview_card.grid_rowconfigure(1, weight=0)
+        self.preview_card.grid_rowconfigure(2, weight=1)
         self.preview_card.set_padding(10, 10, 10, 10, spacing=8)
 
         pnav = ctk.CTkFrame(self.preview_card, fg_color="transparent")
@@ -276,7 +285,7 @@ class PdfToolsWindow:
             border_width=1, border_color=COLOR_BORDER, hover_color=COLOR_BTN_SUBTLE_HOVER,
             command=lambda: self._step_preview(-1),
         ).put("h", margins=(0, 0, 4, 0))
-        self.preview_page_lbl = ctk.CTkLabel(pnav, text="1", width=42, anchor="center")
+        self.preview_page_lbl = ctk.CTkLabel(pnav, text="1", anchor="center")
         self.preview_page_lbl.put("h", margins=(0, 0, 4, 0))
         ctk.CTkButton(
             pnav, text=">", width=32, height=24,
@@ -285,16 +294,24 @@ class PdfToolsWindow:
             command=lambda: self._step_preview(1),
         ).put("h")
 
+        self._booklet_notice = ctk.CTkLabel(
+            self.preview_card, text="",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
+            text_color=COLOR_WARN, anchor="w", justify="left", wraplength=340,
+        )
+        self._booklet_notice.place(1, 0, expand_x=True)
+        self._booklet_notice.setVisible(False)
+
         self.preview_image_lbl = PreviewCanvas(self.preview_card, bg=COLOR_CARD)
         self.preview_image_lbl.set_placeholder("single")
         self.preview_image_lbl.setToolTip("Ctrl+tekerlek ile yakınlaştırın, sürükleyerek kaydırın.")
-        self.preview_image_lbl.place(1, 0, expand_x=True, expand_y=True, valign="fill")
+        self.preview_image_lbl.place(2, 0, expand_x=True, expand_y=True, valign="fill")
         ctk.CTkLabel(
             self.preview_card,
             text="Ctrl+tekerlek: yakınlaştır · Sürükle: kaydır",
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
             text_color=COLOR_TEXT_SECONDARY, anchor="center",
-        ).place(2, 0, expand_x=True)
+        ).place(3, 0, expand_x=True)
 
         actions = ctk.CTkFrame(outer, fg_color="transparent")
         actions.place(2, 0, columnspan=2, expand_x=True)
@@ -384,11 +401,32 @@ class PdfToolsWindow:
             if op == "Filigran ve Bates":
                 kind = "stamp"
                 opts = self._build_stamp_options()
+                self._booklet_notice.setVisible(False)
+                self.preview_page_lbl.configure(text=f"{self._preview_page + 1} / {max(1, self._page_count)}")
             else:
                 kind = "impose"
                 opts = self._build_print_options()
+                info = describe_impose_sheet(self._page_count, opts, self._preview_page)
+                if info["total_sides"] > 0:
+                    pages_txt = ", ".join(str(p) if p is not None else "Boş" for p in info["pages"])
+                    if opts.mode == "booklet":
+                        self.preview_page_lbl.configure(
+                            text=f"{info['sheet']}. Yaprak · {info['face']} ({info['side']}/{info['total_sides']}) [{pages_txt}]"
+                        )
+                    else:
+                        self.preview_page_lbl.configure(
+                            text=f"{info['side']}/{info['total_sides']} [{pages_txt}]"
+                        )
+                    if opts.mode == "booklet" and info["pad_blank"] > 0:
+                        self._booklet_notice.configure(
+                            text=f"Bilgi: {self._page_count} sayfa → {self._page_count + info['pad_blank']} sayfaya tamamlamak için {info['pad_blank']} boş sayfa eklenecek."
+                        )
+                        self._booklet_notice.setVisible(True)
+                    else:
+                        self._booklet_notice.setVisible(False)
         except Exception as exc:
-            self.preview_image_lbl.setText(str(exc))
+            self.preview_image_lbl.set_source(None)
+            self.preview_image_lbl.configure(text=str(exc))
             return
         self._preview_gen += 1
         gen = self._preview_gen
@@ -423,6 +461,7 @@ class PdfToolsWindow:
         value = self.operation.get()
         is_pages = value == "Sayfaları düzenle ve böl"
         show_preview = value in ("Filigran ve Bates", "Baskı montajı")
+        self.grid.place(1, 0, expand_x=True, expand_y=is_pages, valign="fill" if is_pages else "center")
         self.grid.setVisible(is_pages)
         self.page_options.setVisible(is_pages)
         self.stamp_options.setVisible(value == "Filigran ve Bates")
@@ -438,7 +477,6 @@ class PdfToolsWindow:
             self.scroll.place(1, 0, columnspan=2, expand_x=True, expand_y=True, valign="fill")
         self.scroll.grid_rowconfigure(1, weight=1 if is_pages else 0)
         self.scroll.grid_rowconfigure(6, weight=0 if is_pages else 1)
-        self.grid.place(1, 0, expand_x=True, expand_y=is_pages, valign="fill" if is_pages else "center")
         if show_preview:
             self._schedule_tool_preview()
 

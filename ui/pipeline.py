@@ -87,7 +87,7 @@ class PipelineMixin:
                 self._set_status("Dosyalar sıraları ve rotasyonlarıyla kayıpsız birleştirilecek.")
             self.btn_main_action.configure(
                 state="disabled" if (self._busy or not can_merge) else "normal",
-                text=("Birleştirmek için en az 2 PDF ekleyin" if not can_merge else
+                text=("En az 2 PDF ekleyin" if not can_merge else
                       ("Birleştir ve aktif ayarları uygula" if apply_pipeline else "PDF'leri birleştir ve kaydet")),
                 command=self._start_merging,
             )

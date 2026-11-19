@@ -401,6 +401,34 @@ def apply_security_and_metadata(source, output, options: SecurityMetaOptions, sh
     return str(output)
 
 
+def describe_impose_sheet(total_pages: int, options: PrintOptions, side_index: int) -> dict:
+    """Seçili montaj yüzü için yaprak/ön-arka/kaynak sayfa özetini döndürür."""
+    if total_pages <= 0:
+        return {"total_sides": 0, "side": 0, "sheet": 0, "face": "", "pages": [], "pad_blank": 0}
+    columns, rows = (2, 2) if options.mode == "4up" else (2, 1)
+    if options.mode == "marks":
+        groups = [[i] for i in range(total_pages)]
+    elif options.mode == "booklet":
+        groups = booklet_order(total_pages, options.signature_size, options.rtl)
+    else:
+        size = columns * rows
+        groups = [list(range(start, min(start + size, total_pages))) for start in range(0, total_pages, size)]
+    total_sides = len(groups)
+    side = max(0, min(int(side_index), total_sides - 1))
+    group = groups[side]
+    pad_blank = 0
+    if options.mode == "booklet":
+        pad_blank = sum(1 for g in groups for p in g if p is None)
+    return {
+        "total_sides": total_sides,
+        "side": side + 1,
+        "sheet": (side // 2) + 1,
+        "face": "Ön" if side % 2 == 0 else "Arka",
+        "pages": [p + 1 if p is not None else None for p in group],
+        "pad_blank": pad_blank,
+    }
+
+
 @pdf_operation
 def render_tool_preview(source, tool_kind: str, options, page_index: int = 0, zoom: float = 1.4) -> bytes:
     """Damga/Bates veya baskı montajının tek sayfalık hızlı PPM önizlemesini üretir."""

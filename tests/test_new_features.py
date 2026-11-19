@@ -22,6 +22,7 @@ from core.pdf_tools import (
     StampOptions,
     apply_security_and_metadata,
     booklet_order,
+    describe_impose_sheet,
     impose_pdf,
     render_tool_preview,
     stamp_pdf,
@@ -65,6 +66,13 @@ def test_booklet_signatures_and_rtl(tmp_path):
 
     rtl_order = booklet_order(8, rtl=True)
     assert rtl_order[0] == [0, 7]
+
+    sheet_info = describe_impose_sheet(7, PrintOptions(mode="booklet"), 0)
+    assert sheet_info["total_sides"] == 4
+    assert sheet_info["sheet"] == 1
+    assert sheet_info["face"] == "Ön"
+    assert sheet_info["pad_blank"] == 1
+    assert sheet_info["pages"] == [None, 1]
 
     src = tmp_path / "book.pdf"
     out = tmp_path / "booklet.pdf"

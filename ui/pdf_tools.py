@@ -289,6 +289,12 @@ class PdfToolsWindow:
         self.preview_image_lbl.set_placeholder("single")
         self.preview_image_lbl.setToolTip("Ctrl+tekerlek ile yakınlaştırın, sürükleyerek kaydırın.")
         self.preview_image_lbl.place(1, 0, expand_x=True, expand_y=True, valign="fill")
+        ctk.CTkLabel(
+            self.preview_card,
+            text="Ctrl+tekerlek: yakınlaştır · Sürükle: kaydır",
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
+            text_color=COLOR_TEXT_SECONDARY, anchor="center",
+        ).place(2, 0, expand_x=True)
 
         actions = ctk.CTkFrame(outer, fg_color="transparent")
         actions.place(2, 0, columnspan=2, expand_x=True)

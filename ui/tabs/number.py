@@ -28,20 +28,21 @@ class NumberTab(BaseTab):
         # -- Numara konumu, biçimi ve yazı boyutu -------------------------------------
         pos = self.section(container, 0, "Numara konumu ve mesafeler")
         self.lbl_pnum_status = self.badge(pos)
-        form = self.form_grid(pos, 0)
 
-        cell = self.form_row(form, 0, "Yatay konum")
+        self.sub_label(pos, 0, "Yatay konum")
         self.seg_pos = ctk.CTkSegmentedButton(
-            cell, values=list(POSITION_LABELS.keys()), height=26,
+            pos, values=list(POSITION_LABELS.keys()), height=28,
             border_width=0, fg_color=COLOR_SUBCARD, bg_color=COLOR_SUBCARD,
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
             selected_color=COLOR_SELECTED, selected_hover_color=COLOR_SELECTED_HOVER,
             unselected_color=COLOR_CARD, unselected_hover_color=COLOR_SUBCARD,
             text_color=COLOR_TEXT_PRIMARY, command=lambda _v: self.on_position_changed(),
         )
-        self.seg_pos.put("h")
+        self.seg_pos.place(1, 0, align="w")
 
-        cell_v = self.form_row(form, 1, "Dikey konum")
+        form = self.form_grid(pos, 2)
+
+        cell_v = self.form_row(form, 0, "Dikey konum")
         self.seg_vpos = ctk.CTkSegmentedButton(
             cell_v, values=list(VPOS_LABELS.keys()), height=26,
             border_width=0, fg_color=COLOR_SUBCARD, bg_color=COLOR_SUBCARD,
@@ -53,7 +54,7 @@ class NumberTab(BaseTab):
         self.seg_vpos.set("Alt kenar")
         self.seg_vpos.put("h")
 
-        cell = self.form_row(form, 2, "Görünüm biçimi")
+        cell = self.form_row(form, 1, "Görünüm biçimi")
         self.menu_format = ctk.CTkOptionMenu(
             cell, values=list(FORMAT_LABELS.keys()), width=170, height=26,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
@@ -67,7 +68,7 @@ class NumberTab(BaseTab):
         self.menu_format.set("1, 2, 3")
         self.menu_format.put("h")
 
-        cell_style = self.form_row(form, 3, "Yazı boyutu")
+        cell_style = self.form_row(form, 2, "Yazı boyutu")
         self.f_font_size = FieldRow(cell_style, "", "10", unit="pt", convert=False, width=64,
                                     minimum=1, maximum=72, on_change=self.on_changed)
         self.f_font_size.put("h", margins=(0, 0, SP_M, 0))
@@ -84,9 +85,9 @@ class NumberTab(BaseTab):
         self.btn_num_color.put("h")
 
         # Mesafeler tablosu
-        self.sub_label(pos, 1, "Başlangıç ve kenar mesafeleri")
+        self.sub_label(pos, 3, "Başlangıç ve kenar mesafeleri")
         grid = ctk.CTkFrame(pos, fg_color="transparent")
-        grid.place(2, 0, expand_x=True)
+        grid.place(4, 0, expand_x=True)
         grid.grid_columnconfigure(3, weight=1)
         # Tablo, başlığa göre SP_M içeriden başlar (açık kenar boşluğu).
         grid.set_padding(SP_M, 0, 0, 0, spacing=SP_S)
@@ -111,7 +112,7 @@ class NumberTab(BaseTab):
             pos, text="", font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
             text_color=COLOR_TEXT_SECONDARY, anchor="w",
         )
-        self.lbl_side_hint.place(3, 0, align="w")
+        self.lbl_side_hint.place(5, 0, align="w")
 
         # -- 2. Kart: Numarasız sayfalar ve özel şablon -----------------------------
         extra = self.section(container, 1, "Numarasız sayfalar ve özel şablon")

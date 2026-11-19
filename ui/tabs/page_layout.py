@@ -560,33 +560,58 @@ class PageLayoutTab(BaseTab):
     def _build_special_section(self, container, row: int) -> None:
         special = self.section(container, row, "Özel sayfalar")
         self._section_widgets["special"] = special
+        self._special_expanded = False
+        self._btn_toggle_special = ctk.CTkButton(
+            special.header, text="Göster", width=68, height=22,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
+            fg_color=COLOR_BTN_SUBTLE, text_color=COLOR_TEXT_PRIMARY,
+            border_width=1, border_color=COLOR_BORDER,
+            hover_color=COLOR_BTN_SUBTLE_HOVER,
+            command=self._toggle_special_body,
+        )
+        self._btn_toggle_special.put("h")
+
+        self._special_body = ctk.CTkFrame(special, fg_color="transparent")
+        self._special_body.set_padding(0, 0, 0, 0, spacing=SP_S)
+        self._special_body.place(0, 0, expand_x=True)
+        self._special_body.grid_columnconfigure(0, weight=1)
+
         self._special_hint = ctk.CTkLabel(
-            special,
+            self._special_body,
             text="Belirli sayfalarda payı kapatın; örn. ara kapakta yalnız cilt payı kalsın.",
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
             text_color=COLOR_TEXT_SECONDARY, anchor="w", justify="left", wraplength=NOTE_WRAP_W,
         )
         self._special_hint.place(0, 0, expand_x=True)
-        self.ctx.bind_wraplength(self._special_hint, special, 30)
+        self.ctx.bind_wraplength(self._special_hint, self._special_body, 30)
 
-        self._rule_host = ctk.CTkFrame(special, fg_color="transparent")
+        self._rule_host = ctk.CTkFrame(self._special_body, fg_color="transparent")
         self._rule_host.set_padding(0, 0, 0, 0, spacing=SP_S)
         self._rule_host.place(2, 0, expand_x=True)
         self._rule_host.grid_columnconfigure(0, weight=1)
 
-        buttons = WrapButtonRow(special, wrap=False, gap=SP_S)
+        buttons = WrapButtonRow(self._special_body, wrap=False, gap=SP_S)
         buttons.place(1, 0, expand_x=True)
         buttons.add_button("Kural ekle", self.add_rule, width=BTN_W_PRIMARY)
         buttons.add_button("Ara kapak kuralı ekle", self.add_cover_rule, width=170)
 
         self.lbl_rule_warning = ctk.CTkLabel(
-            special, text="",
+            self._special_body, text="",
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY, weight="bold"),
             text_color=COLOR_WARN, anchor="w", justify="left", wraplength=NOTE_WRAP_W,
         )
         self.lbl_rule_warning.place(3, 0, expand_x=True)
         self.lbl_rule_warning.grid_remove()
+        self._special_body.setVisible(False)
         self._update_rule_summary()
+
+    def _set_special_expanded(self, expanded: bool) -> None:
+        self._special_expanded = bool(expanded)
+        self._special_body.setVisible(self._special_expanded)
+        self._btn_toggle_special.configure(text="Gizle" if self._special_expanded else "Göster")
+
+    def _toggle_special_body(self) -> None:
+        self._set_special_expanded(not self._special_expanded)
 
     # =====================================================================
     # Taşma denetimi (tek seçim)
@@ -829,6 +854,7 @@ class PageLayoutTab(BaseTab):
         return self._append_rule("", plm.MODE_GUTTER_ONLY)
 
     def _append_rule(self, pages: str, mode: str) -> _RuleRow:
+        self._set_special_expanded(True)
         row = self._make_rule_row(pages, mode)
         self._relayout_rules()
         self.on_rules_changed()

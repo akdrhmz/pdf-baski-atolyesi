@@ -1,9 +1,16 @@
 """Tasarım ölçüleri, renkler ve etiket tabloları (tek kaynak)."""
 
+import sys
+
 # ---------------------------------------------------------------------------
 # Tasarım ölçüleri (tek kaynak: tüm yazı boyutları buradan gelir)
 # ---------------------------------------------------------------------------
-FONT_FAMILY = "Segoe UI"
+if sys.platform.startswith("win"):
+    FONT_FAMILY = "Segoe UI"
+elif sys.platform == "darwin":
+    FONT_FAMILY = "Helvetica Neue"
+else:
+    FONT_FAMILY = "Noto Sans"
 FS_TITLE = 22
 FS_SUBTITLE = 15
 FS_BODY = 14
@@ -71,6 +78,11 @@ POSITION_LABELS = {
     "İç kenar": "inner",
 }
 POSITION_CODES = {v: k for k, v in POSITION_LABELS.items()}
+VPOS_LABELS = {
+    "Alt kenar": "bottom",
+    "Üst kenar": "top",
+}
+VPOS_CODES = {v: k for k, v in VPOS_LABELS.items()}
 FORMAT_LABELS = {
     "1, 2, 3": "number",
     "- 1 -": "dash",

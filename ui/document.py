@@ -39,6 +39,7 @@ class DocumentMixin:
         self.input_pdf_path = path
         self.output_pdf_path = ""
         self.btn_open_pdf.hide()
+        self.btn_open_tools.hide()
         self.btn_open_folder.hide()
         self.orig_width_mm = info["width_mm"]
         self.orig_height_mm = info["height_mm"]

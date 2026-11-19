@@ -377,7 +377,8 @@ class MarginSettings:
 class PageNumberSettings:
     """Sayfa numarası yerleşim, biçimlendirme ve ara kapak atlama ayarları."""
     enabled: bool = True
-    position: str = "outer"           # "outer" (Dış Kenar), "center" (Alt Orta), "inner" (İç Kenar)
+    position: str = "outer"           # "outer" (Dış Kenar), "center" (Orta), "inner" (İç Kenar)
+    vertical_pos: str = "bottom"      # "bottom" (Alt Kenar), "top" (Üst Kenar)
     format_style: str = "number"      # number, dash, total, label, roman, roman_upper
     text_template: str = ""           # {n}, {N}, {roman}, {ROMAN}, {label}
     font_path: str = ""               # boşsa gerekirse Windows Unicode yazı tipi bulunur
@@ -521,6 +522,7 @@ def config_from_dict(data: Optional[Dict[str, Any]]) -> PdfProcessConfig:
                  if isinstance(numbers_raw.get("sections", []), list) else [],
         enabled=bool(numbers_raw.get("enabled", True)),
         position=str(numbers_raw.get("position", "outer")),
+        vertical_pos=("top" if str(numbers_raw.get("vertical_pos", "bottom")) == "top" else "bottom"),
         format_style=str(numbers_raw.get("format_style", "number")),
         text_template=str(numbers_raw.get("text_template", "")),
         font_path=str(numbers_raw.get("font_path", "")),
@@ -859,7 +861,10 @@ def number_anchor(text: str, settings: PageNumberSettings, target_w: float, targ
         text_w = pymupdf.get_text_length(text, fontname=NUMBER_FONT_NAME,
                                          fontsize=settings.font_size)
     side = mm_to_pt(settings.side_margin_mm)
-    baseline = target_h - mm_to_pt(settings.bottom_margin_mm)
+    if getattr(settings, "vertical_pos", "bottom") == "top":
+        baseline = mm_to_pt(settings.bottom_margin_mm) + settings.font_size
+    else:
+        baseline = target_h - mm_to_pt(settings.bottom_margin_mm)
 
     if settings.position == "center":
         x = (target_w - text_w) / 2.0

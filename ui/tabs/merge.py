@@ -287,19 +287,55 @@ class MergeTab(MergeDragMixin, BaseTab):
         self.ctx.update_summary()
         self.ctx.schedule_preview()
 
+    _IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff")
+    _TEMP_IMAGE_PDFS: list[str] = []
+
+    @classmethod
+    def _cleanup_image_pdfs(cls) -> None:
+        for p in cls._TEMP_IMAGE_PDFS:
+            try:
+                if os.path.exists(p):
+                    os.remove(p)
+            except OSError:
+                pass
+
+    @classmethod
+    def _image_to_temp_pdf(cls, image_path: str) -> str:
+        import atexit
+        import tempfile
+        import pymupdf
+        if not cls._TEMP_IMAGE_PDFS:
+            atexit.register(cls._cleanup_image_pdfs)
+        with pymupdf.open(image_path) as img:
+            pdf_bytes = img.convert_to_pdf()
+        fd, tmp = tempfile.mkstemp(prefix=".~img-", suffix=".pdf")
+        os.close(fd)
+        with open(tmp, "wb") as handle:
+            handle.write(pdf_bytes)
+        cls._TEMP_IMAGE_PDFS.append(tmp)
+        return tmp
+
     def append_file(self, path: str) -> None:
         if not path or not os.path.exists(path):
             return
-        if any(os.path.normcase(item["path"]) == os.path.normcase(path) for item in self.files):
+        display_name = os.path.basename(path)
+        actual_path = path
+        if path.lower().endswith(self._IMAGE_EXTS):
+            try:
+                actual_path = self._image_to_temp_pdf(path)
+            except Exception as exc:
+                messagebox.showwarning("Görsel dönüştürülemedi", f"{display_name}\n\n{exc}")
+                return
+        if any(os.path.normcase(item["path"]) == os.path.normcase(actual_path) for item in self.files):
             return
         try:
-            info = get_pdf_info(path, quick=True)
+            info = get_pdf_info(actual_path, quick=True)
         except Exception as exc:
-            messagebox.showwarning("Dosya eklenemedi", f"{os.path.basename(path)}\n\n{exc}")
+            messagebox.showwarning("Dosya eklenemedi", f"{display_name}\n\n{exc}")
             return
         self.files.append({
-            "path": path,
-            "name": os.path.basename(path),
+            "path": actual_path,
+            "name": display_name,
             "pages": info["page_count"],
             "size_mb": info["file_size_mb"],
             "rotation": 0,
@@ -309,8 +345,9 @@ class MergeTab(MergeDragMixin, BaseTab):
 
     def add_files(self) -> None:
         paths = filedialog.askopenfilenames(
-            title="Birleştirilecek PDF dosyalarını seçin",
-            filetypes=[("PDF belgeleri", "*.pdf")],
+            title="Birleştirilecek PDF veya görsel dosyalarını seçin",
+            filetypes=[("PDF ve görseller", "*.pdf *.png *.jpg *.jpeg *.webp *.bmp *.tif *.tiff"),
+                       ("PDF belgeleri", "*.pdf")],
         )
         before = len(self.files)
         for path in paths or ():

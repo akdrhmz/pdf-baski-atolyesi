@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -16,7 +17,7 @@ HAS_WINDND = True
 
 from settings_store import LOG_PATH
 import page_layout_model as plm
-from gutter_engine import UNITS
+from gutter_engine import UNITS, config_from_dict, config_to_dict
 from version import APP_NAME, AUTHOR, CONTACT, VERSION
 from ui.paths import ASSETS_DIR
 from ui.theme import *  # noqa: F401,F403
@@ -519,9 +520,70 @@ class DialogsMixin:
             except Exception:
                 self.log.exception("Fabrika teması uygulanamadı")
 
-        _section_title(14, "Sıfırlama")
+        def _export_profile_json() -> None:
+            config = self._build_config(notify=True)
+            if config is None:
+                return
+            path = filedialog.asksaveasfilename(
+                title="Ayar profilini dışa aktar",
+                initialfile="baski-profili.json",
+                defaultextension=".json",
+                filetypes=[("JSON profili", "*.json")],
+            )
+            if not path:
+                return
+            try:
+                with open(path, "w", encoding="utf-8") as handle:
+                    json.dump(config_to_dict(config), handle, ensure_ascii=False, indent=2)
+                self._set_status(f"Profil dışa aktarıldı: {os.path.basename(path)}", COLOR_OK)
+                messagebox.showinfo("Profil dışa aktarıldı", f"Ayarlar kaydedildi:\n{path}")
+            except Exception as exc:
+                messagebox.showerror("Hata", f"Profil dışa aktarılamadı:\n{exc}")
+
+        def _import_profile_json() -> None:
+            path = filedialog.askopenfilename(
+                title="Ayar profilini içe aktar",
+                filetypes=[("JSON profili", "*.json"), ("Tüm dosyalar", "*.*")],
+            )
+            if not path:
+                return
+            try:
+                with open(path, "r", encoding="utf-8-sig") as handle:
+                    raw = json.load(handle)
+                if isinstance(raw, dict) and isinstance(raw.get("last_state"), dict):
+                    raw = raw["last_state"]
+                if not isinstance(raw, dict):
+                    raise ValueError("Geçerli bir JSON ayar nesnesi değil.")
+                self._apply_config(config_from_dict(raw))
+                unit_menu.set(UNITS[self.unit][0])
+                output_boxes["optimize"].select() if self._output_quality != "print" else output_boxes["optimize"].deselect()
+                output_boxes["flatten"].select() if self._flatten_annotations else output_boxes["flatten"].deselect()
+                self._set_status(f"Profil içe aktarıldı: {os.path.basename(path)}", COLOR_OK)
+                messagebox.showinfo("Profil içe aktarıldı", "Profil ayarları ekrana uygulandı.")
+            except Exception as exc:
+                messagebox.showerror("Hata", f"Profil içe aktarılamadı:\n{exc}")
+
+        _section_title(14, "Ayar profilini paylaş / yükle (JSON)")
+        profile_io = ctk.CTkFrame(frame, fg_color="transparent")
+        profile_io.place(15, 0, align="w")
+        ctk.CTkButton(
+            profile_io, text="Dışa aktar…", width=120, height=28,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
+            fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
+            border_width=1, border_color=COLOR_BORDER,
+            hover_color=COLOR_BTN_SUBTLE_HOVER, command=_export_profile_json,
+        ).put("h", margins=(0, 0, SP_S, 0))
+        ctk.CTkButton(
+            profile_io, text="İçe aktar…", width=120, height=28,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
+            fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_PRIMARY,
+            border_width=1, border_color=COLOR_BORDER,
+            hover_color=COLOR_BTN_SUBTLE_HOVER, command=_import_profile_json,
+        ).put("h")
+
+        _section_title(16, "Sıfırlama")
         actions = ctk.CTkFrame(frame, fg_color="transparent")
-        actions.place(15, 0, expand_x=True)
+        actions.place(17, 0, expand_x=True)
         actions.grid_columnconfigure(1, weight=1)
         ctk.CTkButton(
             actions, text="Fabrika değerlerine sıfırla", width=170, height=30,
@@ -613,3 +675,11 @@ class DialogsMixin:
                 self._open_with_os(os.path.dirname(os.path.abspath(self.output_pdf_path)))
             except Exception as exc:
                 messagebox.showerror("Hata", f"Klasör açılamadı: {exc}")
+
+    def _open_output_in_tools(self) -> None:
+        if self._busy or not self.output_pdf_path or not os.path.exists(self.output_pdf_path):
+            return
+        from ui.pdf_tools import PdfToolsWindow
+        win = PdfToolsWindow(self)
+        win.load(self.output_pdf_path)
+        self._pdf_tools_window = win

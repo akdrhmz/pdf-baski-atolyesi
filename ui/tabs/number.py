@@ -30,20 +30,32 @@ class NumberTab(BaseTab):
         self.lbl_pnum_status = self.badge(pos)
         form = self.form_grid(pos, 0)
 
-        cell = self.form_row(form, 0, "Konum")
+        cell = self.form_row(form, 0, "Yatay konum")
         self.seg_pos = ctk.CTkSegmentedButton(
             cell, values=list(POSITION_LABELS.keys()), height=26,
             border_width=0, fg_color=COLOR_SUBCARD, bg_color=COLOR_SUBCARD,
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
             selected_color=COLOR_SELECTED, selected_hover_color=COLOR_SELECTED_HOVER,
             unselected_color=COLOR_CARD, unselected_hover_color=COLOR_SUBCARD,
             text_color=COLOR_TEXT_PRIMARY, command=lambda _v: self.on_position_changed(),
         )
         self.seg_pos.put("h")
 
-        cell = self.form_row(form, 1, "Görünüm biçimi")
+        cell_v = self.form_row(form, 1, "Dikey konum")
+        self.seg_vpos = ctk.CTkSegmentedButton(
+            cell_v, values=list(VPOS_LABELS.keys()), height=26,
+            border_width=0, fg_color=COLOR_SUBCARD, bg_color=COLOR_SUBCARD,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
+            selected_color=COLOR_SELECTED, selected_hover_color=COLOR_SELECTED_HOVER,
+            unselected_color=COLOR_CARD, unselected_hover_color=COLOR_SUBCARD,
+            text_color=COLOR_TEXT_PRIMARY, command=lambda _v: self.on_vpos_changed(),
+        )
+        self.seg_vpos.set("Alt kenar")
+        self.seg_vpos.put("h")
+
+        cell = self.form_row(form, 2, "Görünüm biçimi")
         self.menu_format = ctk.CTkOptionMenu(
-            cell, values=list(FORMAT_LABELS.keys()), width=148, height=26,
+            cell, values=list(FORMAT_LABELS.keys()), width=170, height=26,
             font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
             fg_color=COLOR_CARD, text_color=COLOR_TEXT_PRIMARY,
             button_color=COLOR_SUBCARD, button_hover_color=COLOR_BTN_SUBTLE_HOVER,
@@ -53,13 +65,23 @@ class NumberTab(BaseTab):
             command=lambda _v: self.on_changed(),
         )
         self.menu_format.set("1, 2, 3")
-        self.menu_format.put("h", margins=(0, 0, SP_M, 0))
+        self.menu_format.put("h")
 
-        ctk.CTkLabel(cell, text="Yazı boyutu", font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
-                     text_color=COLOR_TEXT_PRIMARY).put("h")
-        self.f_font_size = FieldRow(cell, "", "10", unit="pt", convert=False, width=64,
+        cell_style = self.form_row(form, 3, "Yazı boyutu")
+        self.f_font_size = FieldRow(cell_style, "", "10", unit="pt", convert=False, width=64,
                                     minimum=1, maximum=72, on_change=self.on_changed)
-        self.f_font_size.put("h")
+        self.f_font_size.put("h", margins=(0, 0, SP_M, 0))
+
+        self.num_color = (0.08, 0.08, 0.08)
+        self.btn_num_color = ctk.CTkButton(
+            cell_style, text="Yazı rengi", width=88, height=26,
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL),
+            fg_color="#141414", text_color="#FFFFFF",
+            border_width=1, border_color=COLOR_BORDER,
+            command=self._pick_num_color,
+        )
+        self.btn_num_color.setToolTip("Sayfa numarası yazı rengi")
+        self.btn_num_color.put("h")
 
         # Mesafeler tablosu
         self.sub_label(pos, 1, "Başlangıç ve kenar mesafeleri")
@@ -78,7 +100,7 @@ class NumberTab(BaseTab):
                                      suffix="", label_width=FORM_LABEL_W, on_change=self.on_changed)
         self.f_start_num.place(0, 1, align="w")
 
-        self.f_num_bottom = FieldRow(grid, "Alt kenardan uzaklık", "12", width=72, minimum=0, maximum=5000,
+        self.f_num_bottom = FieldRow(grid, "Alt kenar uzaklığı", "12", width=72, minimum=0, maximum=5000,
                                      label_width=FORM_LABEL_W, on_change=self.on_changed)
         self.f_num_bottom.place(1, 0, align="w")
         self.f_num_side = FieldRow(grid, "Yan boşluk", "15", width=72, minimum=0, maximum=5000,
@@ -168,6 +190,34 @@ class NumberTab(BaseTab):
         """Alt orta seçiliyken yan boşluk anlamsızdır; alanı devre dışı bırakıp açıklar."""
         self.update_side_state()
         self.on_changed()
+
+    def on_vpos_changed(self) -> None:
+        """Dikey konum değişince kenar uzaklığı etiketini günceller."""
+        self.update_vpos_state()
+        self.on_changed()
+
+    def update_vpos_state(self) -> None:
+        vpos = VPOS_LABELS.get(self.seg_vpos.get(), "bottom")
+        self.f_num_bottom.label.configure(
+            text="Üst kenar uzaklığı" if vpos == "top" else "Alt kenar uzaklığı"
+        )
+
+    def set_num_color(self, rgb: tuple) -> None:
+        r, g, b = (max(0.0, min(1.0, float(c))) for c in rgb[:3])
+        self.num_color = (r, g, b)
+        hex_color = f"#{int(r * 255):02X}{int(g * 255):02X}{int(b * 255):02X}"
+        lum = 0.299 * r + 0.587 * g + 0.114 * b
+        fg_text = "#111111" if lum > 0.55 else "#FFFFFF"
+        self.btn_num_color.configure(fg_color=hex_color, text_color=fg_text)
+
+    def _pick_num_color(self) -> None:
+        from PySide6.QtGui import QColor
+        from PySide6.QtWidgets import QColorDialog
+        initial = QColor.fromRgbF(*self.num_color)
+        chosen = QColorDialog.getColor(initial, self.btn_num_color, "Sayfa numarası rengi")
+        if chosen.isValid():
+            self.set_num_color((chosen.redF(), chosen.greenF(), chosen.blueF()))
+            self.on_changed()
 
     def update_side_state(self) -> None:
         """Modülü tetiklemeden yalnızca 'Yan boşluk' alanının etkinliğini günceller."""

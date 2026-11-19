@@ -32,6 +32,7 @@ class BatchDialog:
         self.window.minsize(620, 500)
         self.window.transient(app)
         self.window.protocol("WM_DELETE_WINDOW", self.close)
+        self.window.set_drop_callback(self._on_drop_files)
 
         outer = ctk.CTkFrame(self.window, fg_color=COLOR_CARD)
         outer.put("v", fill="both", expand=True, margins=(16, 12, 16, 12))
@@ -104,6 +105,20 @@ class BatchDialog:
         self.run_button.place(0, 2, align="e")
         self._refresh_list()
         self.window.grab_set()
+
+    def _on_drop_files(self, paths):
+        if self._busy:
+            return
+        collected = []
+        for value in paths:
+            p = Path(value)
+            if p.is_dir():
+                candidates = p.rglob("*") if self.recursive.get() else p.iterdir()
+                collected.extend(str(c) for c in sorted(candidates) if c.is_file() and c.suffix.lower() == ".pdf")
+            elif p.is_file() and p.suffix.lower() == ".pdf":
+                collected.append(str(p))
+        if collected:
+            self._add_paths(collected)
 
     def add_files(self):
         if self._busy:

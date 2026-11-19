@@ -110,6 +110,9 @@ class ConfigBindingMixin:
             numbers = data["numbers"]
             nt = self._tabs[NUMBER_TAB]
             nt.seg_pos.set(POSITION_CODES.get(numbers.position, "Dış kenar (Tek sağ / Çift sol)"))
+            nt.seg_vpos.set(VPOS_CODES.get(getattr(numbers, "vertical_pos", "bottom"), "Alt kenar"))
+            nt.update_vpos_state()
+            nt.set_num_color(getattr(numbers, "font_color", (0.08, 0.08, 0.08)))
             nt.menu_format.set(FORMAT_CODES.get(numbers.format_style, "1, 2, 3"))
             nt.f_font_size.set_value(f"{numbers.font_size:g}")
             nt.f_start_page.set_value(str(numbers.start_page))
@@ -282,6 +285,8 @@ class ConfigBindingMixin:
                           layout.rules() if margin_built else [], loaded_pair)
         if number_built:
             position = nt.seg_pos.get()
+            vpos_label = nt.seg_vpos.get()
+            num_color = nt.num_color
             format_label = nt.menu_format.get()
             template = nt.entry_number_template.get().strip()
             skip_pages = nt.entry_skip_pages.get().strip()
@@ -294,6 +299,8 @@ class ConfigBindingMixin:
             values["num_bottom"] = self._shown_mm(pending.bottom_margin_mm)
             values["num_side"] = self._shown_mm(pending.side_margin_mm)
             position = POSITION_CODES.get(pending.position, "Dış kenar (Tek sağ / Çift sol)")
+            vpos_label = VPOS_CODES.get(getattr(pending, "vertical_pos", "bottom"), "Alt kenar")
+            num_color = getattr(pending, "font_color", (0.08, 0.08, 0.08))
             format_label = FORMAT_CODES.get(pending.format_style, "1, 2, 3")
             template = (pending.text_template or "").strip()
             skip_pages = (pending.skip_pages_str or "").strip()
@@ -302,12 +309,13 @@ class ConfigBindingMixin:
             sections=nt.section_editor.sections() if number_built else pending.sections,
             enabled=self._module_switch("pnum").get() == 1,
             position=POSITION_LABELS.get(position, "outer"),
+            vertical_pos=VPOS_LABELS.get(vpos_label, "bottom"),
             format_style=FORMAT_LABELS.get(format_label, "number"),
             text_template=template,
             start_num=int(values["start_num"]),
             start_page=int(values["start_page"]),
             font_size=values["font_size"],
-            font_color=(0.08, 0.08, 0.08),
+            font_color=num_color,
             bottom_margin_mm=values["num_bottom"],
             side_margin_mm=values["num_side"],
             skip_pages_str=skip_pages,

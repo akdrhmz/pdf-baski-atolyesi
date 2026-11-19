@@ -1772,6 +1772,7 @@ class QtToplevel(QDialog, QtWidgetMixin):
         super().__init__(master)
         self._init_mixin(master)
         self._close_cb: Optional[Callable[[], None]] = None
+        self._drop_callback: Optional[Callable[[List[str]], None]] = None
 
     def title(self, text: Optional[str] = None) -> str:
         if text is not None:
@@ -1822,6 +1823,24 @@ class QtToplevel(QDialog, QtWidgetMixin):
             super().update()
         except Exception:
             pass
+
+    def set_drop_callback(self, callback: Callable[[List[str]], None]) -> None:
+        self._drop_callback = callback
+        self.setAcceptDrops(callback is not None)
+
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
+        if self._drop_callback is not None and event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event: QDropEvent) -> None:
+        if self._drop_callback is None or not event.mimeData().hasUrls():
+            return
+        paths = [url.toLocalFile() for url in event.mimeData().urls() if url.isLocalFile()]
+        if paths:
+            event.acceptProposedAction()
+            self._drop_callback(paths)
 
 
 class QtInputDialog:

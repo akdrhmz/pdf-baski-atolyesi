@@ -67,6 +67,7 @@ class PipelineMixin:
         self.btn_new_job.setVisible(has_any_job)
         output_exists = bool(self.output_pdf_path and os.path.isfile(self.output_pdf_path))
         self.btn_open_pdf.setVisible(output_exists and not self._busy)
+        self.btn_open_tools.setVisible(output_exists and not self._busy)
         self.btn_open_folder.setVisible(output_exists and not self._busy)
         self.btn_cancel.setVisible(self._busy)
 

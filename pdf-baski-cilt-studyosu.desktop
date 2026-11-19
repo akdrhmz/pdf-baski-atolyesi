@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=PDF Baskı & Cilt Stüdyosu
+Comment=Vektörel PDF baskı, cilt payı, numaralandırma ve montaj stüdyosu
+Exec=/home/kadir/Projeler/pdf-baski-cilt-studyosu/baslat.sh
+Icon=/home/kadir/Projeler/pdf-baski-cilt-studyosu/assets/icon.png
+Terminal=false
+Categories=Office;Publishing;Utility;
+StartupWMClass=hamza.pdf.printstudio

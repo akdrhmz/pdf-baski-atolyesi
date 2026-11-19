@@ -251,6 +251,7 @@ class WorkflowMixin:
         self.btn_cancel.configure(state="normal", fg_color=COLOR_ERROR_BG,
                                   text_color=COLOR_ERROR)
         self.btn_open_pdf.configure(state="disabled")
+        self.btn_open_tools.configure(state="disabled")
         self.btn_open_folder.configure(state="disabled")
         self.btn_new_job.configure(state="disabled")
         self.btn_preflight.hide()
@@ -280,8 +281,10 @@ class WorkflowMixin:
         if merge is not None and getattr(merge, "built", False):
             merge.clear()
         self.btn_open_pdf.configure(state="disabled")
+        self.btn_open_tools.configure(state="disabled")
         self.btn_open_folder.configure(state="disabled")
         self.btn_open_pdf.hide()
+        self.btn_open_tools.hide()
         self.btn_open_folder.hide()
         self.progress_bar.set(0)
         self.title(APP_NAME)
@@ -327,6 +330,7 @@ class WorkflowMixin:
         self.progress_bar.set(1.0)
         self._reset_cancel_button()
         self.btn_open_pdf.configure(state="normal")
+        self.btn_open_tools.configure(state="normal")
         self.btn_open_folder.configure(state="normal")
         self.btn_new_job.configure(state="normal")
         self._update_pipeline_summary()

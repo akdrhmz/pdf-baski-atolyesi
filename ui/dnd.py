@@ -59,8 +59,14 @@ class DropMixin:
         try:
             paths = [self._decode_dropped(item).strip().strip('"') for item in files]
             paths = [p for p in paths if p]
-            pdfs = [p for p in paths
-                    if p.lower().endswith(".pdf") and os.path.isfile(p)]
+            in_merge = "Birleştirme" in self.tabview.get()
+            img_exts = (".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff")
+            if in_merge:
+                pdfs = [p for p in paths
+                        if (p.lower().endswith(".pdf") or p.lower().endswith(img_exts)) and os.path.isfile(p)]
+            else:
+                pdfs = [p for p in paths
+                        if p.lower().endswith(".pdf") and os.path.isfile(p)]
             if not pdfs:
                 messagebox.showinfo(
                     "Sürükle-bırak",
@@ -69,7 +75,7 @@ class DropMixin:
                 )
                 return
 
-            if "Birleştirme" in self.tabview.get():
+            if in_merge:
                 before = len(self.merge_files)
                 for path in pdfs:
                     self._append_merge_file(path)

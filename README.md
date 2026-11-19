@@ -12,6 +12,7 @@
   <a href="https://github.com/akdrhmz/pdf-baski-atolyesi/releases/latest"><strong>İndir (Releases)</strong></a> ·
   <a href="#özellikler">Özellikler</a> ·
   <a href="#kurulum-ve-çalıştırma">Kurulum</a> ·
+  <a href="CHANGELOG.md">Değişiklikler</a> ·
   <a href="#lisans-ve-iletişim">Lisans</a>
 </p>
 
@@ -129,7 +130,7 @@ pdf-baski-atolyesi/
 ├── packaging/                 # Windows Inno Setup betiği
 ├── tools/                     # İkon üretici ve ölçüm betikleri
 ├── samples/referans/          # Örnek PDF seti
-├── docs/                      # Geliştirme planı ve sürüm notları
+├── CHANGELOG.md               # Sürüm değişiklik günlüğü
 └── tests/                     # Birim, arayüz ve görsel regresyon testleri
 ```
 

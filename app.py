@@ -452,6 +452,10 @@ def main() -> None:
     setup_logging()
     logging.getLogger("studio").info("Uygulama başlatılıyor (Python %s)", sys.version.split()[0])
     app = ModernGutterApp()
+    for arg in sys.argv[1:]:
+        if arg.lower().endswith(".pdf") and os.path.isfile(arg):
+            app.after(50, lambda p=os.path.abspath(arg): app._load_file(p))
+            break
     app.schedule_tab_prewarm()
     app.mainloop()
 

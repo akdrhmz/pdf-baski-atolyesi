@@ -1,11 +1,11 @@
-# PDF Baskı & Cilt Stüdyosu
+# PDF Baskı Atölyesi
 
-**Sürüm:** `version.py` içindeki tek kaynaktan okunur (şu an 2.9.0)  
+**Sürüm:** `core/version.py` içindeki tek kaynaktan okunur (şu an 2.10.0)  
 **Geliştirici:** Abdülkadir Hamza — support@kadirhamza.com
 
-PyMuPDF ile vektörel (yeniden örneklemesiz) PDF hazırlığı yapan Windows masaüstü
+PyMuPDF ile vektörel (yeniden örneklemesiz) PDF hazırlığı yapan **Windows ve Linux** masaüstü
 uygulaması: duplex cilt payı, sabit alt/üst pay, sayfa numaralandırma, kırpma
-taraması, sonuç doğrulama ve kayıpsız birleştirme.
+taraması, sonuç doğrulama, kayıpsız birleştirme ve entegre baskı/montaj araçları.
 
 Kaynak dosyaya asla yazılmaz. Çıktı önce geçici dosyaya yazılır, başarılı olursa
 hedefe taşınır.
@@ -125,18 +125,25 @@ python studio_cli.py --profile "ayarlar.json" --input "C:\PDFler" --output "C:\C
 
 ## Kurulum ve çalıştırma
 
-Python 3.10+ gerekir.
+Python 3.10+ (3.12 önerilir) gerekir.
 
+**Linux:**
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+./baslat.sh
+```
+
+**Windows:**
 ```bat
 python -m pip install -r requirements.txt
 Baslat.bat
 ```
 
-`Baslat.bat` Python'u ve `pythonw`'yi kendisi arar; eksikse anlaşılır mesaj verir.
-
 Elle çalıştırma:
 
-```bat
+```bash
 python app.py
 ```
 

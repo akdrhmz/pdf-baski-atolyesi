@@ -209,6 +209,37 @@ def _crop_marks(page, trim):
             page.draw_line((x + sign * gap, y), (x + sign * (gap + length), y), width=0.3)
 
 
+def _impose_grid_dimensions(options: PrintOptions) -> tuple[int, int]:
+    """Montaj kipine ve kağıt yönüne göre (sütun, satır) sayısını döndürür."""
+    if options.mode == "marks":
+        return 1, 1
+    if options.mode == "4up":
+        return 2, 2
+    if options.mode == "2up" and options.height_mm > options.width_mm:
+        return 1, 2
+    return 2, 1
+
+
+def _place_in_cell(source_rect: pymupdf.Rect, x: float, y: float,
+                   cell_w: float, cell_h: float, creep: float = 0.0) -> tuple[pymupdf.Rect, pymupdf.Matrix]:
+    """Kaynak sayfayı (CropBox ofsetinden bağımsız) hücre içine orantılı ve tam ortalı yerleştirir."""
+    src_w = max(1e-3, source_rect.width)
+    src_h = max(1e-3, source_rect.height)
+    scale = min(cell_w / src_w, cell_h / src_h)
+    dw, dh = src_w * scale, src_h * scale
+    dx = x + creep + (cell_w - dw) / 2.0
+    dy = y + (cell_h - dh) / 2.0
+    if dx < x or dx + dw > x + cell_w:
+        safe_w = max(1e-3, cell_w - 2.0 * abs(creep))
+        scale = min(safe_w / src_w, cell_h / src_h)
+        dw, dh = src_w * scale, src_h * scale
+        dx = x + abs(creep) + creep + (safe_w - dw) / 2.0
+        dy = y + (cell_h - dh) / 2.0
+    dest = pymupdf.Rect(dx, dy, dx + dw, dy + dh)
+    matrix = pymupdf.Matrix(scale, 0, 0, scale, dx - source_rect.x0 * scale, dy - source_rect.y0 * scale)
+    return dest, matrix
+
+
 @pdf_operation
 def impose_pdf(source, output, options, should_cancel=None):
     _check_output(source, output)
@@ -223,10 +254,9 @@ def impose_pdf(source, output, options, should_cancel=None):
         page_links = [page.get_links() for page in src]
         src.bake(annots=True, widgets=True)
         total = len(src)
-        columns, rows = (2, 2) if options.mode == "4up" else (2, 1)
+        columns, rows = _impose_grid_dimensions(options)
         if options.mode == "marks":
             groups = [[i] for i in range(total)]
-            columns = rows = 1
         elif options.mode == "booklet":
             if options.signature_size < 0 or (options.signature_size > 0 and options.signature_size % 4 != 0):
                 raise ConfigError(["Forma boyutu 0 (tek forma) veya 4'ün katı olmalı."])
@@ -277,17 +307,7 @@ def impose_pdf(source, output, options, should_cancel=None):
                 if abs(creep) >= cell_w / 2:
                     raise ConfigError(["Kitapçık kayma telafisi hücre genişliği için çok büyük."])
                 source_rect = src[source_page].rect
-                matrix = fit_matrix(source_rect.width, source_rect.height, cell_w, cell_h)
-                matrix.e += x + creep
-                matrix.f += y
-                dest = source_rect * matrix
-                # Kayma nedeniyle hücre dışında kalan içerik komşu sayfaya taşmasın.
-                if dest.x0 < x or dest.x1 > x + cell_w:
-                    safe_w = cell_w - 2 * abs(creep)
-                    matrix = fit_matrix(source_rect.width, source_rect.height, safe_w, cell_h)
-                    matrix.e += x + abs(creep) + creep
-                    matrix.f += y
-                    dest = source_rect * matrix
+                dest, matrix = _place_in_cell(source_rect, x, y, cell_w, cell_h, creep)
                 if src[source_page].get_contents():
                     page.show_pdf_page(dest, src, source_page)
                 placement[source_page] = (side, matrix)
@@ -405,7 +425,7 @@ def describe_impose_sheet(total_pages: int, options: PrintOptions, side_index: i
     """Seçili montaj yüzü için yaprak/ön-arka/kaynak sayfa özetini döndürür."""
     if total_pages <= 0:
         return {"total_sides": 0, "side": 0, "sheet": 0, "face": "", "pages": [], "pad_blank": 0}
-    columns, rows = (2, 2) if options.mode == "4up" else (2, 1)
+    columns, rows = _impose_grid_dimensions(options)
     if options.mode == "marks":
         groups = [[i] for i in range(total_pages)]
     elif options.mode == "booklet":
@@ -453,10 +473,9 @@ def render_tool_preview(source, tool_kind: str, options, page_index: int = 0, zo
 
         if tool_kind == "impose":
             normalize_page_rotations(src)
-            columns, rows = (2, 2) if options.mode == "4up" else (2, 1)
+            columns, rows = _impose_grid_dimensions(options)
             if options.mode == "marks":
                 groups = [[i] for i in range(total)]
-                columns = rows = 1
             elif options.mode == "booklet":
                 groups = booklet_order(total, options.signature_size, options.rtl)
             else:
@@ -496,16 +515,7 @@ def render_tool_preview(source, tool_kind: str, options, page_index: int = 0, zo
                     if abs(creep) >= cell_w / 2:
                         raise ConfigError(["Kitapçık kayma telafisi hücre genişliği için çok büyük."])
                     source_rect = src[source_page].rect
-                    matrix = fit_matrix(source_rect.width, source_rect.height, cell_w, cell_h)
-                    matrix.e += x + creep
-                    matrix.f += y
-                    dest = source_rect * matrix
-                    if dest.x0 < x or dest.x1 > x + cell_w:
-                        safe_w = cell_w - 2 * abs(creep)
-                        matrix = fit_matrix(source_rect.width, source_rect.height, safe_w, cell_h)
-                        matrix.e += x + abs(creep) + creep
-                        matrix.f += y
-                        dest = source_rect * matrix
+                    dest, _matrix = _place_in_cell(source_rect, x, y, cell_w, cell_h, creep)
                     if src[source_page].get_contents():
                         page.show_pdf_page(dest, src, source_page)
                 if options.crop_marks:

@@ -657,7 +657,7 @@ class PreviewPanel:
                     return
                 try:
                     if tool_spec is not None:
-                        from core.gutter_engine import PreviewPage
+                        from core.gutter_engine import PreviewPage, mm_to_pt
                         from core.pdf_tools import describe_impose_sheet, render_tool_preview
                         kind, opts, total_tool, tool_warn = tool_spec
                         pages = []
@@ -671,13 +671,16 @@ class PreviewPanel:
                                 ptxt = ", ".join(str(p) if p is not None else "Boş" for p in info["pages"])
                                 cap = (f"{info['sheet']}. Yaprak · {info['face']} [{ptxt}]"
                                        if opts.mode == "booklet" else f"Yaprak {p_idx + 1} [{ptxt}]")
+                                pw = mm_to_pt(opts.width_mm) if opts.mode != "marks" else 595.0
+                                ph = mm_to_pt(opts.height_mm) if opts.mode != "marks" else 842.0
                             else:
                                 cap = f"{p_idx + 1}. sayfa (damga/Bates)"
+                                pw, ph = 595.0, 842.0
                             pages.append(PreviewPage(
                                 page_index=p_idx,
                                 png=data,
-                                width_pt=595.0,
-                                height_pt=842.0,
+                                width_pt=pw,
+                                height_pt=ph,
                                 scale=zoom,
                                 is_odd=(p_idx % 2 == 0),
                                 number_text=None,

@@ -156,3 +156,33 @@ def test_number_tab_vpos_and_color_ui(tmp_path):
         assert cfg.page_numbers.font_color == pytest.approx((0.2, 0.4, 0.6))
     finally:
         app.destroy()
+
+
+def test_impose_centering_with_offset_cropbox_and_portrait_2up(tmp_path):
+    from core.pdf_tools import _place_in_cell, _impose_grid_dimensions
+
+    # Dikey kağıtta 2-up 1x2 (alt alta) olmalı
+    assert _impose_grid_dimensions(PrintOptions(mode="2up", width_mm=210.0, height_mm=297.0)) == (1, 2)
+    assert _impose_grid_dimensions(PrintOptions(mode="2up", width_mm=297.0, height_mm=210.0)) == (2, 1)
+
+    # Ofsetli CropBox (x0=40, y0=60) hücresinin tam ortasına oturmalı
+    offset_rect = pymupdf.Rect(40, 60, 440, 660)
+    dest, _mat = _place_in_cell(offset_rect, x=10.0, y=20.0, cell_w=200.0, cell_h=300.0, creep=0.0)
+    assert dest.x0 == pytest.approx(10.0)
+    assert dest.y0 == pytest.approx(20.0)
+    assert (dest.x0 + dest.x1) / 2.0 == pytest.approx(110.0)
+    assert (dest.y0 + dest.y1) / 2.0 == pytest.approx(170.0)
+
+    # Gerçek ofsetli CropBox PDF üzerinde 4-up ortalı yerleşim
+    src = tmp_path / "offset.pdf"
+    out = tmp_path / "out4up.pdf"
+    with pymupdf.open() as doc:
+        for _ in range(4):
+            p = doc.new_page(width=600, height=800)
+            p.set_cropbox(pymupdf.Rect(100, 100, 500, 700))
+            p.draw_rect(pymupdf.Rect(110, 110, 490, 690), color=(0, 0, 0), width=2)
+        doc.save(str(src))
+    impose_pdf(str(src), str(out), PrintOptions(mode="4up", width_mm=297.0, height_mm=210.0))
+    assert out.exists()
+    with pymupdf.open(str(out)) as doc:
+        assert len(doc) == 1

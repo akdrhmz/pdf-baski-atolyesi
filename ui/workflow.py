@@ -246,7 +246,6 @@ class WorkflowMixin:
         self._cancel_event.clear()
         self.preview_panel.invalidate()
         self.btn_main_action.configure(state="disabled", text="İşleniyor...")
-        self.btn_pdf_tools.configure(state="disabled")
         self.btn_top_batch.configure(state="disabled")
         self.btn_cancel.configure(state="normal", fg_color=COLOR_ERROR_BG,
                                   text_color=COLOR_ERROR)
@@ -298,7 +297,6 @@ class WorkflowMixin:
         self.btn_new_job.configure(state="normal")
         self.progress_bar.set(0)
         self._reset_cancel_button()
-        self.btn_pdf_tools.configure(state="normal")
         self.btn_top_batch.configure(state="normal")
         self._update_pipeline_summary()
         self._set_status(message, color)
@@ -325,7 +323,6 @@ class WorkflowMixin:
 
     def _on_success(self, report, warnings: List[str]) -> None:
         self._busy = False
-        self.btn_pdf_tools.configure(state="normal")
         self.btn_top_batch.configure(state="normal")
         self.progress_bar.set(1.0)
         self._reset_cancel_button()
@@ -360,7 +357,6 @@ class WorkflowMixin:
 
     def _on_error(self, title: str, exc: Exception, details: str = "") -> None:
         self._busy = False
-        self.btn_pdf_tools.configure(state="normal")
         self.btn_top_batch.configure(state="normal")
         self.btn_new_job.configure(state="normal")
         self.progress_bar.set(0)

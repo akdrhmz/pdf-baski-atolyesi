@@ -185,9 +185,6 @@ class ShellBuildMixin:
 
         right = ctk.CTkFrame(bar, fg_color="transparent")
         right.put("h")
-        self.btn_pdf_tools = ctk.CTkButton(right, text="Baskı ve araçlar", width=138, height=30,
-                                           command=lambda: self.select_tab("Baskı ve Araçlar"))
-        self.btn_pdf_tools.put("h", margins=(0, 0, SP_S, 0))
         self.btn_top_batch = ctk.CTkButton(right, text="Toplu işlem…", width=104, height=30,
                                            command=self._show_batch_dialog)
         self.btn_top_batch.put("h", margins=(0, 0, SP_S, 0))

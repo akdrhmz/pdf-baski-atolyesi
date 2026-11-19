@@ -207,7 +207,7 @@ Version:        ${APP_VER}
 Release:        1
 Summary:        Vektorel PDF baski, cilt payi, numaralandirma ve montaj atolyesi
 License:        MIT
-URL:            https://github.com/akdrhmz/pdf-baski-cilt-studyosu
+URL:            https://github.com/akdrhmz/pdf-baski-atolyesi
 
 %description
 PyMuPDF ve PySide6 tabanli kayipsiz PDF baski, cilt payi, numaralandirma ve kitapcik montaj uygulamasi.

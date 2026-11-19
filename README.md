@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/akdrhmz/pdf-baski-cilt-studyosu/releases/latest"><strong>İndir (Releases)</strong></a> ·
+  <a href="https://github.com/akdrhmz/pdf-baski-atolyesi/releases/latest"><strong>İndir (Releases)</strong></a> ·
   <a href="#özellikler">Özellikler</a> ·
   <a href="#kurulum-ve-çalıştırma">Kurulum</a> ·
   <a href="#lisans-ve-iletişim">Lisans</a>
@@ -25,7 +25,7 @@ PyMuPDF ve PySide6 (Qt 6) ile geliştirilen **PDF Baskı Atölyesi**, kaynak PDF
 
 ## İndir (Hazır Kurulum Paketleri)
 
-Python veya sanal ortam kurmadan doğrudan çalıştırmak için [Releases](https://github.com/akdrhmz/pdf-baski-cilt-studyosu/releases/latest) sayfasından sisteminize uygun paketi indirin:
+Python veya sanal ortam kurmadan doğrudan çalıştırmak için [Releases](https://github.com/akdrhmz/pdf-baski-atolyesi/releases/latest) sayfasından sisteminize uygun paketi indirin:
 
 | Platform | Paket | Açıklama |
 | :--- | :--- | :--- |
@@ -79,8 +79,8 @@ Python **3.10+** (3.12 önerilir) gerekir.
 
 ### Linux
 ```bash
-git clone https://github.com/akdrhmz/pdf-baski-cilt-studyosu.git
-cd pdf-baski-cilt-studyosu
+git clone https://github.com/akdrhmz/pdf-baski-atolyesi.git
+cd pdf-baski-atolyesi
 ./install_linux.sh      # .venv kurar ve uygulama menüsüne ekler
 ```
 * **Çalıştırma:** `./baslat.sh` (veya uygulama menüsünden *PDF Baskı Atölyesi*)
@@ -88,8 +88,8 @@ cd pdf-baski-cilt-studyosu
 
 ### Windows
 ```bat
-git clone https://github.com/akdrhmz/pdf-baski-cilt-studyosu.git
-cd pdf-baski-cilt-studyosu
+git clone https://github.com/akdrhmz/pdf-baski-atolyesi.git
+cd pdf-baski-atolyesi
 install_windows.bat     # .venv kurar ve Masaüstü/Başlat Menüsü kısayolu ekler
 ```
 * **Çalıştırma:** `Baslat.bat` (veya `python app.py`)
@@ -112,7 +112,7 @@ python -m pytest tests -q
 ## Klasör Yapısı
 
 ```text
-pdf-baski-cilt-studyosu/
+pdf-baski-atolyesi/
 ├── app.py                     # Ana masaüstü uygulama giriş noktası
 ├── studio_cli.py              # Komut satırı toplu işlem aracı
 ├── core/                      # Çekirdek motor, montaj, ayarlar ve sürüm
@@ -146,4 +146,4 @@ pdf-baski-cilt-studyosu/
 ## Lisans ve İletişim
 
 Bu proje **[MIT Lisansı](LICENSE)** ile ücretsiz ve açık kaynak olarak sunulmaktadır.  
-Soru, öneri ve hata bildirimleri için: **support@kadirhamza.com** · [GitHub Issues](https://github.com/akdrhmz/pdf-baski-cilt-studyosu/issues)
+Soru, öneri ve hata bildirimleri için: **support@kadirhamza.com** · [GitHub Issues](https://github.com/akdrhmz/pdf-baski-atolyesi/issues)

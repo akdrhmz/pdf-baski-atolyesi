@@ -4,6 +4,14 @@ Bu dosyada **PDF Baskı Atölyesi** sürümlerindeki önemli yenilikler ve düze
 
 ---
 
+## [2.11.1] — 2026-11-25
+
+### İyileştirmeler & Temizlik
+* **Odak Halkası & Okunabilirlik (`DESIGN.md`):** Metin/sayı giriş kutularına ve düğmelere `2px` yüksek görünürlüklü odak çerçevesi (`COLOR_ACCENT`) eklendi; `4. Baskı ve Araçlar` sekmesi mod seçicisi `12px` kalın yazı tipine yükseltildi ve tasarım sistemi `DESIGN.md` dosyasında belgelendi.
+* **Kod Tabanı Sadeleştirmesi (`-789 satır`):** `4. Baskı ve Araçlar` sekmesinin kopyası olan eski modal `ui/pdf_tools.py` penceresi ve kullanılmayan eski kalıntılar sıfır özellik/test kaybıyla temizlendi.
+
+---
+
 ## [2.11.0] — 2026-11-25
 
 ### Yenilikler

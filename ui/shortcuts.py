@@ -13,6 +13,8 @@ class ShortcutsMixin:
     def _bind_shortcuts(self) -> None:
         self.bind("<Control-o>", lambda e: self._choose_file())
         self.bind("<Control-O>", lambda e: self._choose_file())
+        self.bind("<Control-p>", lambda e: self._print_active_pdf())
+        self.bind("<Control-P>", lambda e: self._print_active_pdf())
         # Ctrl+S "işle" anlamına geliyordu; asıl eylem Ctrl+Enter oldu.
         self.bind("<Control-Return>", lambda e: self._invoke_main_action())
         self.bind("<Return>", self._on_enter_key)

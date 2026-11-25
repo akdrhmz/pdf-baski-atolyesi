@@ -659,23 +659,28 @@ class PreviewPanel:
                     if tool_spec is not None:
                         from core.gutter_engine import PreviewPage, mm_to_pt
                         from core.pdf_tools import describe_impose_sheet, render_tool_preview
+                        from ui.i18n import tr
                         kind, opts, total_tool, tool_warn = tool_spec
                         pages = []
                         for p_idx in wanted:
-                            data = render_tool_preview(path, kind, opts, page_index=p_idx, zoom=zoom)
+                            data, pw, ph = render_tool_preview(
+                                path, kind, opts, page_index=p_idx, zoom=zoom, return_size=True,
+                            )
                             if kind == "impose":
                                 info = describe_impose_sheet(
                                     getattr(self.host._app, "orig_page_count", 0) or total_tool,
                                     opts, p_idx,
                                 )
-                                ptxt = ", ".join(str(p) if p is not None else "Boş" for p in info["pages"])
-                                cap = (f"{info['sheet']}. Yaprak · {info['face']} [{ptxt}]"
-                                       if opts.mode == "booklet" else f"Yaprak {p_idx + 1} [{ptxt}]")
-                                pw = mm_to_pt(opts.width_mm) if opts.mode != "marks" else 595.0
-                                ph = mm_to_pt(opts.height_mm) if opts.mode != "marks" else 842.0
+                                ptxt = ", ".join(str(p) if p is not None else tr("Boş") for p in info["pages"])
+                                cap = (tr(f"{info['sheet']}. Yaprak · {info['face']} [{ptxt}]")
+                                       if opts.mode == "booklet" else tr(f"Yaprak {p_idx + 1} [{ptxt}]"))
+                                if pw <= 0 or ph <= 0:
+                                    pw = mm_to_pt(opts.width_mm) if opts.mode != "marks" else 595.0
+                                    ph = mm_to_pt(opts.height_mm) if opts.mode != "marks" else 842.0
                             else:
-                                cap = f"{p_idx + 1}. sayfa (damga/Bates)"
-                                pw, ph = 595.0, 842.0
+                                cap = tr(f"{p_idx + 1}. sayfa (damga/Bates)")
+                                if pw <= 0 or ph <= 0:
+                                    pw, ph = 595.0, 842.0
                             pages.append(PreviewPage(
                                 page_index=p_idx,
                                 png=data,

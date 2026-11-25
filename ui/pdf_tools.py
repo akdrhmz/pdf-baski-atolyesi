@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import threading
 
-from PySide6.QtCore import Qt, QSize, QTimer
+from PySide6.QtCore import Qt, QSize, QThread, QTimer
 from PySide6.QtGui import QColor, QIcon, QPixmap
 from PySide6.QtWidgets import QColorDialog, QLabel, QListWidget, QListWidgetItem, QAbstractItemView
 
@@ -12,7 +12,7 @@ from ui.preview_canvas import PreviewCanvas
 from ui.qt_compat import filedialog, messagebox
 from ui.widgets import FieldRow, FieldError
 from ui.theme import *
-from core.gutter_engine import open_pdf, unique_output_path, PDF_LOCK
+from core.gutter_engine import open_pdf, same_path, unique_output_path, PDF_LOCK
 from core.pdf_tools import (
     export_pages, split_pages, stamp_pdf, impose_pdf, apply_security_and_metadata,
     render_tool_preview, describe_impose_sheet, StampOptions, PrintOptions, SecurityMetaOptions,
@@ -569,7 +569,8 @@ class PdfToolsWindow:
                                 pixmap = QPixmap(96, 120)
                                 pixmap.fill(Qt.GlobalColor.lightGray)
                             item.setIcon(QIcon(pixmap))
-                    self._timer.start()
+                    if QThread.currentThread() is self._timer.thread():
+                        self._timer.start()
                 self.app._ui(apply)
             self._pool.submit(work).add_done_callback(completed)
 
@@ -683,9 +684,20 @@ class PdfToolsWindow:
         self._pool.submit(action).add_done_callback(completed)
 
     def output_path(self, suffix):
-        value = filedialog.asksaveasfilename(title="PDF'i kaydet", defaultextension=".pdf",
-                    initialfile=f"{Path(self.path).stem}_{suffix}.pdf", filetypes=[("PDF", "*.pdf")])
-        return unique_output_path(value) if value else ""
+        default_file = unique_output_path(str(Path(self.path).with_name(f"{Path(self.path).stem}_{suffix}.pdf")))
+        value = filedialog.asksaveasfilename(
+            title="PDF'i kaydet",
+            defaultextension=".pdf",
+            initialdir=str(Path(self.path).parent),
+            initialfile=Path(default_file).name,
+            filetypes=[("PDF", "*.pdf")],
+        )
+        if not value:
+            return ""
+        if same_path(self.path, value):
+            messagebox.showerror("Hata", "Çıktı dosyası kaynakla aynı olamaz.")
+            return ""
+        return value
 
     def close(self):
         if self._busy:

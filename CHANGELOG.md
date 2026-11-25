@@ -4,6 +4,20 @@ Bu dosyada **PDF Baskı Atölyesi** sürümlerindeki önemli yenilikler ve düze
 
 ---
 
+## [2.11.0] — 2026-11-25
+
+### Yenilikler
+* **Doğrudan Yazdırma (`Yazdır…` / `Ctrl+P`):** Üretilen çıktı veya kaynak PDF'i harici okuyucu kaynaklı ölçekleme/kenar kayması yaşamadan, yüksek çözünürlüklü ve sayfaya tam ortalı olarak doğrudan sistem yazıcısına gönderme özelliği eklendi.
+* **Parola Korumalı PDF Açma & Düzenleme:** Şifreli PDF seçildiğinde parola sorarak oturum içinde açma ve *Güvenlik & Meta* aracında kaynak PDF parolası (`source_password`) alanı eklendi.
+* **Genişletilmiş `studio_cli.py` ve Kalıcı Araç Ayarları:** Komut satırı aracına kitapçık/N-up baskı montajı (`--impose`), filigran/Bates (`--watermark`, `--bates-prefix`), sayfa ayıklama/bölme (`--pages`, `--split`) ve parola/görsel sıkıştırma (`--compress-dpi`, `--user-password`) modları eklendi; `4. Baskı ve Araçlar` sekmesi ayarları oturumlar arasında kalıcı hale getirildi.
+* **Tam İngilizce Dil Desteği (`i18n`):** `4. Baskı ve Araçlar` sekmesi, canlı önizleme yaprak etiketleri ve yazdırma/parola pencereleri eksiksiz İngilizce çeviri kapsamına alındı.
+
+### Düzeltmeler
+* **Bates Sayfa Aralığı & Önizleme Tutarlılığı:** Sayfa aralığı verildiğinde canlı önizlemedeki Bates sayacı ile kaydedilen PDF çıktısı eşitlendi; gerçek sayfa boyutları (A3, yatay, taşma paylı) ve gömülü açıklamalar (`bake`) önizlemeye yansıtıldı.
+* **Kayıt Diyaloğu, Thread Havuzu & Paketleme:** Kaydet diyaloğunda üzerine yazma seçildiğinde fazladan `(2).pdf` üretilmesi düzeltildi; kapanışta `ToolsTab` iş parçacığı havuzunun kapatılması, arka plan `QTimer` thread güvenliği, Wayland `desktopFileName` eşleşmesi ve `.deb`/`.rpm` kurulum sonrası ikon/menü önbellek betikleri eklendi.
+
+---
+
 ## [2.10.3] — 2026-11-19
 
 ### Yenilikler

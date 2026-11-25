@@ -737,7 +737,9 @@ class MergeTab(MergeDragMixin, BaseTab):
                     else:
                         row._thumbnail.configure(text="PDF")
                 if self._visible_timer is not None:
-                    self._visible_timer.start()
+                    from PySide6.QtCore import QThread
+                    if QThread.currentThread() is self._visible_timer.thread():
+                        self._visible_timer.start()
 
             self.ctx.run_on_ui(apply)
 

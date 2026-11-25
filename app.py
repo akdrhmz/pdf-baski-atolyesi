@@ -177,6 +177,9 @@ class ModernGutterApp(
         merge = getattr(self, "_tabs", {}).get("Birleştirme")
         if merge is not None:
             merge._thumb_pool.shutdown(wait=False, cancel_futures=True)
+        tools_tab = getattr(self, "_tabs", {}).get("Baskı ve Araçlar")
+        if tools_tab is not None and getattr(tools_tab, "built", False):
+            tools_tab.shutdown()
         tools_window = getattr(self, "_pdf_tools_window", None)
         if tools_window is not None:
             tools_window._cancel.set()
@@ -185,6 +188,7 @@ class ModernGutterApp(
         if batch_dialog is not None and batch_dialog._busy:
             batch_dialog._cancel.set()
         self._discard_pending_merge()
+        self._cleanup_unlocked_temps()
         try:
             self._cancel_event.set()
         except Exception:

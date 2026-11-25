@@ -449,13 +449,21 @@ def describe_impose_sheet(total_pages: int, options: PrintOptions, side_index: i
     }
 
 
+def bates_index_for_page(page_index: int, target_pages: set[int] | None) -> int:
+    """Sayfa aralığı etkinse verilen sayfanın kaçıncı damgalanan sayfa olduğunu döndürür."""
+    if target_pages is None:
+        return int(page_index)
+    return sum(1 for p in range(1, int(page_index) + 1) if p in target_pages)
+
+
 @pdf_operation
-def render_tool_preview(source, tool_kind: str, options, page_index: int = 0, zoom: float = 1.4) -> bytes:
+def render_tool_preview(source, tool_kind: str, options, page_index: int = 0, zoom: float = 1.4,
+                        return_size: bool = False):
     """Damga/Bates veya baskı montajının tek sayfalık hızlı PPM önizlemesini üretir."""
     with open_pdf(str(source)) as src:
         total = len(src)
         if total == 0:
-            return b""
+            return (b"", 0.0, 0.0) if return_size else b""
         if tool_kind == "stamp":
             idx = max(0, min(int(page_index), total - 1))
             with pymupdf.open() as tmp:
@@ -467,12 +475,16 @@ def render_tool_preview(source, tool_kind: str, options, page_index: int = 0, zo
                 font_args = {"fontfile": font_info[0]} if font_info else {}
                 target_pages = parse_page_ranges(options.page_range) if getattr(options, "page_range", "").strip() else None
                 if target_pages is None or (idx + 1) in target_pages:
-                    _apply_stamp_to_page(tmp[0], idx, options, font_info, font_name, font_args)
+                    bates_idx = bates_index_for_page(idx, target_pages)
+                    _apply_stamp_to_page(tmp[0], bates_idx, options, font_info, font_name, font_args)
+                rect = tmp[0].rect
                 pix = tmp[0].get_pixmap(matrix=pymupdf.Matrix(zoom, zoom), alpha=False)
-                return pix.tobytes("ppm")
+                ppm = pix.tobytes("ppm")
+                return (ppm, float(rect.width), float(rect.height)) if return_size else ppm
 
         if tool_kind == "impose":
             normalize_page_rotations(src)
+            src.bake(annots=True, widgets=True)
             columns, rows = _impose_grid_dimensions(options)
             if options.mode == "marks":
                 groups = [[i] for i in range(total)]
@@ -482,7 +494,7 @@ def render_tool_preview(source, tool_kind: str, options, page_index: int = 0, zo
                 size = columns * rows
                 groups = [list(range(start, min(start + size, total))) for start in range(0, total, size)]
             if not groups:
-                return b""
+                return (b"", 0.0, 0.0) if return_size else b""
             side = max(0, min(int(page_index), len(groups) - 1))
             group = groups[side]
             sig_sheets = max(1, options.signature_size // 4) if options.signature_size > 0 else 0
@@ -522,6 +534,8 @@ def render_tool_preview(source, tool_kind: str, options, page_index: int = 0, zo
                     _crop_marks(page, trim)
                 if options.divider_line and options.mode in ("2up", "4up", "booklet"):
                     _divider_lines(page, extra, margin, cell_w, cell_h, gap, columns, rows, width, height)
+                rect = page.rect
                 pix = page.get_pixmap(matrix=pymupdf.Matrix(zoom, zoom), alpha=False)
-                return pix.tobytes("ppm")
-    return b""
+                ppm = pix.tobytes("ppm")
+                return (ppm, float(rect.width), float(rect.height)) if return_size else ppm
+    return (b"", 0.0, 0.0) if return_size else b""

@@ -190,6 +190,15 @@ Architecture: amd64
 Maintainer: Abdulkadir Hamza <support@kadirhamza.com>
 Description: Vektorel PDF baski, cilt payi, numaralandirma ve montaj atolyesi
 CTRL
+    cat > "$DEB_ROOT/DEBIAN/postinst" <<'POST'
+#!/bin/sh
+set -e
+command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database /usr/share/applications >/dev/null 2>&1 || true
+command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -f -t /usr/share/icons/hicolor >/dev/null 2>&1 || true
+exit 0
+POST
+    cp "$DEB_ROOT/DEBIAN/postinst" "$DEB_ROOT/DEBIAN/postrm"
+    chmod 0755 "$DEB_ROOT/DEBIAN/postinst" "$DEB_ROOT/DEBIAN/postrm"
     dpkg-deb --build "$DEB_ROOT" "dist/${PKG_NAME}_${APP_VER}_amd64.deb"
     echo "Hazır (Debian/Ubuntu/Pardus): dist/${PKG_NAME}_${APP_VER}_amd64.deb"
 fi
@@ -232,6 +241,14 @@ Categories=Office;Publishing;Utility;
 MimeType=application/pdf;
 StartupWMClass=pdf-baski-atolyesi
 DESK
+
+%post
+command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database /usr/share/applications >/dev/null 2>&1 || :
+command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -f -t /usr/share/icons/hicolor >/dev/null 2>&1 || :
+
+%postun
+command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database /usr/share/applications >/dev/null 2>&1 || :
+command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -f -t /usr/share/icons/hicolor >/dev/null 2>&1 || :
 
 %files
 /opt/${PKG_NAME}

@@ -36,6 +36,7 @@ from ui.widgets import FieldError, FieldRow
 LAYOUT_TAB = "Sayfa Düzeni"
 NUMBER_TAB = "Sayfa Numaraları"
 MERGE_TAB = "Birleştirme"
+TOOLS_TAB = "Baskı ve Araçlar"
 
 #: modül anahtarı -> pencere/sekme üzerindeki anahtar widget'ı
 MODULE_SWITCHES = {"gutter": "switch_gutter", "margin": "switch_margin", "pnum": "switch_pnum"}
@@ -94,6 +95,8 @@ class ConfigBindingMixin:
             return data
         if name == NUMBER_TAB:
             return {"numbers": PageNumberSettings()}
+        if name == TOOLS_TAB:
+            return {}
         return {"apply_pipeline": False, "bookmarks": True}
 
     def _set_section(self, name: str, data: Dict[str, Any]) -> None:
@@ -127,6 +130,9 @@ class ConfigBindingMixin:
             nt.section_editor.set_sections(numbers.sections)
             # "Alt orta" konumunda yan boşluk alanı pasif, ipucu görünür (yüklenen ayarda da).
             nt.update_side_state()
+        elif name == TOOLS_TAB:
+            tt = self._tabs[TOOLS_TAB]
+            tt.apply_state(data)
         else:
             mt = self._tabs[MERGE_TAB]
             mt.chk_merge_apply_pipeline.select() if data["apply_pipeline"] else mt.chk_merge_apply_pipeline.deselect()
@@ -409,6 +415,12 @@ class ConfigBindingMixin:
             section = self._section(MERGE_TAB)
             state["apply_pipeline"] = bool(section["apply_pipeline"])
             state["merge_bookmarks"] = bool(section["bookmarks"])
+        if self._tab_built(TOOLS_TAB):
+            state["tools"] = self._tabs[TOOLS_TAB].to_state()
+        else:
+            tools_sec = self._section(TOOLS_TAB)
+            if tools_sec:
+                state["tools"] = dict(tools_sec)
         return state
 
     def _restore_settings(self) -> None:
@@ -421,6 +433,8 @@ class ConfigBindingMixin:
             self._apply_config(config)
             self._set_section(MERGE_TAB, {"apply_pipeline": bool(state.get("apply_pipeline")),
                                           "bookmarks": bool(state.get("merge_bookmarks", True))})
+            if isinstance(state.get("tools"), dict):
+                self._set_section(TOOLS_TAB, dict(state["tools"]))
         else:
             self._apply_config(PdfProcessConfig(
                 page_boxes=PageBoxSettings(enabled=True, target_width_mm=210.0,
@@ -437,6 +451,42 @@ class ConfigBindingMixin:
         """Fabrika sıfırlamadan sonra ekrandaki tüm alanları ve modülleri varsayılana getirir."""
         self._restore_settings()
         self._set_section(MERGE_TAB, {"apply_pipeline": False, "bookmarks": True})
+        self._pending().pop(TOOLS_TAB, None)
+        tools = self._tabs.get(TOOLS_TAB)
+        if tools is not None and tools.built:
+            tools.apply_state({
+                "operation": "Baskı Montajı",
+                "group_size": 0,
+                "watermark": "",
+                "opacity": 18.0,
+                "angle": 45,
+                "stamp_size": 40.0,
+                "stamp_color": [0.4, 0.4, 0.4],
+                "stamp_pages": "",
+                "bates_enabled": False,
+                "bates_prefix": "",
+                "bates_suffix": "",
+                "bates_start": 1,
+                "bates_digits": 6,
+                "bates_pos": "Sol alt",
+                "print_mode": "Kitapçık",
+                "paper_preset": "A4 Yatay (297×210)",
+                "paper_width": 297.0,
+                "paper_height": 210.0,
+                "print_margin": 5.0,
+                "print_gap": 2.0,
+                "bleed": 0.0,
+                "creep": 0.0,
+                "signature": "Tek forma (tüm belge)",
+                "crop_marks": False,
+                "divider_line": False,
+                "rtl": False,
+                "clear_meta": False,
+                "allow_print": True,
+                "allow_copy": True,
+                "compress_images": False,
+                "image_dpi": 150,
+            })
         merge = self._tabs[MERGE_TAB]
         if merge.built:
             merge.chk_merge_fit.deselect()

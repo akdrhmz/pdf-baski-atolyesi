@@ -681,3 +681,16 @@ class DialogsMixin:
             return
         self._load_file(self.output_pdf_path)
         self.select_tab("Baskı ve Araçlar")
+
+    def _print_active_pdf(self) -> None:
+        """Varsa çıktı PDF'ini, yoksa kaynak PDF'i sistem yazdırma diyaloğuyla yazdırır."""
+        if self._busy:
+            return
+        target = (
+            self.output_pdf_path
+            if (self.output_pdf_path and os.path.isfile(self.output_pdf_path))
+            else self.input_pdf_path
+        )
+        from ui.print_pdf import print_pdf_with_dialog
+        if print_pdf_with_dialog(self, target):
+            self._set_status(f"Yazıcıya gönderildi: {os.path.basename(target)}", COLOR_OK)

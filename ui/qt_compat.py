@@ -91,6 +91,10 @@ def ensure_qapp() -> QApplication:
     app = QApplication.instance()
     if app is None:
         app = QApplication(sys.argv if sys.argv else ["studio"])
+        try:
+            app.setDesktopFileName("pdf-baski-atolyesi")
+        except Exception:
+            pass
         font = QFont(FONT_FAMILY)
         font.setPixelSize(FS_BODY)
         app.setFont(font)

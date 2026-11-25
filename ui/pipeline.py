@@ -66,9 +66,12 @@ class PipelineMixin:
         has_any_job = has_single_source or merge_count > 0 or bool(self.output_pdf_path)
         self.btn_new_job.setVisible(has_any_job)
         output_exists = bool(self.output_pdf_path and os.path.isfile(self.output_pdf_path))
+        can_print = (output_exists or has_single_source) and not self._busy
         self.btn_open_pdf.setVisible(output_exists and not self._busy)
         self.btn_open_tools.setVisible(output_exists and not self._busy)
         self.btn_open_folder.setVisible(output_exists and not self._busy)
+        self.btn_print_pdf.configure(state="normal" if can_print else "disabled")
+        self.btn_print_pdf.setVisible(can_print)
         self.btn_cancel.setVisible(self._busy)
 
         if "Baskı ve Araçlar" in self.tabview.get():

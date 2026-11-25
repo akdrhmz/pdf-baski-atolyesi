@@ -23,6 +23,7 @@ from core.gutter_engine import (
     get_pdf_info,
     merge_pdfs,
     process_pdf,
+    same_path,
     scan_clipping,
     unique_output_path,
     verify_output,
@@ -89,7 +90,10 @@ class MergeJobMixin:
         )
         if not output_path:
             return
-        output_path = unique_output_path(output_path)
+        for entry in self.merge_tab.files:
+            if same_path(str(entry.get("path", "")), output_path):
+                messagebox.showerror("Hata", "Çıktı dosyası kaynak PDF'lerden biriyle aynı olamaz.")
+                return
 
         self.output_pdf_path = output_path
         self._work_config = config

@@ -550,12 +550,20 @@ class ShellBuildMixin:
         )
         self.btn_open_tools.place(0, 3, align="e")
         self.btn_open_tools.hide()
+        self.btn_print_pdf = ctk.CTkButton(
+            buttons, text="Yazdır…", width=86, height=34, state="disabled",
+            fg_color=COLOR_BTN_SUBTLE, text_color=COLOR_TEXT_PRIMARY,
+            hover_color=COLOR_BTN_SUBTLE_HOVER, command=self._print_active_pdf,
+        )
+        self.btn_print_pdf.setToolTip("Çıktı veya kaynak PDF'i doğrudan yazıcıya gönder (Ctrl+P)")
+        self.btn_print_pdf.place(0, 4, align="e")
+        self.btn_print_pdf.hide()
         self.btn_cancel = ctk.CTkButton(
             buttons, text="İptal", width=74, height=34, state="disabled",
             fg_color=COLOR_SUBCARD, text_color=COLOR_TEXT_SECONDARY,
             hover_color=COLOR_ERROR_BG, command=self._cancel_work,
         )
-        self.btn_cancel.place(0, 4, align="e")
+        self.btn_cancel.place(0, 5, align="e")
         self.btn_cancel.hide()
         self.btn_preflight = ctk.CTkButton(
             buttons, text="Ön kontrol", width=90, height=34,
@@ -563,7 +571,7 @@ class ShellBuildMixin:
             hover_color=COLOR_BTN_SUBTLE_HOVER, command=self._show_preflight_summary,
         )
         self.btn_preflight.setToolTip("Kaynağı, etkin ayarları ve çıktı seçeneklerini gözden geçirin.")
-        self.btn_preflight.place(0, 5, align="e")
+        self.btn_preflight.place(0, 6, align="e")
         self.btn_preflight.hide()
         self.btn_main_action = ctk.CTkButton(
             buttons, text="PDF'i işle ve kaydet", width=ACTION_BTN_W, height=36,
@@ -572,7 +580,7 @@ class ShellBuildMixin:
             text_color=COLOR_ON_ACCENT,
             command=self._start_processing,
         )
-        self.btn_main_action.place(0, 6, align="e")
+        self.btn_main_action.place(0, 7, align="e")
 
     # =====================================================================
     # Önizleme paneli: genişlik sınırı ve gösterim kipleri

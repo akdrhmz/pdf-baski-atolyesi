@@ -55,10 +55,15 @@ def tr(text):
     # Yalnız bilinen arayüz kalıpları; dosya adları ve kullanıcı metinlerine
     # kelime kelime çeviri uygulanmaz.
     for pattern, replacement in (
-        (r"^(\d+)\. (Sayfa Düzeni|Sayfa Numaraları|Birleştirme)$",
+        (r"^(\d+)\. (Sayfa Düzeni|Sayfa Numaraları|Birleştirme|Baskı ve Araçlar)$",
          lambda m: f"{m[1]}. {tr(m[2])}"),
         (r"^(\d+)\. sayfa$", lambda m: f"Page {m[1]}"),
-        (r"^(Ayarlar|Hakkında) - (.+)$", lambda m: f"{tr(m[1])} - {m[2]}"),
+        (r"^(\d+)\. sayfa · (\d+)°$", lambda m: f"Page {m[1]} · {m[2]}°"),
+        (r"^(\d+)\. sayfa \(damga/Bates\)$", lambda m: f"Page {m[1]} (stamp/Bates)"),
+        (r"^(\d+)\. Yaprak · (Ön|Arka) \[(.+)\]$",
+         lambda m: f"Sheet {m[1]} · {'Front' if m[2] == 'Ön' else 'Back'} [{m[3]}]"),
+        (r"^Yaprak (\d+) \[(.+)\]$", lambda m: f"Sheet {m[1]} [{m[2]}]"),
+        (r"^(Ayarlar|Hakkında|Yazdır) - (.+)$", lambda m: f"{tr(m[1])} - {m[2]}"),
         (r"^Toplam: (\d+) dosya \| (\d+) sayfa(.*)$",
          lambda m: f"Total: {m[1]} files | {m[2]} pages{m[3]}"),
     ):

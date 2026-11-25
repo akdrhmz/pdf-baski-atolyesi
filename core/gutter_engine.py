@@ -201,7 +201,7 @@ def unique_output_path(path: str) -> str:
     return f"{base} ({os.getpid()}){ext}"
 
 
-def open_pdf(path: str) -> pymupdf.Document:
+def open_pdf(path: str, password: Optional[str] = None) -> pymupdf.Document:
     """PDF'i açar; sorun varsa anlaşılır Türkçe hata fırlatır."""
     if not os.path.exists(path):
         raise FileNotFoundError(f"Dosya bulunamadı: {path}")
@@ -215,11 +215,12 @@ def open_pdf(path: str) -> pymupdf.Document:
             f"'{name}' açılamadı. Dosya bozuk ya da PDF değil olabilir.\n({exc})"
         ) from exc
     if doc.needs_pass:
-        doc.close()
-        raise PdfPasswordError(
-            f"'{name}' parola ile korunuyor. Parolayı kaldırıp (ör. tarayıcıda "
-            "'PDF olarak yazdır' ile) yeniden deneyin."
-        )
+        if not password or not doc.authenticate(password):
+            doc.close()
+            raise PdfPasswordError(
+                f"'{name}' parola ile korunuyor. Geçerli parolayı girin veya parolayı kaldırıp "
+                "yeniden deneyin."
+            )
     if not doc.is_pdf:
         doc.close()
         raise PdfOpenError(f"'{name}' bir PDF belgesi değil.")

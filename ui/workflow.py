@@ -74,7 +74,8 @@ class WorkflowMixin:
     # İşleme ve birleştirme
     # =====================================================================
     def _suggest_output_path(self, tags: List[str]) -> str:
-        directory, filename = os.path.split(self.input_pdf_path)
+        origin = getattr(self, "_source_origin_path", "") or self.input_pdf_path
+        directory, filename = os.path.split(origin)
         name, extension = os.path.splitext(filename)
         suffix = "_" + "_".join(tags) if tags else "_islenmis"
         return unique_output_path(os.path.join(directory, f"{name}{suffix}{extension or '.pdf'}"))
@@ -115,8 +116,9 @@ class WorkflowMixin:
         )
         if not output_path:
             return
-        output_path = unique_output_path(output_path)
-        if os.path.normcase(os.path.realpath(output_path)) == os.path.normcase(os.path.realpath(self.input_pdf_path)):
+        origin = getattr(self, "_source_origin_path", "") or self.input_pdf_path
+        if (os.path.normcase(os.path.realpath(output_path)) == os.path.normcase(os.path.realpath(self.input_pdf_path))
+                or os.path.normcase(os.path.realpath(output_path)) == os.path.normcase(os.path.realpath(origin))):
             messagebox.showerror("Hata", "Çıktı dosyası kaynakla aynı olamaz.")
             return
 
@@ -272,6 +274,9 @@ class WorkflowMixin:
         if self._busy:
             return
         self._discard_pending_merge()
+        self._cleanup_unlocked_temps()
+        self._source_origin_path = ""
+        self._source_origin_dir = ""
         self.input_pdf_path = ""
         self.output_pdf_path = ""
         self.orig_page_count = 0
@@ -279,12 +284,17 @@ class WorkflowMixin:
         merge = self._tabs.get("Birleştirme")
         if merge is not None and getattr(merge, "built", False):
             merge.clear()
+        tools = self._tabs.get("Baskı ve Araçlar")
+        if tools is not None and getattr(tools, "built", False):
+            tools.load("")
         self.btn_open_pdf.configure(state="disabled")
         self.btn_open_tools.configure(state="disabled")
         self.btn_open_folder.configure(state="disabled")
+        self.btn_print_pdf.configure(state="disabled")
         self.btn_open_pdf.hide()
         self.btn_open_tools.hide()
         self.btn_open_folder.hide()
+        self.btn_print_pdf.hide()
         self.progress_bar.set(0)
         self.title(APP_NAME)
         self.preview_panel.reset_for_new_document()

@@ -10,11 +10,11 @@ from pathlib import Path
 import threading
 from typing import Optional
 
-from PySide6.QtCore import Qt, QSize, QTimer
+from PySide6.QtCore import Qt, QSize, QThread, QTimer
 from PySide6.QtGui import QColor, QIcon, QPixmap
 from PySide6.QtWidgets import QAbstractItemView, QColorDialog, QListWidget, QListWidgetItem
 
-from core.gutter_engine import PDF_LOCK, open_pdf, unique_output_path
+from core.gutter_engine import PDF_LOCK, open_pdf, same_path, unique_output_path
 from core.pdf_tools import (
     PrintOptions,
     SecurityMetaOptions,
@@ -272,10 +272,11 @@ class ToolsTab(BaseTab):
         self.meta_keywords = self._entry(self.security_section, 3, "Anahtar kelimeler", "")
         self.clear_meta = ctk.CTkCheckBox(self.security_section, text="Mevcut tüm meta verileri (yazar/başlık vb.) temizle")
         self.clear_meta.place(4, 0, align="w")
-        self.user_pw = self._entry(self.security_section, 5, "Açılış parolası (opsiyonel)", "Boşsa parola konmaz")
-        self.owner_pw = self._entry(self.security_section, 6, "İzin parolası (opsiyonel)", "Kısıtlama için parola")
+        self.source_pw = self._entry(self.security_section, 5, "Kaynak PDF parolası (şifreliyse)", "Şifresizse boş bırakın")
+        self.user_pw = self._entry(self.security_section, 6, "Açılış parolası (opsiyonel)", "Boşsa parola konmaz")
+        self.owner_pw = self._entry(self.security_section, 7, "İzin parolası (opsiyonel)", "Kısıtlama için parola")
         perm_row = ctk.CTkFrame(self.security_section, fg_color="transparent")
-        perm_row.place(7, 0, align="w")
+        perm_row.place(8, 0, align="w")
         self.allow_print = ctk.CTkCheckBox(perm_row, text="Yazdırmaya izin ver")
         self.allow_print.select()
         self.allow_print.put("h", margins=(0, 0, SP_M, 0))
@@ -286,11 +287,11 @@ class ToolsTab(BaseTab):
             self.security_section,
             text="Görselleri yeniden örnekle (taranmış büyük PDF'leri küçültür)",
         )
-        self.compress_images.place(8, 0, align="w")
+        self.compress_images.place(9, 0, align="w")
         self.image_dpi = FieldRow(self.security_section, "Hedef görsel çözünürlüğü (DPI)", "150",
                                   minimum=36, maximum=600, integer=True, convert=False,
                                   suffix="DPI", label_width=240)
-        self.image_dpi.place(9, 0, align="w")
+        self.image_dpi.place(10, 0, align="w")
 
         self.update_operation()
         app_path = getattr(self.ctx._app, "input_pdf_path", "")
@@ -423,9 +424,135 @@ class ToolsTab(BaseTab):
                                 pixmap = QPixmap(92, 116)
                                 pixmap.fill(Qt.GlobalColor.lightGray)
                             item.setIcon(QIcon(pixmap))
-                    self._thumb_timer.start()
+                    if QThread.currentThread() is self._thumb_timer.thread():
+                        self._thumb_timer.start()
                 self.ctx._app._ui(apply)
             self._pool.submit(work).add_done_callback(completed)
+
+    def shutdown(self) -> None:
+        """Arka plan küçük resim/işlem havuzunu ve zamanlayıcıyı güvenle kapatır."""
+        self._cancel.set()
+        self._generation += 1
+        try:
+            self._thumb_timer.stop()
+        except Exception:
+            pass
+        self._pool.shutdown(wait=False, cancel_futures=True)
+
+    def to_state(self) -> dict:
+        """Parolalar hariç tüm araç ayarlarını kalıcı sözlük olarak döndürür."""
+        def _val(row, default):
+            try:
+                return row.get_value()
+            except Exception:
+                return default
+
+        return {
+            "operation": self.operation.get(),
+            "group_size": int(_val(self.group_size, 0)),
+            "watermark": self.watermark.get(),
+            "opacity": float(_val(self.opacity, 18.0)),
+            "angle": int(_val(self.angle, 45)),
+            "stamp_size": float(_val(self.stamp_size, 40.0)),
+            "stamp_color": list(self._stamp_color),
+            "stamp_pages": self.stamp_pages.get(),
+            "bates_enabled": bool(self.bates.get()),
+            "bates_prefix": self.prefix.get(),
+            "bates_suffix": self.suffix.get(),
+            "bates_start": int(_val(self.bates_start, 1)),
+            "bates_digits": int(_val(self.bates_digits, 6)),
+            "bates_pos": self.bates_pos.get(),
+            "print_mode": self.print_mode.get(),
+            "paper_preset": self.paper_preset.get(),
+            "paper_width": float(_val(self.paper_width, 297.0)),
+            "paper_height": float(_val(self.paper_height, 210.0)),
+            "print_margin": float(_val(self.print_margin, 5.0)),
+            "print_gap": float(_val(self.print_gap, 2.0)),
+            "bleed": float(_val(self.bleed, 0.0)),
+            "creep": float(_val(self.creep, 0.0)),
+            "signature": self.signature_menu.get(),
+            "crop_marks": bool(self.crop_marks.get()),
+            "divider_line": bool(self.divider_line.get()),
+            "rtl": bool(self.rtl_order.get()),
+            "clear_meta": bool(self.clear_meta.get()),
+            "allow_print": bool(self.allow_print.get()),
+            "allow_copy": bool(self.allow_copy.get()),
+            "compress_images": bool(self.compress_images.get()),
+            "image_dpi": int(_val(self.image_dpi, 150)),
+        }
+
+    def apply_state(self, data: dict) -> None:
+        """Kaydedilmiş araç ayarlarını bileşenlere uygular."""
+        if not isinstance(data, dict) or not data:
+            return
+        op = data.get("operation")
+        if op in ("Sayfaları Düzenle", "Filigran & Bates", "Baskı Montajı", "Güvenlik & Meta"):
+            self.operation.set(op)
+        if "group_size" in data:
+            self.group_size.set_value(str(int(data["group_size"])))
+        for entry, key in (
+            (self.watermark, "watermark"),
+            (self.stamp_pages, "stamp_pages"),
+            (self.prefix, "bates_prefix"),
+            (self.suffix, "bates_suffix"),
+        ):
+            if key in data and isinstance(data[key], str):
+                entry.delete(0, "end")
+                entry.insert(0, data[key])
+        for row, key in (
+            (self.opacity, "opacity"),
+            (self.angle, "angle"),
+            (self.stamp_size, "stamp_size"),
+            (self.bates_start, "bates_start"),
+            (self.bates_digits, "bates_digits"),
+            (self.paper_width, "paper_width"),
+            (self.paper_height, "paper_height"),
+            (self.print_margin, "print_margin"),
+            (self.print_gap, "print_gap"),
+            (self.bleed, "bleed"),
+            (self.creep, "creep"),
+            (self.image_dpi, "image_dpi"),
+        ):
+            if key in data:
+                row.set_value(f"{data[key]:g}" if isinstance(data[key], float) else str(data[key]))
+        color = data.get("stamp_color")
+        if isinstance(color, (list, tuple)) and len(color) == 3:
+            try:
+                r, g, b = (max(0.0, min(1.0, float(c))) for c in color)
+                self._stamp_color = (r, g, b)
+                qc = QColor.fromRgbF(r, g, b)
+                lum = 0.299 * r + 0.587 * g + 0.114 * b
+                self.btn_stamp_color.configure(
+                    fg_color=qc.name(),
+                    text_color="#111111" if lum > 0.55 else "#FFFFFF",
+                )
+            except (TypeError, ValueError):
+                pass
+        if data.get("bates_pos") in _BATES_POSITIONS:
+            self.bates_pos.set(data["bates_pos"])
+        if data.get("print_mode") in ("2 sayfa / yaprak", "4 sayfa / yaprak", "Kitapçık", "Yalnız kesim ve taşma payı"):
+            self.print_mode.set(data["print_mode"])
+        if data.get("paper_preset") in _PAPER_PRESETS:
+            self.paper_preset.set(data["paper_preset"])
+        if data.get("signature") in _SIGNATURE_OPTIONS:
+            self.signature_menu.set(data["signature"])
+        for chk, key, default in (
+            (self.bates, "bates_enabled", False),
+            (self.crop_marks, "crop_marks", False),
+            (self.divider_line, "divider_line", False),
+            (self.rtl_order, "rtl", False),
+            (self.clear_meta, "clear_meta", False),
+            (self.allow_print, "allow_print", True),
+            (self.allow_copy, "allow_copy", True),
+            (self.compress_images, "compress_images", False),
+        ):
+            if key in data:
+                chk.select() if bool(data[key]) else chk.deselect()
+            elif default:
+                chk.select()
+            else:
+                chk.deselect()
+        self.update_operation()
 
     def build_stamp_options(self) -> StampOptions:
         return StampOptions(
@@ -519,6 +646,7 @@ class ToolsTab(BaseTab):
                     allow_copy=bool(self.allow_copy.get()),
                     compress_images=bool(self.compress_images.get()),
                     image_dpi=int(self.image_dpi.get_value()),
+                    source_password=self.source_pw.get(),
                 )
                 target = self._output_path("guvenli")
                 action = lambda: apply_security_and_metadata(self.path, target, opts, app._cancel_event.is_set)
@@ -552,15 +680,27 @@ class ToolsTab(BaseTab):
                     app._end_work(f"Kaydedildi: {Path(result).name}", COLOR_OK)
                 else:
                     app._end_work(f"Kaydedildi: {len(result)} parça", COLOR_OK)
+                app.store.last_state = app._collect_state()
+                app.store.save()
             app._ui(finish)
 
         self._pool.submit(worker)
 
     def _output_path(self, suffix: str) -> str:
+        app = self.ctx._app
+        origin = getattr(app, "_source_origin_path", "") or self.path
+        initial_dir = getattr(app, "_source_origin_dir", "") or str(Path(origin).parent)
+        default_file = unique_output_path(str(Path(initial_dir) / f"{Path(origin).stem}_{suffix}.pdf"))
         value = filedialog.asksaveasfilename(
             title="PDF'i kaydet",
             defaultextension=".pdf",
-            initialfile=f"{Path(self.path).stem}_{suffix}.pdf",
+            initialdir=initial_dir,
+            initialfile=Path(default_file).name,
             filetypes=[("PDF", "*.pdf")],
         )
-        return unique_output_path(value) if value else ""
+        if not value:
+            return ""
+        if same_path(self.path, value) or same_path(origin, value):
+            messagebox.showerror("Hata", "Çıktı dosyası kaynakla aynı olamaz.")
+            return ""
+        return value

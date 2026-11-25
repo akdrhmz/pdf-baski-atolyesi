@@ -18,7 +18,7 @@
 
 ---
 
-**Sürüm:** `core/version.py` (güncel: `2.10.3`) · **Lisans:** [MIT](LICENSE) (Ücretsiz ve Açık Kaynak) · **İletişim:** support@kadirhamza.com
+**Sürüm:** `core/version.py` (güncel: `2.11.0`) · **Lisans:** [MIT](LICENSE) (Ücretsiz ve Açık Kaynak) · **İletişim:** support@kadirhamza.com
 
 PyMuPDF ve PySide6 (Qt 6) ile geliştirilen **PDF Baskı Atölyesi**, kaynak PDF'lere asla dokunmadan atomik kayıt, işlem öncesi kırpma riski taraması ve işlem sonrası piksel/metin doğrulaması ile baskıya hazır PDF'ler üretir.
 

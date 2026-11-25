@@ -96,9 +96,9 @@ class ToolsTab(BaseTab):
         self.operation = ctk.CTkSegmentedButton(
             nav_card,
             values=["Sayfaları Düzenle", "Filigran & Bates", "Baskı Montajı", "Güvenlik & Meta"],
-            height=30,
+            height=32,
             border_width=0, fg_color=COLOR_SUBCARD, bg_color=COLOR_CARD,
-            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_TINY),
+            font=ctk.CTkFont(family=FONT_FAMILY, size=FS_SMALL, weight="bold"),
             selected_color=COLOR_SELECTED, selected_hover_color=COLOR_SELECTED_HOVER,
             unselected_color=COLOR_CARD, unselected_hover_color=COLOR_BTN_SUBTLE_HOVER,
             text_color=COLOR_TEXT_PRIMARY,

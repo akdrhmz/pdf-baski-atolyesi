@@ -10,8 +10,6 @@ from typing import List
 from ui.qt_compat import filedialog, messagebox
 from core.version import APP_NAME
 
-HAS_WINDND = True
-
 from core.gutter_engine import (
     ProcessCancelled,
     process_pdf,

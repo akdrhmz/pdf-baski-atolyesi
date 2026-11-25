@@ -7,8 +7,6 @@ from typing import List, Optional
 
 from ui import qt_compat as ctk
 
-HAS_WINDND = True
-
 from core.gutter_engine import (
     UNITS,
     format_measure,

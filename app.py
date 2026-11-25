@@ -21,8 +21,6 @@ from typing import List, Optional
 from ui import qt_compat as ctk
 from ui.qt_compat import messagebox
 
-HAS_WINDND = True
-
 from core.gutter_engine import (
     UNITS,
     PdfProcessConfig,
@@ -129,8 +127,6 @@ class ModernGutterApp(
             row.reset_unit(self.unit)
         self._restore_settings()
         self._update_pipeline_summary()
-        self._refresh_profile_menu()
-        self._update_unit_button()
         self._announce_restored_settings()
         self._schedule_preview()
         self._queue_after = self.after(50, self._drain_ui_queue)
@@ -180,10 +176,6 @@ class ModernGutterApp(
         tools_tab = getattr(self, "_tabs", {}).get("Baskı ve Araçlar")
         if tools_tab is not None and getattr(tools_tab, "built", False):
             tools_tab.shutdown()
-        tools_window = getattr(self, "_pdf_tools_window", None)
-        if tools_window is not None:
-            tools_window._cancel.set()
-            tools_window._pool.shutdown(wait=False, cancel_futures=True)
         batch_dialog = getattr(self, "_batch_dialog", None)
         if batch_dialog is not None and batch_dialog._busy:
             batch_dialog._cancel.set()
@@ -262,10 +254,6 @@ class ModernGutterApp(
         self.store.save()
         self._update_margin_preset_labels()
         self._on_field_changed()
-
-    def _update_unit_button(self) -> None:
-        """Ölçü birimi artık yalnızca Ayarlar'da (v2.3.0); Belge kartında seçici yok."""
-        return
 
     def _all_field_rows(self) -> List[FieldRow]:
         """Kurulu sekmelerin alan satırları (kurulmamış sekme kurulurken birimi alır)."""

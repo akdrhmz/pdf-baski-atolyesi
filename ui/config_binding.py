@@ -445,7 +445,6 @@ class ConfigBindingMixin:
             self._apply_gutter_preset(15.0)  # varsayılan: Cilt payı Standart (15 mm), açık
             self._toggle_margin_fields()
             self._toggle_pnum_fields()
-        self._update_unit_button()
 
     def _apply_factory_state(self) -> None:
         """Fabrika sıfırlamadan sonra ekrandaki tüm alanları ve modülleri varsayılana getirir."""
@@ -511,55 +510,8 @@ class ConfigBindingMixin:
         )
 
     # =====================================================================
-    # Profiller, kağıt şablonları, hazır cilt payları
+    # Hazır profiller ve kağıt şablonları
     # =====================================================================
-    def _refresh_profile_menu(self) -> None:
-        if not hasattr(self, "profile_menu"):
-            return  # profil yönetimi arayüzden kaldırıldı; ayarlar settings.json'a otomatik kaydedilir
-        names = self.store.profile_names()
-        values = ["(profil seçin)"] + names
-        self.profile_menu.configure(values=values)
-        if self.profile_menu.get() not in values:
-            self.profile_menu.set(values[0])
-
-    def _load_profile(self) -> None:
-        name = self.profile_menu.get()
-        if name.startswith("("):
-            messagebox.showinfo("Profil", "Önce kayıtlı bir profil seçin.")
-            return
-        data = self.store.get_profile(name)
-        if not data:
-            messagebox.showwarning("Profil", f"'{name}' profili bulunamadı.")
-            return
-        self._apply_config(config_from_dict(data))
-        self._set_status(f"'{name}' profili yüklendi.", COLOR_TEXT_PRIMARY)
-
-    def _save_profile(self) -> None:
-        config = self._build_config(notify=True)
-        if config is None:
-            return
-        dialog = ctk.CTkInputDialog(title="Profili kaydet", text="Profil adı:")
-        name = (dialog.get_input() or "").strip()
-        if not name:
-            return
-        try:
-            self.store.save_profile(name, config)
-        except Exception as exc:
-            messagebox.showerror("Profil", f"Profil kaydedilemedi:\n{exc}")
-            return
-        self._refresh_profile_menu()
-        self.profile_menu.set(name)
-        self._set_status(f"'{name}' profili kaydedildi.", COLOR_OK)
-
-    def _delete_profile(self) -> None:
-        name = self.profile_menu.get()
-        if name.startswith("("):
-            return
-        if not messagebox.askyesno("Profili sil", f"'{name}' profili silinsin mi?"):
-            return
-        self.store.delete_profile(name)
-        self._refresh_profile_menu()
-
     def _apply_named_preset(self, name: str) -> None:
         data = PRESETS.get(name)
         if not data:

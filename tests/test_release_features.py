@@ -237,19 +237,21 @@ def test_settings_preferences_persist_and_factory_reset(tmp_path, monkeypatch):
         app.destroy()
 
 
-def test_pdf_tools_window_opens_and_closes(source, tmp_path):
+def test_tools_tab_page_grid_rotate_and_remove(source, tmp_path):
+    from PySide6.QtCore import Qt
     from app import ModernGutterApp
     app = ModernGutterApp(settings_path=tmp_path / "settings.json", log_path=tmp_path / "studio.log")
     try:
-        app.input_pdf_path = str(source)
-        app._show_pdf_tools()
-        tools = app._pdf_tools_window
+        app._load_file(str(source))
+        app.select_tab("Baskı ve Araçlar")
+        tools = app._tabs["Baskı ve Araçlar"]
+        tools.operation.set("Sayfaları Düzenle")
+        tools.update_operation()
         assert tools.grid.count() == 5
         tools.grid.item(0).setSelected(True)
         tools.rotate()
-        assert tuple(tools.grid.item(0).data(__import__('PySide6.QtCore', fromlist=['Qt']).Qt.ItemDataRole.UserRole)) == (0, 90)
+        assert tuple(tools.grid.item(0).data(Qt.ItemDataRole.UserRole)) == (0, 90)
         tools.remove()
         assert tools.grid.count() == 4
-        tools.close()
     finally:
         app.destroy()

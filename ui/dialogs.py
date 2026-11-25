@@ -13,8 +13,6 @@ from PIL import Image
 from ui import qt_compat as ctk
 from ui.qt_compat import filedialog, messagebox
 
-HAS_WINDND = True
-
 from core.settings_store import LOG_PATH
 import core.page_layout_model as plm
 from core.gutter_engine import UNITS, config_from_dict, config_to_dict
@@ -25,12 +23,6 @@ from ui.theme import *  # noqa: F401,F403
 
 class DialogsMixin:
     """İletişim kutuları ve Hakkında penceresi."""
-
-    def _show_pdf_tools(self):
-        if self._busy:
-            return
-        from ui.pdf_tools import PdfToolsWindow
-        self._pdf_tools_window = PdfToolsWindow(self)
 
     def _show_batch_dialog(self):
         if self._busy:
@@ -356,10 +348,6 @@ class DialogsMixin:
 
         def _apply_unit(label: str) -> None:
             self._on_unit_changed(label)
-            try:
-                self._update_unit_button()
-            except Exception:
-                pass
 
         appearance_controls = ctk.CTkFrame(frame, fg_color="transparent")
         appearance_controls.place(3, 0, align="w")
@@ -511,7 +499,6 @@ class DialogsMixin:
                 merge._end_drag()
             try:
                 self._on_unit_changed(UNITS["mm"][0])  # alanlar da yeni birime döner
-                self._update_unit_button()
             except Exception:
                 self.log.exception("Fabrika birimine geçilemedi")
             try:

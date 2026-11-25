@@ -769,7 +769,9 @@ class QtFrame(QFrame, QtWidgetMixin):
             painter.setBrush(QColor(bg))
         else:
             painter.setBrush(Qt.BrushStyle.NoBrush)
-        if bw > 0:
+        if self.hasFocus() and self.isEnabled():
+            painter.setPen(QPen(QColor(resolve_color(COLOR_ACCENT)), 2))
+        elif bw > 0:
             bc = resolve_color(self._props.get("border_color", COLOR_BORDER))
             painter.setPen(QPen(QColor(bc), bw))
         else:
@@ -1158,7 +1160,9 @@ class QtButton(QPushButton, QtWidgetMixin):
             painter.setBrush(QColor(bg))
         else:
             painter.setBrush(Qt.BrushStyle.NoBrush)
-        if bw > 0:
+        if self.hasFocus() and self.isEnabled():
+            painter.setPen(QPen(QColor(resolve_color(COLOR_ACCENT)), 2))
+        elif bw > 0:
             bc = resolve_color(self._props.get("border_color", COLOR_BORDER))
             painter.setPen(QPen(QColor(bc), bw))
         else:
@@ -1242,7 +1246,7 @@ class QtEntry(QLineEdit, QtWidgetMixin):
             else self._props.get("fg_color", COLOR_CARD)
         )
         is_err = self._props.get("border_color") == COLOR_ERROR
-        bw = 2 if is_err else (1 if self.hasFocus() else int(self._props.get("border_width", 1) or 1))
+        bw = 2 if (is_err or self.hasFocus()) else int(self._props.get("border_width", 1) or 1)
         bc = resolve_color(
             COLOR_ERROR
             if is_err

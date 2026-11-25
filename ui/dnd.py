@@ -6,8 +6,6 @@ import os
 
 from ui.qt_compat import messagebox
 
-HAS_WINDND = True
-
 from ui.theme import *  # noqa: F401,F403
 
 
@@ -15,9 +13,6 @@ class DropMixin:
     """Sürükle-bırak ile dosya açma."""
 
     def _init_drag_and_drop(self) -> None:
-        if not HAS_WINDND:
-            self.log.info("windnd bulunamadı; sürükle-bırak devre dışı.")
-            return
         try:
             self.set_drop_callback(self._on_drop_files)
         except Exception:
